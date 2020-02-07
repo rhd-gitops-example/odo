@@ -6,6 +6,10 @@ package value
 
 import (
 	"archive/tar"
+<<<<<<< HEAD
+=======
+	"math"
+>>>>>>> Start of generating Secrets.
 	"reflect"
 	"testing"
 )
@@ -32,6 +36,15 @@ func TestIsZero(t *testing.T) {
 		{TestIsZero, false},
 		{[...]int{0, 0, 0}, true},
 		{[...]int{0, 1, 0}, false},
+<<<<<<< HEAD
+=======
+		{math.Copysign(0, +1), true},
+		{math.Copysign(0, -1), false},
+		{complex(math.Copysign(0, +1), math.Copysign(0, +1)), true},
+		{complex(math.Copysign(0, -1), math.Copysign(0, +1)), false},
+		{complex(math.Copysign(0, +1), math.Copysign(0, -1)), false},
+		{complex(math.Copysign(0, -1), math.Copysign(0, -1)), false},
+>>>>>>> Start of generating Secrets.
 	}
 
 	for _, tt := range tests {
