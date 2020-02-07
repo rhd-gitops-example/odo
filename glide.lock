@@ -139,15 +139,22 @@ imports:
   - ptypes/duration
   - ptypes/timestamp
 - name: github.com/google/btree
+<<<<<<< HEAD
   version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
 - name: github.com/google/go-cmp
   version: 6f77996f0c42f7b84e5a2b252227263f93432e9b
+=======
+  version: 479b5e81b0a93ec038d201b0b33d17db599531d3
+- name: github.com/google/go-cmp
+  version: 5a6f75716e1203a923a78c9efb94089d857df0f6
+>>>>>>> Include basic driver script.
   subpackages:
   - cmp
   - cmp/internal/diff
   - cmp/internal/flags
   - cmp/internal/function
   - cmp/internal/value
+<<<<<<< HEAD
 - name: github.com/google/go-github
   version: 371b0007be89061b4cf899dc2083dd08e3912c14
   subpackages:
@@ -156,6 +163,8 @@ imports:
   version: c8c88dbee036db4e4808d1f2ec8c2e15e11c3f80
   subpackages:
   - query
+=======
+>>>>>>> Include basic driver script.
 - name: github.com/google/gofuzz
   version: f140a6486e521aad38f5917de355cbf147cc0496
 - name: github.com/googleapis/gnostic
@@ -249,10 +258,15 @@ imports:
   - pbutil
 - name: github.com/mgutz/ansi
   version: 9520e82c474b0a04dd04f8a40959027271bab992
+<<<<<<< HEAD
 - name: github.com/Microsoft/go-winio
   version: 3fe6c526287328ec859e2c1258458b685198f204
   subpackages:
   - pkg/guid
+=======
+- name: github.com/mitchellh/go-homedir
+  version: af06845cf3004701891bf4fdb884bfe4920b3727
+>>>>>>> Include basic driver script.
 - name: github.com/mitchellh/go-wordwrap
   version: 9e67c67572bc5dd02aef930e2b0ae3c02a4b5a5c
 - name: github.com/modern-go/concurrent
