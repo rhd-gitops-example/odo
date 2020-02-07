@@ -1,5 +1,5 @@
-hash: b1492b21a92932c9bdf9d95cf067bd92eff40f53558a3bb32f986ec0d84b9b80
-updated: 2020-05-26T22:19:06.324093584-04:00
+hash: 6627303d1f977429bd15b9c8bdc32137922bf54ac048fcc4b0bbb28fb4791158
+updated: 2020-02-10T10:26:08.263153828Z
 imports:
 - name: cloud.google.com/go
   version: 8c41231e01b2085512d98153bcffb847ff9b4b9f
@@ -145,24 +145,15 @@ imports:
   - ptypes/duration
   - ptypes/timestamp
 - name: github.com/google/btree
-  version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
+  version: 479b5e81b0a93ec038d201b0b33d17db599531d3
 - name: github.com/google/go-cmp
-  version: 7e5cb83929c528b29e5a8ac1244eab0436f79bce
+  version: 5a6f75716e1203a923a78c9efb94089d857df0f6
   subpackages:
   - cmp
-  - cmp/cmpopts
   - cmp/internal/diff
   - cmp/internal/flags
   - cmp/internal/function
   - cmp/internal/value
-- name: github.com/google/go-github
-  version: 371b0007be89061b4cf899dc2083dd08e3912c14
-  subpackages:
-  - github
-- name: github.com/google/go-querystring
-  version: c8c88dbee036db4e4808d1f2ec8c2e15e11c3f80
-  subpackages:
-  - query
 - name: github.com/google/gofuzz
   version: f140a6486e521aad38f5917de355cbf147cc0496
 - name: github.com/googleapis/gnostic
@@ -273,10 +264,6 @@ imports:
   - pbutil
 - name: github.com/mgutz/ansi
   version: 9520e82c474b0a04dd04f8a40959027271bab992
-- name: github.com/Microsoft/go-winio
-  version: 3fe6c526287328ec859e2c1258458b685198f204
-  subpackages:
-  - pkg/guid
 - name: github.com/mitchellh/go-homedir
   version: af06845cf3004701891bf4fdb884bfe4920b3727
 - name: github.com/mitchellh/go-wordwrap
