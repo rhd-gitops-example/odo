@@ -47,6 +47,8 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	}
 	outputs = append(outputs, dockerSecret)
 
+	outputs = append(outputs, CreateCIPipeline())
+
 	for _, r := range outputs {
 		data, err := yaml.Marshal(r)
 		if err != nil {
