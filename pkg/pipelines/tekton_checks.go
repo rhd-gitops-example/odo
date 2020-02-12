@@ -93,5 +93,4 @@ func areCRDsInstalled(crdNames ...string) (bool, error) {
 // isTektonPipelinesInstalled returns true if Tekton Pipeline CRD is installed.   Otherwiise, it returns false.
 func isTektonPipelinesInstalled() (bool, error) {
 	return areCRDsInstalled(requiredCRDNames...)
-
 }
