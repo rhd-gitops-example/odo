@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateCIPipeline(t *testing.T) {
-	pipeline := CreateCIPipeline()
+	pipeline := createCIPipeline()
 
 	want := &pipelinev1.Pipeline{
 		TypeMeta: metav1.TypeMeta{
@@ -93,6 +93,6 @@ func TestCreateCIPipeline(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(want, pipeline); diff != "" {
-		t.Fatalf("CreateCIPipeline() failed got\n%s", diff)
+		t.Fatalf("createCIPipeline() failed got\n%s", diff)
 	}
 }
