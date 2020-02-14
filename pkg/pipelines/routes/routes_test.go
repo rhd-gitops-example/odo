@@ -10,12 +10,20 @@ import (
 )
 
 func TestGenerateRoute(t *testing.T) {
-	weight := int32(100)
+	var weight int32
+	weight = 100
 	validRoute := routev1.Route{
-		TypeMeta: routeTypeMeta,
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Route",
+			APIVersion: "route.openshift.io/v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "gitops-webhook-event-listener-route",
-			Namespace: "cicd-environment",
+			Name: "github-webhook-event-listener",
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "EventListener",
+				"app.kubernetes.io/part-of":    "Triggers",
+				"eventlistener":                "cicd-event-listener",
+			},
 		},
 		Spec: routev1.RouteSpec{
 			To: routev1.RouteTargetReference{
@@ -31,9 +39,9 @@ func TestGenerateRoute(t *testing.T) {
 			WildcardPolicy: routev1.WildcardPolicyNone,
 		},
 	}
-	route := Generate("cicd-environment")
+	route := GenerateRoute()
 	if diff := cmp.Diff(validRoute, route); diff != "" {
-		t.Fatalf("Generate() failed:\n%s", diff)
+		t.Fatalf("GenerateRoute() failed:\n%s", diff)
 	}
 }
 
@@ -50,7 +58,8 @@ func TestCreateRoutePort(t *testing.T) {
 }
 
 func TestCreatRouteTargetReference(t *testing.T) {
-	weight := int32(100)
+	var weight int32
+	weight = 100
 	validRouteTargetReference := routev1.RouteTargetReference{
 		Kind:   "Service",
 		Name:   "el-cicd-event-listener",
@@ -59,5 +68,20 @@ func TestCreatRouteTargetReference(t *testing.T) {
 	routeTargetReference := creatRouteTargetReference("Service", "el-cicd-event-listener", 100)
 	if diff := cmp.Diff(validRouteTargetReference, routeTargetReference); diff != "" {
 		t.Fatalf("creatRouteTargetReference() failed:\n%s", diff)
+	}
+}
+
+func TestCreateRouteObjectMeta(t *testing.T) {
+	validObjectMeta := metav1.ObjectMeta{
+		Name: "sampleName",
+		Labels: map[string]string{
+			"app.kubernetes.io/managed-by": "EventListener",
+			"app.kubernetes.io/part-of":    "Triggers",
+			"eventlistener":                "cicd-event-listener",
+		},
+	}
+	objectMeta := createRouteObjectMeta("sampleName")
+	if diff := cmp.Diff(validObjectMeta, objectMeta); diff != "" {
+		t.Fatalf("createRouteObjectMeta() failed:\n%s", diff)
 	}
 }
