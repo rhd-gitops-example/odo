@@ -49,7 +49,7 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	}
 	outputs = append(outputs, dockerSecret)
 
-	eventListener := eventlisteners.GenerateEventListener()
+	eventListener := eventlisteners.GenerateEventListener(baseRepo)
 	outputs = append(outputs, eventListener)
 
 	route := routes.GenerateRoute()
