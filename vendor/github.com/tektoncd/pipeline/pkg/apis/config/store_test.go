@@ -22,7 +22,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	test "github.com/tektoncd/pipeline/pkg/reconciler/testing"
-	"github.com/tektoncd/pipeline/test/diff"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -34,7 +33,7 @@ func TestStoreLoadWithContext(t *testing.T) {
 	config := FromContext(store.ToContext(context.Background()))
 
 	expected, _ := NewDefaultsFromConfigMap(defaultConfig)
-	if d := cmp.Diff(config.Defaults, expected); d != "" {
-		t.Errorf("Unexpected default config %s", diff.PrintWantGot(d))
+	if diff := cmp.Diff(config.Defaults, expected); diff != "" {
+		t.Errorf("Unexpected default config (-want, +got): %v", diff)
 	}
 }

@@ -31,7 +31,7 @@ type testStruct struct {
 	Omit        string      `json:"omit,omitempty"`
 	Ignore      string      `json:"-"`
 	Dash        string      `json:"-,"`
-	//nolint:staticcheck // We actually want to test this broken json options work
+	//lint:ignore SA5008 we actually want to test this broken json options work
 	MultiComma string `json:"multi,omitempty,somethingelse"`
 }
 

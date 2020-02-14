@@ -19,57 +19,50 @@ package taskrun_test
 import (
 	"testing"
 
-	tb "github.com/tektoncd/pipeline/internal/builder/v1beta1"
-	resourcev1alpha1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/reconciler/taskrun"
 	"github.com/tektoncd/pipeline/pkg/reconciler/taskrun/resources"
+	tb "github.com/tektoncd/pipeline/test/builder"
 )
 
 func TestValidateResolvedTaskResources_ValidResources(t *testing.T) {
-	task := tb.Task("foo", tb.TaskSpec(
-		tb.Step("myimage", tb.StepCommand("mycmd")),
-		tb.TaskResources(
-			tb.TaskResourcesInput("resource-to-build", resourcev1alpha1.PipelineResourceTypeGit),
-			tb.TaskResourcesInput("optional-resource-to-build", resourcev1alpha1.PipelineResourceTypeGit, tb.ResourceOptional(true)),
-			tb.TaskResourcesOutput("resource-to-provide", resourcev1alpha1.PipelineResourceTypeImage),
-			tb.TaskResourcesOutput("optional-resource-to-provide", resourcev1alpha1.PipelineResourceTypeImage, tb.ResourceOptional(true)),
+	rtr := tb.ResolvedTaskResources(
+		tb.ResolvedTaskResourcesTaskSpec(
+			tb.Step("myimage", tb.StepCommand("mycmd")),
+			tb.TaskInputs(
+				tb.InputsResource("resource-to-build", v1alpha1.PipelineResourceTypeGit),
+				tb.InputsResource("optional-resource-to-build", v1alpha1.PipelineResourceTypeGit, tb.ResourceOptional(true)),
+			),
+			tb.TaskOutputs(
+				tb.OutputsResource("resource-to-provide", v1alpha1.PipelineResourceTypeImage),
+				tb.OutputsResource("optional-resource-to-provide", v1alpha1.PipelineResourceTypeImage, tb.ResourceOptional(true)),
+			),
 		),
-	))
-	rtr := &resources.ResolvedTaskResources{
-		TaskSpec: &task.Spec,
-		Inputs: map[string]*resourcev1alpha1.PipelineResource{
-			"resource-to-build": tb.PipelineResource("example-resource",
-				tb.PipelineResourceSpec(resourcev1alpha1.PipelineResourceTypeGit,
-					tb.PipelineResourceSpecParam("foo", "bar"),
-				)),
-			"optional-resource-to-build": tb.PipelineResource("example-resource",
-				tb.PipelineResourceSpec(resourcev1alpha1.PipelineResourceTypeGit,
-					tb.PipelineResourceSpecParam("foo", "bar"),
-				)),
-		},
-		Outputs: map[string]*resourcev1alpha1.PipelineResource{
-			"resource-to-provide": tb.PipelineResource("example-image",
-				tb.PipelineResourceSpec(resourcev1alpha1.PipelineResourceTypeImage)),
-			"optional-resource-to-provide": tb.PipelineResource("example-image",
-				tb.PipelineResourceSpec(resourcev1alpha1.PipelineResourceTypeImage)),
-		},
-	}
-	if err := taskrun.ValidateResolvedTaskResources([]v1beta1.Param{}, rtr); err != nil {
+		tb.ResolvedTaskResourcesInputs("resource-to-build", tb.PipelineResource("example-resource", "foo",
+			tb.PipelineResourceSpec(v1alpha1.PipelineResourceTypeGit,
+				tb.PipelineResourceSpecParam("foo", "bar"),
+			))),
+		tb.ResolvedTaskResourcesInputs("optional-resource-to-build", tb.PipelineResource("example-resource", "foo",
+			tb.PipelineResourceSpec(v1alpha1.PipelineResourceTypeGit,
+				tb.PipelineResourceSpecParam("foo", "bar"),
+			))),
+		tb.ResolvedTaskResourcesOutputs("resource-to-provide", tb.PipelineResource("example-image", "bar",
+			tb.PipelineResourceSpec(v1alpha1.PipelineResourceTypeImage)),
+		),
+		tb.ResolvedTaskResourcesOutputs("optional-resource-to-provide", tb.PipelineResource("example-image", "bar",
+			tb.PipelineResourceSpec(v1alpha1.PipelineResourceTypeImage)),
+		))
+	if err := taskrun.ValidateResolvedTaskResources([]v1alpha1.Param{}, rtr); err != nil {
 		t.Fatalf("Did not expect to see error when validating valid resolved TaskRun but saw %v", err)
 	}
 }
 
 func TestValidateResolvedTaskResources_ValidParams(t *testing.T) {
-	task := tb.Task("foo", tb.TaskSpec(
+	rtr := tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
 		tb.Step("myimage", tb.StepCommand("mycmd")),
-		tb.TaskParam("foo", v1beta1.ParamTypeString),
-		tb.TaskParam("bar", v1beta1.ParamTypeString),
+		tb.TaskInputs(tb.InputsParamSpec("foo", v1alpha1.ParamTypeString), tb.InputsParamSpec("bar", v1alpha1.ParamTypeString)),
 	))
-	rtr := &resources.ResolvedTaskResources{
-		TaskSpec: &task.Spec,
-	}
-	p := []v1beta1.Param{{
+	p := []v1alpha1.Param{{
 		Name:  "foo",
 		Value: *tb.ArrayOrString("somethinggood"),
 	}, {
@@ -82,29 +75,27 @@ func TestValidateResolvedTaskResources_ValidParams(t *testing.T) {
 }
 
 func TestValidateResolvedTaskResources_InvalidParams(t *testing.T) {
-	task := tb.Task("foo", tb.TaskSpec(
-		tb.Step("myimage", tb.StepCommand("mycmd")),
-		tb.TaskParam("foo", v1beta1.ParamTypeString),
-	))
 	tcs := []struct {
 		name   string
 		rtr    *resources.ResolvedTaskResources
-		params []v1beta1.Param
+		params []v1alpha1.Param
 	}{{
 		name: "missing-params",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &task.Spec,
-		},
-		params: []v1beta1.Param{{
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.Step("myimage", tb.StepCommand("mycmd")),
+			tb.TaskInputs(tb.InputsParamSpec("foo", v1alpha1.ParamTypeString)),
+		)),
+		params: []v1alpha1.Param{{
 			Name:  "foobar",
 			Value: *tb.ArrayOrString("somethingfun"),
 		}},
 	}, {
 		name: "missing-params",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &task.Spec,
-		},
-		params: []v1beta1.Param{{
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.Step("myimage", tb.StepCommand("mycmd")),
+			tb.TaskInputs(tb.InputsParamSpec("foo", v1alpha1.ParamTypeString)),
+		)),
+		params: []v1alpha1.Param{{
 			Name:  "foo",
 			Value: *tb.ArrayOrString("i am a real param"),
 		}, {
@@ -122,130 +113,96 @@ func TestValidateResolvedTaskResources_InvalidParams(t *testing.T) {
 }
 
 func TestValidateResolvedTaskResources_InvalidResources(t *testing.T) {
-	r := tb.PipelineResource("git-test-resource", tb.PipelineResourceSpec(
-		resourcev1alpha1.PipelineResourceTypeGit,
+	r := tb.PipelineResource("git-test-resource", "foo", tb.PipelineResourceSpec(
+		v1alpha1.PipelineResourceTypeGit,
 		tb.PipelineResourceSpecParam("foo", "bar"),
-	))
-	testinput := tb.Task("foo", tb.TaskSpec(
-		tb.TaskResources(tb.TaskResourcesInput("testinput", resourcev1alpha1.PipelineResourceTypeGit)),
-		// tb.TaskResources(tb.TaskResourcesInput()),
-	))
-	testimageinput := tb.Task("foo", tb.TaskSpec(
-		tb.TaskResources(tb.TaskResourcesInput("testimageinput", resourcev1alpha1.PipelineResourceTypeImage)),
-	))
-	testrequiredgitinput := tb.Task("foo", tb.TaskSpec(
-		tb.TaskResources(tb.TaskResourcesInput("requiredgitinput", resourcev1alpha1.PipelineResourceTypeGit,
-			tb.ResourceOptional(false))),
-	))
-	testoutput := tb.Task("foo", tb.TaskSpec(
-		tb.TaskResources(tb.TaskResourcesOutput("testoutput", resourcev1alpha1.PipelineResourceTypeGit)),
-	))
-	testimageoutput := tb.Task("foo", tb.TaskSpec(
-		tb.TaskResources(tb.TaskResourcesOutput("testimageoutput", resourcev1alpha1.PipelineResourceTypeImage)),
-	))
-	testrequiredgitoutput := tb.Task("foo", tb.TaskSpec(
-		tb.TaskResources(tb.TaskResourcesOutput(
-			"requiredgitoutput", resourcev1alpha1.PipelineResourceTypeGit,
-			tb.ResourceOptional(false)),
-		),
-	))
-	testrequiredinputandoutput := tb.Task("foo", tb.TaskSpec(
-		tb.TaskResources(
-			tb.TaskResourcesInput("requiredimageinput", resourcev1alpha1.PipelineResourceTypeImage,
-				tb.ResourceOptional(false)),
-			tb.TaskResourcesOutput("requiredimageoutput", resourcev1alpha1.PipelineResourceTypeImage,
-				tb.ResourceOptional(false)),
-		),
 	))
 	tcs := []struct {
 		name string
 		rtr  *resources.ResolvedTaskResources
 	}{{
 		name: "bad-inputkey",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testinput.Spec,
-			Inputs:   map[string]*resourcev1alpha1.PipelineResource{"wrong-resource-name": r},
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskInputs(tb.InputsResource("testinput", v1alpha1.PipelineResourceTypeGit)),
+		), tb.ResolvedTaskResourcesInputs("wrong-resource-name", r)),
 	}, {
 		name: "bad-outputkey",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testoutput.Spec,
-			Outputs:  map[string]*resourcev1alpha1.PipelineResource{"wrong-resource-name": r},
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskOutputs(tb.OutputsResource("testoutput", v1alpha1.PipelineResourceTypeGit)),
+		), tb.ResolvedTaskResourcesOutputs("wrong-resource-name", r)),
 	}, {
 		name: "input-resource-mismatch",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testimageinput.Spec,
-			Inputs:   map[string]*resourcev1alpha1.PipelineResource{"testimageinput": r},
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskInputs(tb.InputsResource("testimageinput", v1alpha1.PipelineResourceTypeImage)),
+		), tb.ResolvedTaskResourcesInputs("testimageinput", r)),
 	}, {
 		name: "input-resource-missing",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testimageinput.Spec,
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskInputs(tb.InputsResource("testimageinput", v1alpha1.PipelineResourceTypeImage)),
+		)),
 	}, {
 		name: "output-resource-mismatch",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testimageoutput.Spec,
-			Outputs:  map[string]*resourcev1alpha1.PipelineResource{"testimageoutput": r},
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskOutputs(tb.OutputsResource("testimageoutput", v1alpha1.PipelineResourceTypeImage)),
+		), tb.ResolvedTaskResourcesOutputs("testimageoutput", r)),
 	}, {
 		name: "output-resource-missing",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testimageoutput.Spec,
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskOutputs(tb.OutputsResource("testimageoutput", v1alpha1.PipelineResourceTypeImage)),
+		)),
 	}, {
 		name: "extra-input-resource",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testinput.Spec,
-			Inputs: map[string]*resourcev1alpha1.PipelineResource{
-				"testinput":      r,
-				"someextrainput": r,
-			},
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskInputs(tb.InputsResource("testoutput", v1alpha1.PipelineResourceTypeGit))),
+			tb.ResolvedTaskResourcesInputs("testoutput", r),
+			tb.ResolvedTaskResourcesInputs("someextrainput", r),
+		),
 	}, {
 		name: "extra-output-resource",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testoutput.Spec,
-			Outputs: map[string]*resourcev1alpha1.PipelineResource{
-				"testoutput":      r,
-				"someextraoutput": r,
-			},
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskOutputs(tb.OutputsResource("testoutput", v1alpha1.PipelineResourceTypeGit))),
+			tb.ResolvedTaskResourcesOutputs("testoutput", r),
+			tb.ResolvedTaskResourcesOutputs("someextraoutput", r),
+		),
 	}, {
 		name: "extra-input-resource-none-required",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testoutput.Spec,
-			Inputs:   map[string]*resourcev1alpha1.PipelineResource{"someextrainput": r},
-			Outputs:  map[string]*resourcev1alpha1.PipelineResource{"testoutput": r},
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskOutputs(tb.OutputsResource("testoutput", v1alpha1.PipelineResourceTypeGit))),
+			tb.ResolvedTaskResourcesOutputs("testoutput", r),
+			tb.ResolvedTaskResourcesInputs("someextrainput", r),
+		),
 	}, {
 		name: "extra-output-resource-none-required",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testinput.Spec,
-			Inputs:   map[string]*resourcev1alpha1.PipelineResource{"testinput": r},
-			Outputs:  map[string]*resourcev1alpha1.PipelineResource{"someextraoutput": r},
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskInputs(tb.InputsResource("testinput", v1alpha1.PipelineResourceTypeGit))),
+			tb.ResolvedTaskResourcesInputs("testinput", r),
+			tb.ResolvedTaskResourcesOutputs("someextraoutput", r),
+		),
 	}, {
 		name: "required-input-resource-missing",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testrequiredgitinput.Spec,
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskInputs(tb.InputsResource("requiredgitinput", v1alpha1.PipelineResourceTypeGit,
+				tb.ResourceOptional(false)))),
+		),
 	}, {
 		name: "required-output-resource-missing",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testrequiredgitoutput.Spec,
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskOutputs(tb.OutputsResource("requiredgitoutput", v1alpha1.PipelineResourceTypeGit,
+				tb.ResourceOptional(false)))),
+		),
 	}, {
 		name: "required-input-and-output-resource-missing",
-		rtr: &resources.ResolvedTaskResources{
-			TaskSpec: &testrequiredinputandoutput.Spec,
-		},
+		rtr: tb.ResolvedTaskResources(tb.ResolvedTaskResourcesTaskSpec(
+			tb.TaskInputs(tb.InputsResource("requiredimageinput", v1alpha1.PipelineResourceTypeImage,
+				tb.ResourceOptional(false))),
+			tb.TaskOutputs(tb.OutputsResource("requiredimageoutput", v1alpha1.PipelineResourceTypeImage,
+				tb.ResourceOptional(false)))),
+		),
 	}}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			if err := taskrun.ValidateResolvedTaskResources([]v1beta1.Param{}, tc.rtr); err == nil {
+			if err := taskrun.ValidateResolvedTaskResources([]v1alpha1.Param{}, tc.rtr); err == nil {
 				t.Errorf("Expected to see error when validating invalid resolved TaskRun but saw none")
 			}
 		})

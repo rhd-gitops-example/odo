@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
-	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"knative.dev/pkg/apis"
 )
@@ -44,20 +44,19 @@ func (s *EventListenerSpec) validate(ctx context.Context, el *EventListener) *ap
 }
 
 func (t *EventListenerTrigger) validate(ctx context.Context) *apis.FieldError {
-	// Validate optional Bindings
+	// Validate that only one of binding or bindings is set
+	if t.DeprecatedBinding != nil && len(t.Bindings) > 0 {
+		return apis.ErrMultipleOneOf("binding", "bindings")
+	}
+	// Validate that only one of inteceptor or interceptors is set
+	if t.DeprecatedInterceptor != nil && len(t.Interceptors) > 0 {
+		return apis.ErrMultipleOneOf("interceptor", "interceptors")
+	}
+
+	// Validate optional TriggerBinding
 	for i, b := range t.Bindings {
-		// Either Ref or Spec should be present
-		if b.Ref == "" && b.Spec == nil {
-			return apis.ErrMissingOneOf(fmt.Sprintf("bindings[%d].Ref", i), fmt.Sprintf("bindings[%d].Spec", i))
-		}
-
-		// Both Ref and Spec can't be present at the same time
-		if b.Ref != "" && b.Spec != nil {
-			return apis.ErrMultipleOneOf(fmt.Sprintf("bindings[%d].Ref", i), fmt.Sprintf("bindings[%d].Spec", i))
-		}
-
-		if b.Ref != "" && b.Kind != NamespacedTriggerBindingKind && b.Kind != ClusterTriggerBindingKind {
-			return apis.ErrInvalidValue(fmt.Errorf("invalid kind"), fmt.Sprintf("bindings[%d].kind", i))
+		if b.Name == "" {
+			return apis.ErrMissingField(fmt.Sprintf("bindings[%d].name", i))
 		}
 	}
 	// Validate required TriggerTemplate
@@ -68,7 +67,7 @@ func (t *EventListenerTrigger) validate(ctx context.Context) *apis.FieldError {
 		}
 	}
 	if t.Template.Name == "" {
-		return apis.ErrMissingField("template.name")
+		return apis.ErrMissingField(fmt.Sprintf("template.name"))
 	}
 	for i, interceptor := range t.Interceptors {
 		if err := interceptor.validate(ctx).ViaField(fmt.Sprintf("interceptors[%d]", i)); err != nil {
@@ -147,8 +146,8 @@ func (i *EventInterceptor) validate(ctx context.Context) *apis.FieldError {
 	// }
 
 	if i.CEL != nil {
-		if i.CEL.Filter == "" && len(i.CEL.Overlays) == 0 {
-			return apis.ErrMultipleOneOf("cel.filter", "cel.overlays")
+		if i.CEL.Filter == "" {
+			return apis.ErrMissingField("interceptor.cel.filter")
 		}
 	}
 	return nil

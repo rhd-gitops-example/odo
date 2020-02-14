@@ -19,8 +19,10 @@ package sink
 import (
 	"flag"
 
-	triggersclientset "github.com/tektoncd/triggers/pkg/client/clientset/versioned"
 	"golang.org/x/xerrors"
+
+	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
+	triggersclientset "github.com/tektoncd/triggers/pkg/client/clientset/versioned"
 	discoveryclient "k8s.io/client-go/discovery"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -29,9 +31,9 @@ import (
 
 const (
 	// Flag definitions
-	name        = "el-name"
-	elNamespace = "el-namespace"
-	port        = "port"
+	name      = "el-name"
+	namespace = "el-namespace"
+	port      = "port"
 )
 
 var (
@@ -58,6 +60,7 @@ type Clients struct {
 	DiscoveryClient discoveryclient.DiscoveryInterface
 	RESTClient      restclient.Interface
 	TriggersClient  triggersclientset.Interface
+	PipelineClient  pipelineclientset.Interface
 }
 
 // GetArgs returns the flagged Args
@@ -67,7 +70,7 @@ func GetArgs() (Args, error) {
 		return Args{}, xerrors.Errorf("-%s arg not found", name)
 	}
 	if *namespaceFlag == "" {
-		return Args{}, xerrors.Errorf("-%s arg not found", elNamespace)
+		return Args{}, xerrors.Errorf("-%s arg not found", namespace)
 	}
 	if *portFlag == "" {
 		return Args{}, xerrors.Errorf("-%s arg not found", port)
@@ -93,10 +96,15 @@ func ConfigureClients() (Clients, error) {
 	if err != nil {
 		return Clients{}, xerrors.Errorf("Failed to create TriggersClient: %s", err)
 	}
+	pipelineclient, err := pipelineclientset.NewForConfig(clusterConfig)
+	if err != nil {
+		return Clients{}, xerrors.Errorf("Failed to create PipelineClient: %s", err)
+	}
 
 	return Clients{
 		DiscoveryClient: kubeClient.Discovery(),
 		RESTClient:      kubeClient.RESTClient(),
 		TriggersClient:  triggersClient,
+		PipelineClient:  pipelineclient,
 	}, nil
 }

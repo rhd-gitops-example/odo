@@ -21,15 +21,14 @@ import (
 	"path/filepath"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1/storage"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/artifacts"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-func getBoundResource(resourceName string, boundResources []v1beta1.TaskResourceBinding) (*v1beta1.TaskResourceBinding, error) {
+func getBoundResource(resourceName string, boundResources []v1alpha1.TaskResourceBinding) (*v1alpha1.TaskResourceBinding, error) {
 	for _, br := range boundResources {
 		if br.Name == resourceName {
 			return &br, nil
@@ -48,12 +47,13 @@ func AddInputResource(
 	kubeclient kubernetes.Interface,
 	images pipeline.Images,
 	taskName string,
-	taskSpec *v1beta1.TaskSpec,
-	taskRun *v1beta1.TaskRun,
-	inputResources map[string]v1beta1.PipelineResourceInterface,
+	taskSpec *v1alpha1.TaskSpec,
+	taskRun *v1alpha1.TaskRun,
+	inputResources map[string]v1alpha1.PipelineResourceInterface,
 	logger *zap.SugaredLogger,
-) (*v1beta1.TaskSpec, error) {
-	if taskSpec == nil || taskSpec.Resources == nil || taskSpec.Resources.Inputs == nil {
+) (*v1alpha1.TaskSpec, error) {
+
+	if taskSpec.Inputs == nil {
 		return taskSpec, nil
 	}
 	taskSpec = taskSpec.DeepCopy()
@@ -72,15 +72,9 @@ func AddInputResource(
 	}
 
 	// Iterate in reverse through the list, each element prepends but we want the first one to remain first.
-	for i := len(taskSpec.Resources.Inputs) - 1; i >= 0; i-- {
-		input := taskSpec.Resources.Inputs[i]
-		if taskRun.Spec.Resources == nil {
-			if input.Optional {
-				continue
-			}
-			return nil, fmt.Errorf("couldnt find resource named %q, no bounded resources", input.Name)
-		}
-		boundResource, err := getBoundResource(input.Name, taskRun.Spec.Resources.Inputs)
+	for i := len(taskSpec.Inputs.Resources) - 1; i >= 0; i-- {
+		input := taskSpec.Inputs.Resources[i]
+		boundResource, err := getBoundResource(input.Name, taskRun.Spec.Inputs.Resources)
 		// Continue if the declared resource is optional and not specified in TaskRun
 		// boundResource is nil if the declared resource in Task does not have any resource specified in the TaskRun
 		if input.Optional && boundResource == nil {
@@ -93,19 +87,19 @@ func AddInputResource(
 		if !ok || resource == nil {
 			return nil, fmt.Errorf("failed to Get Pipeline Resource for task %s with boundResource %v", taskName, boundResource)
 		}
-		var copyStepsFromPrevTasks []v1beta1.Step
+		var copyStepsFromPrevTasks []v1alpha1.Step
 		dPath := destinationPath(input.Name, input.TargetPath)
 		// if taskrun is fetching resource from previous task then execute copy step instead of fetching new copy
 		// to the desired destination directory, as long as the resource exports output to be copied
-		if v1beta1.AllowedOutputResources[resource.GetType()] && taskRun.HasPipelineRunOwnerReference() {
+		if v1alpha1.AllowedOutputResources[resource.GetType()] && taskRun.HasPipelineRunOwnerReference() {
 			for _, path := range boundResource.Paths {
 				cpSteps := as.GetCopyFromStorageToSteps(boundResource.Name, path, dPath)
 				if as.GetType() == pipeline.ArtifactStoragePVCType {
 					mountPVC = true
 					for _, s := range cpSteps {
-						s.VolumeMounts = []corev1.VolumeMount{storage.GetPvcMount(pvcName)}
+						s.VolumeMounts = []corev1.VolumeMount{v1alpha1.GetPvcMount(pvcName)}
 						copyStepsFromPrevTasks = append(copyStepsFromPrevTasks,
-							storage.CreateDirStep(images.ShellImage, boundResource.Name, dPath),
+							v1alpha1.CreateDirStep(images.ShellImage, boundResource.Name, dPath),
 							s)
 					}
 				} else {
@@ -124,7 +118,7 @@ func AddInputResource(
 			if err != nil {
 				return nil, err
 			}
-			if err := v1beta1.ApplyTaskModifier(taskSpec, modifier); err != nil {
+			if err := v1alpha1.ApplyTaskModifier(taskSpec, modifier); err != nil {
 				return nil, fmt.Errorf("unabled to apply Resource %s: %w", boundResource.Name, err)
 			}
 		}
@@ -134,7 +128,7 @@ func AddInputResource(
 		taskSpec.Volumes = append(taskSpec.Volumes, GetPVCVolume(pvcName))
 	}
 	if mountSecrets {
-		taskSpec.Volumes = appendNewSecretsVolumes(taskSpec.Volumes, as.GetSecretsVolumes()...)
+		taskSpec.Volumes = append(taskSpec.Volumes, as.GetSecretsVolumes()...)
 	}
 	return taskSpec, nil
 }

@@ -1,44 +1,49 @@
-# Contributing to Tekton
+# Contributing to Tekton Pipelines
 
-Thank you for contributing your time and expertise to Tekton. This
-document describes the contribution guidelines for the project.
+Welcome to the Tekton Pipelines project! Thanks for considering contributing to
+our project and we hope you'll enjoy it :D
 
-**Note:** Before you start contributing, you must read and abide by our **[Code of Conduct](./code-of-conduct.md)**.
+**All contributors must comply with
+[the code of conduct](./code-of-conduct.md).**
 
+To get started developing, see our [DEVELOPMENT.md](./DEVELOPMENT.md).
 
-## Contributing to Tekton code
+In [the community repo](https://github.com/tektoncd/community) you'll find info
+on:
 
-To set up your environment and begin working on our code, see [Developing for Tekton](./DEVELOPMENT.md).
-
-[The `community` repo](https://github.com/tektoncd/community) contains information on the following:
-
-- [Development standards](https://github.com/tektoncd/community/blob/master/standards.md), including:
-  - [Writing high quality code](https://github.com/tektoncd/community/blob/master/standards.md#coding-standards)
-  - [Adopting good development principles](https://github.com/tektoncd/community/blob/master/standards.md#principles)
-  - [Writing useful commit messages](https://github.com/tektoncd/community/blob/master/standards.md#commit-messages)
 - [Contacting other contributors](https://github.com/tektoncd/community/blob/master/contact.md)
-- [Tekton development processes](https://github.com/tektoncd/community/blob/master/process.md), including:
-  - [Finding things to work on](https://github.com/tektoncd/community/blob/master/process.md#finding-something-to-work-on)
-  - [Proposing new features](https://github.com/tektoncd/community/blob/master/process.md#proposing-features)
-  - [Performing code reviews](https://github.com/tektoncd/community/blob/master/process.md#reviews)
-  - [Becoming a code owner](https://github.com/tektoncd/community/blob/master/process.md#owners)
-- [Making changes to the Tekton API](api_compatibility_policy.md#approving-api-changes)
-- [Understanding the Tekton automation infrastructure](https://github.com/tektoncd/plumbing)
+- [Development standards](https://github.com/tektoncd/community/blob/master/standards.md)
+  around
+  [principles](https://github.com/tektoncd/community/blob/master/standards.md#principles),
+  [commit messages](https://github.com/tektoncd/community/blob/master/standards.md#commit-messages)
+  and
+  [code](https://github.com/tektoncd/community/blob/master/standards.md#coding-standards)
+- [Processes](https://github.com/tektoncd/community/blob/master/process.md) like
+  [finding something to work on](https://github.com/tektoncd/community/blob/master/process.md#finding-something-to-work-on),
+  [proposing features](https://github.com/tektoncd/community/blob/master/process.md#proposing-features),
+  [reviews](https://github.com/tektoncd/community/blob/master/process.md#reviews)
+  and
+  [becoming an OWNER](https://github.com/tektoncd/community/blob/master/process.md#owners)
+- [Making API changes](api_compatibility_policy.md#approving-api-changes)
 
-Additionally, please read the following resources specific to Tekton Pipelines:
+You can find details on our automation infrastructure in
+[the plumbing repo](https://github.com/tektoncd/plumbing).
 
-- [Tekton Pipelines GitHub project](https://github.com/orgs/tektoncd/projects/3)
-- [Tekton Pipelines roadmap](roadmap-2019.md)
-- [Tekton Pipelines API compatibility policy](api_compatibility_policy.md)
+For more Pipelines specific guidelines, see:
 
-## Contributing to Tekton documentation
+- [The Tekton Pipelines ZenHub project](#zenhub-project)
+- [The Tekton Pipelines roadmap](roadmap-2019.md)
+- [The Tekton Pipelines API compatibility policy](api_compatibility_policy.md)
 
-If you want to contribute to Tekton documentation, see the
-[Tekton Documentation Contributor's Guide](https://github.com/tektoncd/website/blob/master/content/en/doc-con-main.md).
+## ZenHub project
 
-This guide describes:
-- The contribution process for documentation
-- Our standards for writing high quality content
-- Our formatting conventions
+You can see project details (including a burndown, issues in epics, etc.) on our
+[ZenHub board](https://app.zenhub.com/workspaces/pipelines-5bc61a054b5806bc2bed4fb2/boards?repos=146641150).
 
-It also includes a primer for getting started with writing documentation and improving your writing skills.
+To see this board, you must:
+
+- Ask [an OWNER](OWNERS) via
+  [slack](https://github.com/tektoncd/community/blob/master/contact.md#slack)
+  for an invitation
+- Add [the ZenHub browser extension](https://www.zenhub.com/extension) to see
+  new info via GitHub (or just use zenhub.com directly)

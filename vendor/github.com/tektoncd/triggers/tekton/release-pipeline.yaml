@@ -23,8 +23,6 @@ spec:
     type: image
   - name: builtEventListenerSinkImage
     type: image
-  - name: notification
-    type: cloudEvent
   tasks:
     - name: lint
       taskRef:
@@ -92,5 +90,3 @@ spec:
             resource: builtWebhookImage
           - name: builtEventListenerSinkImage
             resource: builtEventListenerSinkImage
-          - name: notification
-            resource: notification

@@ -20,12 +20,25 @@ import (
 	"fmt"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/list"
 	"github.com/tektoncd/pipeline/pkg/reconciler/taskrun/resources"
 )
 
-func validateResources(requiredResources []v1beta1.TaskResource, providedResources map[string]*v1alpha1.PipelineResource) error {
+func validateInputResources(inputs *v1alpha1.Inputs, providedResources map[string]*v1alpha1.PipelineResource) error {
+	if inputs != nil {
+		return validateResources(inputs.Resources, providedResources)
+	}
+	return validateResources([]v1alpha1.TaskResource{}, providedResources)
+}
+
+func validateOutputResources(outputs *v1alpha1.Outputs, providedResources map[string]*v1alpha1.PipelineResource) error {
+	if outputs != nil {
+		return validateResources(outputs.Resources, providedResources)
+	}
+	return validateResources([]v1alpha1.TaskResource{}, providedResources)
+}
+
+func validateResources(requiredResources []v1alpha1.TaskResource, providedResources map[string]*v1alpha1.PipelineResource) error {
 	required := make([]string, 0, len(requiredResources))
 	optional := make([]string, 0, len(requiredResources))
 	for _, resource := range requiredResources {
@@ -64,13 +77,15 @@ func validateResources(requiredResources []v1beta1.TaskResource, providedResourc
 	return nil
 }
 
-func validateParams(paramSpecs []v1beta1.ParamSpec, params []v1alpha1.Param) error {
+func validateParams(inputs *v1alpha1.Inputs, params []v1alpha1.Param) error {
 	var neededParams []string
 	paramTypes := make(map[string]v1alpha1.ParamType)
-	neededParams = make([]string, 0, len(paramSpecs))
-	for _, inputResourceParam := range paramSpecs {
-		neededParams = append(neededParams, inputResourceParam.Name)
-		paramTypes[inputResourceParam.Name] = inputResourceParam.Type
+	if inputs != nil {
+		neededParams = make([]string, 0, len(inputs.Params))
+		for _, inputResourceParam := range inputs.Params {
+			neededParams = append(neededParams, inputResourceParam.Name)
+			paramTypes[inputResourceParam.Name] = inputResourceParam.Type
+		}
 	}
 	providedParams := make([]string, 0, len(params))
 	for _, param := range params {
@@ -79,7 +94,7 @@ func validateParams(paramSpecs []v1beta1.ParamSpec, params []v1alpha1.Param) err
 	missingParams := list.DiffLeft(neededParams, providedParams)
 	var missingParamsNoDefaults []string
 	for _, param := range missingParams {
-		for _, inputResourceParam := range paramSpecs {
+		for _, inputResourceParam := range inputs.Params {
 			if inputResourceParam.Name == param && inputResourceParam.Default == nil {
 				missingParamsNoDefaults = append(missingParamsNoDefaults, param)
 			}
@@ -110,19 +125,13 @@ func validateParams(paramSpecs []v1beta1.ParamSpec, params []v1alpha1.Param) err
 
 // ValidateResolvedTaskResources validates task inputs, params and output matches taskrun
 func ValidateResolvedTaskResources(params []v1alpha1.Param, rtr *resources.ResolvedTaskResources) error {
-	if err := validateParams(rtr.TaskSpec.Params, params); err != nil {
+	if err := validateParams(rtr.TaskSpec.Inputs, params); err != nil {
 		return fmt.Errorf("invalid input params: %w", err)
 	}
-	inputs := []v1beta1.TaskResource{}
-	outputs := []v1beta1.TaskResource{}
-	if rtr.TaskSpec.Resources != nil {
-		inputs = rtr.TaskSpec.Resources.Inputs
-		outputs = rtr.TaskSpec.Resources.Outputs
-	}
-	if err := validateResources(inputs, rtr.Inputs); err != nil {
+	if err := validateInputResources(rtr.TaskSpec.Inputs, rtr.Inputs); err != nil {
 		return fmt.Errorf("invalid input resources: %w", err)
 	}
-	if err := validateResources(outputs, rtr.Outputs); err != nil {
+	if err := validateOutputResources(rtr.TaskSpec.Outputs, rtr.Outputs); err != nil {
 		return fmt.Errorf("invalid output resources: %w", err)
 	}
 

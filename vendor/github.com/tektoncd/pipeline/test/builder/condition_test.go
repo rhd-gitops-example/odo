@@ -23,20 +23,18 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	tb "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	tb "github.com/tektoncd/pipeline/test/builder"
 )
 
 func TestCondition(t *testing.T) {
-	condition := tb.Condition("cond-name",
-		tb.ConditionNamespace("foo"),
+	condition := tb.Condition("cond-name", "foo",
 		tb.ConditionLabels(
 			map[string]string{
 				"label-1": "label-value-1",
 				"label-2": "label-value-2",
 			}),
 		tb.ConditionSpec(tb.ConditionSpecCheck("", "ubuntu", tb.Command("exit 0")),
-			tb.ConditionDescription("Test Condition"),
 			tb.ConditionParamSpec("param-1", v1alpha1.ParamTypeString,
 				tb.ParamSpecDefault("default"),
 				tb.ParamSpecDescription("desc")),
@@ -61,7 +59,6 @@ func TestCondition(t *testing.T) {
 					Command: []string{"exit 0"},
 				},
 			},
-			Description: "Test Condition",
 			Params: []v1alpha1.ParamSpec{{
 				Name:        "param-1",
 				Type:        v1alpha1.ParamTypeString,
@@ -86,8 +83,7 @@ func TestCondition(t *testing.T) {
 }
 
 func TestConditionWithScript(t *testing.T) {
-	condition := tb.Condition("cond-name",
-		tb.ConditionNamespace("foo"),
+	condition := tb.Condition("cond-name", "foo",
 		tb.ConditionSpec(tb.ConditionSpecCheck("", "ubuntu"),
 			tb.ConditionSpecCheckScript("ls /tmp"),
 		),

@@ -24,7 +24,7 @@ import (
 
 const (
 	// GroupName is the Kubernetes resource group name for Tekton types.
-	GroupName = "triggers.tekton.dev"
+	GroupName = "tekton.dev"
 
 	// EventListenerLabelKey is used as the label identifier for an EventListener.
 	EventListenerLabelKey = "/eventlistener"
@@ -59,8 +59,6 @@ var (
 // Adds the list of known types to Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&ClusterTriggerBinding{},
-		&ClusterTriggerBindingList{},
 		&EventListener{},
 		&EventListenerList{},
 		&TriggerBinding{},

@@ -21,7 +21,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/reconciler/taskrun/resources"
-	"github.com/tektoncd/pipeline/test/diff"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -33,6 +32,6 @@ func TestGetPVCVolume(t *testing.T) {
 		},
 	}
 	if d := cmp.Diff(expectedVolume, resources.GetPVCVolume("test-pvc")); d != "" {
-		t.Fatalf("PVC volume mismatch: %s", diff.PrintWantGot(d))
+		t.Fatalf("PVC volume mismatch: %s", d)
 	}
 }

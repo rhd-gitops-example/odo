@@ -88,48 +88,32 @@ configuring Kubernetes resources.
 
 ## Kubernetes cluster
 
-The recommended configuration is:
+Docker for Desktop using an edge version has been proven to work for both
+developing and running Pipelines. The recommended configuration is:
 
--   Kubernetes version 1.15 or later
+-   Kubernetes version 1.11 or later
 -   4 vCPU nodes (`n1-standard-4`)
 -   Node autoscaling, up to 3 nodes
 -   API scopes for cloud-platform
 
-### To setup a cluster with Docker Desktop:
+To setup a cluster with Docker on Desktop:
 
-Docker Desktop using an edge version has been proven to work for both developing
-and running Pipelines.
+To use minikube: `bash minikube start eval $(minikube docker-env)`
 
-To use minikube:
+To use the Kubernetes that comes with Docker for Desktop: 1. First go into the
+Docker For Desktop preferences. Under the resource tabs ensure that you have at
+least 4 CPUs, 8.0 GiB Memory, and 1.0 GiB Swap. 1. Under the Kubernetes tab,
+enable Kubernetes. 1. Click the Apply and Restart button to save the
+preferences. 1. Switch the proper `kubectl` config context: `bash kubectl config
+get-contexts # You should see docker-for-desktop in the previous command output
+kubectl config use-context docker-for-desktop` To setup a cluster with GKE:
 
-```bash
-minikube start eval $(minikube docker-env)`
-```
-
-To use the Kubernetes that comes with Docker Desktop: 
-
-1.  First go into the Docker Desktop preferences. Under the resource tabs ensure
-    that you have at least 4 CPUs, 8.0 GiB Memory, and 1.0 GiB Swap. 
-
-1.  Under the Kubernetes tab, enable Kubernetes.
-
-1.  Click the Apply and Restart button to save the preferences.
-
-1.  Switch the proper `kubectl` config context:
-
-    ```bash
-    kubectl config get-contexts # You should see docker-for-desktop in the previous command output
-    kubectl config use-context docker-for-desktop
-    ```
-
-### To setup a cluster with GKE:
-
-1.  [Install required tools and setup GCP project](https://knative.dev/v0.12-docs/install/knative-with-gke/)
+1.  [Install required tools and setup GCP project](https://github.com/knative/docs/blob/master/docs/install/Knative-with-GKE.md#before-you-begin)
     (You may find it useful to save the ID of the project in an environment
     variable (e.g. `PROJECT_ID`).
 
 1.  Create a GKE cluster (with `--cluster-version=latest` but you can use any
-    version 1.15 or later):
+    version 1.11 or later):
 
     ```bash
     export PROJECT_ID=my-gcp-project
@@ -147,7 +131,7 @@ To use the Kubernetes that comes with Docker Desktop:
      --machine-type=n1-standard-4 \
      --image-type=cos \
      --num-nodes=1 \
-     --cluster-version=1.15
+     --cluster-version=latest
     ```
 
     Note that

@@ -18,7 +18,6 @@ package resources
 
 import (
 	"context"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +40,7 @@ var MakeSecret = MakeSecretInternal
 
 // MakeSecretInternal is only public so MakeSecret can be restored in testing.  Use MakeSecret.
 func MakeSecretInternal(ctx context.Context, name, namespace, serviceName string) (*corev1.Secret, error) {
-	serverKey, serverCert, caCert, err := CreateCerts(ctx, serviceName, namespace, time.Now().AddDate(1, 0, 0))
+	serverKey, serverCert, caCert, err := CreateCerts(ctx, serviceName, namespace)
 	if err != nil {
 		return nil, err
 	}

@@ -22,24 +22,23 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	tb "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/test/diff"
+	tb "github.com/tektoncd/pipeline/test/builder"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
 )
 
 func TestTaskRun_GetBuildPodRef(t *testing.T) {
-	tr := tb.TaskRun("taskrunname", tb.TaskRunNamespace("testns"))
+	tr := tb.TaskRun("taskrunname", "testns")
 	if d := cmp.Diff(tr.GetBuildPodRef(), corev1.ObjectReference{
 		APIVersion: "v1",
 		Kind:       "Pod",
 		Namespace:  "testns",
 		Name:       "taskrunname",
 	}); d != "" {
-		t.Fatalf("taskrun build pod ref mismatch %s", diff.PrintWantGot(d))
+		t.Fatalf("taskrun build pod ref mismatch: %s", d)
 	}
 }
 
@@ -50,11 +49,11 @@ func TestTaskRun_GetPipelineRunPVCName(t *testing.T) {
 		expectedPVCName string
 	}{{
 		name:            "invalid owner reference",
-		tr:              tb.TaskRun("taskrunname", tb.TaskRunOwnerReference("SomeOtherOwner", "testpr")),
+		tr:              tb.TaskRun("taskrunname", "testns", tb.TaskRunOwnerReference("SomeOtherOwner", "testpr")),
 		expectedPVCName: "",
 	}, {
 		name:            "valid pipelinerun owner",
-		tr:              tb.TaskRun("taskrunname", tb.TaskRunOwnerReference("PipelineRun", "testpr")),
+		tr:              tb.TaskRun("taskrunname", "testns", tb.TaskRunOwnerReference("PipelineRun", "testpr")),
 		expectedPVCName: "testpr-pvc",
 	}, {
 		name:            "nil taskrun",
@@ -76,11 +75,11 @@ func TestTaskRun_HasPipelineRun(t *testing.T) {
 		want bool
 	}{{
 		name: "invalid owner reference",
-		tr:   tb.TaskRun("taskrunname", tb.TaskRunOwnerReference("SomeOtherOwner", "testpr")),
+		tr:   tb.TaskRun("taskrunname", "testns", tb.TaskRunOwnerReference("SomeOtherOwner", "testpr")),
 		want: false,
 	}, {
 		name: "valid pipelinerun owner",
-		tr:   tb.TaskRun("taskrunname", tb.TaskRunOwnerReference("PipelineRun", "testpr")),
+		tr:   tb.TaskRun("taskrunname", "testns", tb.TaskRunOwnerReference("PipelineRun", "testpr")),
 		want: true,
 	}}
 	for _, tt := range tests {
@@ -93,7 +92,7 @@ func TestTaskRun_HasPipelineRun(t *testing.T) {
 }
 
 func TestTaskRunIsDone(t *testing.T) {
-	tr := tb.TaskRun("", tb.TaskRunStatus(tb.StatusCondition(
+	tr := tb.TaskRun("", "", tb.TaskRunStatus(tb.StatusCondition(
 		apis.Condition{
 			Type:   apis.ConditionSucceeded,
 			Status: corev1.ConditionFalse,
@@ -105,7 +104,7 @@ func TestTaskRunIsDone(t *testing.T) {
 }
 
 func TestTaskRunIsCancelled(t *testing.T) {
-	tr := tb.TaskRun("", tb.TaskRunSpec(
+	tr := tb.TaskRun("", "", tb.TaskRunSpec(
 		tb.TaskRunSpecStatus(v1alpha1.TaskRunSpecStatusCancelled)),
 	)
 	if !tr.IsCancelled() {
@@ -113,27 +112,8 @@ func TestTaskRunIsCancelled(t *testing.T) {
 	}
 }
 
-func TestTaskRunHasVolumeClaimTemplate(t *testing.T) {
-	tr := &v1alpha1.TaskRun{
-		Spec: v1alpha1.TaskRunSpec{
-			Workspaces: []v1alpha1.WorkspaceBinding{{
-				Name: "my-workspace",
-				VolumeClaimTemplate: &corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pvc",
-					},
-					Spec: corev1.PersistentVolumeClaimSpec{},
-				},
-			}},
-		},
-	}
-	if !tr.HasVolumeClaimTemplate() {
-		t.Fatal("Expected taskrun to have a volumeClaimTemplate workspace")
-	}
-}
-
 func TestTaskRunKey(t *testing.T) {
-	tr := tb.TaskRun("taskrunname")
+	tr := tb.TaskRun("taskrunname", "")
 	expectedKey := fmt.Sprintf("TaskRun/%p", tr)
 	if tr.GetRunKey() != expectedKey {
 		t.Fatalf("Expected taskrun key to be %s but got %s", expectedKey, tr.GetRunKey())
@@ -168,7 +148,7 @@ func TestTaskRunHasStarted(t *testing.T) {
 	}}
 	for _, tc := range params {
 		t.Run(tc.name, func(t *testing.T) {
-			tr := tb.TaskRun("taskrunname")
+			tr := tb.TaskRun("taskrunname", "testns")
 			tr.Status = tc.trStatus
 			if tr.HasStarted() != tc.expectedValue {
 				t.Fatalf("Expected taskrun HasStarted() to return %t but got %t", tc.expectedValue, tr.HasStarted())
@@ -186,7 +166,7 @@ func TestTaskRunIsOfPipelinerun(t *testing.T) {
 		expetectedPipelineRun string
 	}{{
 		name: "yes",
-		tr: tb.TaskRun("taskrunname",
+		tr: tb.TaskRun("taskrunname", "testns",
 			tb.TaskRunLabel(pipeline.GroupName+pipeline.PipelineLabelKey, "pipeline"),
 			tb.TaskRunLabel(pipeline.GroupName+pipeline.PipelineRunLabelKey, "pipelinerun"),
 		),
@@ -195,7 +175,7 @@ func TestTaskRunIsOfPipelinerun(t *testing.T) {
 		expetectedPipelineRun: "pipelinerun",
 	}, {
 		name:          "no",
-		tr:            tb.TaskRun("taskrunname"),
+		tr:            tb.TaskRun("taskrunname", "testns"),
 		expectedValue: false,
 	}}
 
@@ -212,43 +192,6 @@ func TestTaskRunIsOfPipelinerun(t *testing.T) {
 
 			if pipelineRun != test.expetectedPipelineRun {
 				t.Fatalf("Mismatch in pipelinerun: got %s expected %s", pipelineRun, test.expetectedPipelineRun)
-			}
-		})
-	}
-}
-
-func TestHasTimedOut(t *testing.T) {
-	// IsZero reports whether t represents the zero time instant, January 1, year 1, 00:00:00 UTC
-	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
-	testCases := []struct {
-		name           string
-		taskRun        *v1alpha1.TaskRun
-		expectedStatus bool
-	}{{
-		name: "TaskRun not started",
-		taskRun: tb.TaskRun("test-taskrun-not-started", tb.TaskRunSpec(
-			tb.TaskRunTaskRef("task-name"),
-		), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{}), tb.TaskRunStartTime(zeroTime))),
-		expectedStatus: false,
-	}, {
-		name: "TaskRun no timeout",
-		taskRun: tb.TaskRun("test-taskrun-no-timeout", tb.TaskRunSpec(
-			tb.TaskRunTaskRef("task-name"), tb.TaskRunTimeout(0),
-		), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{}), tb.TaskRunStartTime(time.Now().Add(-15*time.Hour)))),
-		expectedStatus: false,
-	}, {
-		name: "TaskRun timed out",
-		taskRun: tb.TaskRun("test-taskrun-timeout", tb.TaskRunSpec(
-			tb.TaskRunTaskRef("task-name"), tb.TaskRunTimeout(10*time.Second),
-		), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{}), tb.TaskRunStartTime(time.Now().Add(-15*time.Second)))),
-		expectedStatus: true,
-	}}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := tc.taskRun.HasTimedOut()
-			if d := cmp.Diff(result, tc.expectedStatus); d != "" {
-				t.Fatalf(diff.PrintWantGot(d))
 			}
 		})
 	}

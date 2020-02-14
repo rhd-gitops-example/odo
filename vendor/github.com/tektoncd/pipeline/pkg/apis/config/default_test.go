@@ -22,7 +22,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	test "github.com/tektoncd/pipeline/pkg/reconciler/testing"
-	"github.com/tektoncd/pipeline/test/diff"
 )
 
 func TestNewDefaultsFromConfigMap(t *testing.T) {
@@ -39,7 +38,7 @@ func TestNewDefaultsFromConfigMap(t *testing.T) {
 				DefaultServiceAccount:      "tekton",
 				DefaultManagedByLabelValue: "something-else",
 			},
-			fileName: GetDefaultsConfigName(),
+			fileName: DefaultsConfigName,
 		},
 		{
 			expectedConfig: &Defaults{
@@ -187,7 +186,7 @@ func verifyConfigFileWithExpectedConfig(t *testing.T, fileName string, expectedC
 	cm := test.ConfigMapFromTestFile(t, fileName)
 	if Defaults, err := NewDefaultsFromConfigMap(cm); err == nil {
 		if d := cmp.Diff(Defaults, expectedConfig); d != "" {
-			t.Errorf("Diff:\n%s", diff.PrintWantGot(d))
+			t.Errorf("Diff:\n%s", d)
 		}
 	} else {
 		t.Errorf("NewDefaultsFromConfigMap(actual) = %v", err)

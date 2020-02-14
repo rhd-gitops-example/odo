@@ -77,10 +77,6 @@ func (g *factoryGenerator) GenerateType(c *generator.Context, t *types.Type, w i
 			Package: "knative.dev/pkg/logging",
 			Name:    "FromContext",
 		}),
-		"contextContext": c.Universe.Type(types.Name{
-			Package: "context",
-			Name:    "Context",
-		}),
 	}
 
 	sw.Do(injectionFactory, m)
@@ -96,7 +92,7 @@ func init() {
 // Key is used as the key for associating information with a context.Context.
 type Key struct{}
 
-func withInformerFactory(ctx {{.contextContext|raw}}) {{.contextContext|raw}} {
+func withInformerFactory(ctx context.Context) context.Context {
 	c := {{.cachingClientGet|raw}}(ctx)
 	opts := make([]{{.informersSharedInformerOption|raw}}, 0, 1)
 	if {{.injectionHasNamespace|raw}}(ctx) {
@@ -107,7 +103,7 @@ func withInformerFactory(ctx {{.contextContext|raw}}) {{.contextContext|raw}} {
 }
 
 // Get extracts the InformerFactory from the context.
-func Get(ctx {{.contextContext|raw}}) {{.informersSharedInformerFactory|raw}} {
+func Get(ctx context.Context) {{.informersSharedInformerFactory|raw}} {
 	untyped := ctx.Value(Key{})
 	if untyped == nil {
 		{{.loggingFromContext|raw}}(ctx).Panic(

@@ -22,13 +22,14 @@ import (
 	"net/http"
 	"strings"
 
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
-// ResolveParams takes given triggerbindings and produces the resulting
+// ResolveParams takes a given trigger binding and produces the resulting
 // resource params.
-func ResolveParams(rt ResolvedTrigger, body []byte, header http.Header) ([]triggersv1.Param, error) {
-	out, err := MergeBindingParams(rt.TriggerBindings, rt.ClusterTriggerBindings)
+func ResolveParams(bindings []*triggersv1.TriggerBinding, body []byte, header http.Header, params []pipelinev1.ParamSpec) ([]pipelinev1.Param, error) {
+	out, err := MergeBindingParams(bindings)
 	if err != nil {
 		return nil, fmt.Errorf("error merging trigger params: %w", err)
 	}
@@ -37,16 +38,15 @@ func ResolveParams(rt ResolvedTrigger, body []byte, header http.Header) ([]trigg
 	if err != nil {
 		return nil, fmt.Errorf("failed to ApplyEventValuesToParams: %w", err)
 	}
-
-	return MergeInDefaultParams(out, rt.TriggerTemplate.Spec.Params), nil
+	return MergeInDefaultParams(out, params), nil
 }
 
 // ResolveResources resolves a templated resource by replacing params with their values.
-func ResolveResources(template *triggersv1.TriggerTemplate, params []triggersv1.Param) []json.RawMessage {
+func ResolveResources(template *triggersv1.TriggerTemplate, params []pipelinev1.Param) []json.RawMessage {
 	resources := make([]json.RawMessage, len(template.Spec.ResourceTemplates))
 	uid := UID()
 	for i := range template.Spec.ResourceTemplates {
-		resources[i] = ApplyParamsToResourceTemplate(params, template.Spec.ResourceTemplates[i].RawExtension.Raw)
+		resources[i] = ApplyParamsToResourceTemplate(params, template.Spec.ResourceTemplates[i].RawMessage)
 		resources[i] = ApplyUIDToResourceTemplate(resources[i], uid)
 	}
 	return resources
@@ -79,24 +79,24 @@ func newEvent(body []byte, headers http.Header) (*event, error) {
 
 // applyEventValuesToParams returns a slice of Params with the JSONPath variables replaced
 // with values from the event body and headers.
-func applyEventValuesToParams(params []triggersv1.Param, body []byte, header http.Header) ([]triggersv1.Param, error) {
+func applyEventValuesToParams(params []pipelinev1.Param, body []byte, header http.Header) ([]pipelinev1.Param, error) {
 	event, err := newEvent(body, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal event: %w", err)
 	}
 
 	for idx, p := range params {
-		pValue := p.Value
+		pValue := p.Value.StringVal
 		// Find all expressions wrapped in $() from the value
-		expressions, originals := findTektonExpressions(pValue)
-		for i, expr := range expressions {
+		expressions := findTektonExpressions(pValue)
+		for _, expr := range expressions {
 			val, err := ParseJSONPath(event, expr)
 			if err != nil {
 				return nil, fmt.Errorf("failed to replace JSONPath value for param %s: %s: %w", p.Name, p.Value, err)
 			}
-			pValue = strings.ReplaceAll(pValue, originals[i], val)
+			pValue = strings.ReplaceAll(pValue, expr, val)
 		}
-		params[idx].Value = pValue
+		params[idx].Value = pipelinev1.ArrayOrString{Type: pipelinev1.ParamTypeString, StringVal: pValue}
 	}
 	return params, nil
 }

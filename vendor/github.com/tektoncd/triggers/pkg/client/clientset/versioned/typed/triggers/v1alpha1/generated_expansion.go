@@ -18,8 +18,6 @@ limitations under the License.
 
 package v1alpha1
 
-type ClusterTriggerBindingExpansion interface{}
-
 type EventListenerExpansion interface{}
 
 type TriggerBindingExpansion interface{}

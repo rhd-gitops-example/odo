@@ -26,7 +26,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/test/diff"
 )
 
 func TestEntrypointerFailures(t *testing.T) {
@@ -81,7 +80,7 @@ func TestEntrypointerFailures(t *testing.T) {
 				t.Fatalf("Entrypointer didn't fail")
 			}
 			if d := cmp.Diff(c.expectedError, err.Error()); d != "" {
-				t.Errorf("Entrypointer error diff %s", diff.PrintWantGot(d))
+				t.Errorf("Entrypointer error diff -want, +got: %v", d)
 			}
 
 			if c.postFile != "" {

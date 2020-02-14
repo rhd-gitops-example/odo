@@ -1,6 +1,5 @@
 /*
 Copyright 2019 The Knative Authors
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -74,7 +73,7 @@ func TestHTTPRoundTripper(t *testing.T) {
 
 func TestDialWithBackoff(t *testing.T) {
 	// Nobody's listening on a random port. Usually.
-	c, err := DialWithBackOff(context.Background(), "tcp4", "127.0.0.1:41482")
+	c, err := dialWithBackOff(context.Background(), "tcp4", "127.0.0.1:41482")
 	if err == nil {
 		c.Close()
 		t.Error("Unexpected success dialing")
@@ -90,15 +89,14 @@ func TestDialWithBackoff(t *testing.T) {
 		c.Close()
 		t.Error("Unexpected success dialing")
 	}
-	const expectedErrPrefix = "timed out dialing"
-	if err == nil || !strings.HasPrefix(err.Error(), expectedErrPrefix) {
-		t.Errorf("Error = %v, want: %s(...)", err, expectedErrPrefix)
+	if err != errDialTimeout {
+		t.Errorf("Error = %v, want: %v", err, errDialTimeout)
 	}
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer s.Close()
 
-	c, err = DialWithBackOff(context.Background(), "tcp4", strings.TrimPrefix(s.URL, "http://"))
+	c, err = dialWithBackOff(context.Background(), "tcp4", strings.TrimPrefix(s.URL, "http://"))
 	if err != nil {
 		t.Fatalf("dial error = %v, want nil", err)
 	}

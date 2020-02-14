@@ -18,30 +18,30 @@ package apis
 
 import "context"
 
-// ConvertToViaProxy attempts to convert a specific source to a sink
+// ConvertUpViaProxy attempts to convert a specific source to a sink
 // through a proxy
-func ConvertToViaProxy(
+func ConvertUpViaProxy(
 	ctx context.Context,
 	source, proxy, sink Convertible,
 ) error {
 
-	if err := source.ConvertTo(ctx, proxy); err != nil {
+	if err := source.ConvertUp(ctx, proxy); err != nil {
 		return err
 	}
 
-	return proxy.ConvertTo(ctx, sink)
+	return proxy.ConvertUp(ctx, sink)
 }
 
-// ConvertFromViaProxy attempts to convert a specific sink from a source
+// ConvertDownViaProxy attempts to convert a specific sink from a source
 // through a proxy
-func ConvertFromViaProxy(
+func ConvertDownViaProxy(
 	ctx context.Context,
 	source, proxy, sink Convertible,
 ) error {
 
-	if err := proxy.ConvertFrom(ctx, source); err != nil {
+	if err := proxy.ConvertDown(ctx, source); err != nil {
 		return err
 	}
 
-	return sink.ConvertFrom(ctx, proxy)
+	return sink.ConvertDown(ctx, proxy)
 }

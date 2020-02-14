@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"go.opencensus.io/tag"
 	. "knative.dev/pkg/logging/testing"
 )
 
@@ -25,10 +26,11 @@ import (
 // 	See https://github.com/knative/pkg/issues/608
 
 const (
-	testNS       = "test"
-	testService  = "test-service"
-	testRoute    = "test-route"
-	testRevision = "test-revision"
+	testNS            = "test"
+	testService       = "test-service"
+	testRoute         = "test-route"
+	testConfiguration = "test-configuration"
+	testRevision      = "test-revision"
 
 	testBroker              = "test-broker"
 	testEventType           = "test-eventtype"
@@ -38,6 +40,14 @@ const (
 	testSource              = "test-source"
 	testSourceResourceGroup = "test-source-rg"
 )
+
+func mustNewTagKey(s string) tag.Key {
+	tagKey, err := tag.NewKey(s)
+	if err != nil {
+		panic(err)
+	}
+	return tagKey
+}
 
 func TestMain(m *testing.M) {
 	resetCurPromSrv()
@@ -58,32 +68,16 @@ func TestMetricsExporter(t *testing.T) {
 			domain:             servingDomain,
 			component:          testComponent,
 			backendDestination: "unsupported",
+			stackdriverClientConfig: StackdriverClientConfig{
+				ProjectID: "",
+			},
 		},
 		expectSuccess: false,
-	}, {
-		name: "noneBackend",
-		config: &metricsConfig{
-			domain:             servingDomain,
-			component:          testComponent,
-			backendDestination: None,
-		},
-		expectSuccess: true,
 	}, {
 		name: "validConfig",
 		config: &metricsConfig{
 			domain:             servingDomain,
 			component:          testComponent,
-			backendDestination: Stackdriver,
-			stackdriverClientConfig: StackdriverClientConfig{
-				ProjectID: "testProj",
-			},
-		},
-		expectSuccess: true,
-	}, {
-		name: "validConfigWithDashInName",
-		config: &metricsConfig{
-			domain:             servingDomain,
-			component:          "test-component",
 			backendDestination: Stackdriver,
 			stackdriverClientConfig: StackdriverClientConfig{
 				ProjectID: "testProj",
@@ -193,9 +187,9 @@ func TestMetricsExporter(t *testing.T) {
 	// getStackdriverSecretFunc = fakeGetStackdriverSecret
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := newMetricsExporter(test.config, TestLogger(t))
+			e, err := newMetricsExporter(test.config, TestLogger(t))
 
-			succeeded := err == nil
+			succeeded := e != nil && err == nil
 			if test.expectSuccess != succeeded {
 				t.Errorf("Unexpected test result. Expected success? [%v]. Error: [%v]", test.expectSuccess, err)
 			}

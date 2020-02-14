@@ -21,7 +21,6 @@ package test
 import (
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -98,11 +97,9 @@ func tearDown(t *testing.T, cs *clients, namespace string) {
 		}
 	}
 
-	if os.Getenv("TEST_KEEP_NAMESPACES") == "" {
-		t.Logf("Deleting namespace %s", namespace)
-		if err := cs.KubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{}); err != nil {
-			t.Errorf("Failed to delete namespace %s: %s", namespace, err)
-		}
+	t.Logf("Deleting namespace %s", namespace)
+	if err := cs.KubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{}); err != nil {
+		t.Errorf("Failed to delete namespace %s: %s", namespace, err)
 	}
 }
 
@@ -124,6 +121,10 @@ func initializeLogsAndMetrics(t *testing.T) {
 			t.Fatalf("Failed to set 'alsologtostderr' flag to 'true': %s", err)
 		}
 		logging.InitializeLogger(knativetest.Flags.LogVerbose)
+
+		if knativetest.Flags.EmitMetrics {
+			logging.InitializeMetricExporter(t.Name())
+		}
 	})
 }
 
@@ -166,15 +167,7 @@ func getCRDYaml(cs *clients, ns string) ([]byte, error) {
 		output = append(output, bs...)
 	}
 
-	ctbs, err := cs.TriggersClient.TriggersV1alpha1().ClusterTriggerBindings().List(metav1.ListOptions{})
-	if err != nil {
-		return nil, xerrors.Errorf("could not get ClusterTriggerBindings: %w", err)
-	}
-	for _, i := range ctbs.Items {
-		printOrAdd("ClusterTriggerBinding", i.Name, i)
-	}
-
-	els, err := cs.TriggersClient.TriggersV1alpha1().EventListeners(ns).List(metav1.ListOptions{})
+	els, err := cs.TriggersClient.TektonV1alpha1().EventListeners(ns).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, xerrors.Errorf("could not get EventListeners: %w", err)
 	}
@@ -182,7 +175,7 @@ func getCRDYaml(cs *clients, ns string) ([]byte, error) {
 		printOrAdd("EventListener", i.Name, i)
 	}
 
-	tbs, err := cs.TriggersClient.TriggersV1alpha1().TriggerBindings(ns).List(metav1.ListOptions{})
+	tbs, err := cs.TriggersClient.TektonV1alpha1().TriggerBindings(ns).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, xerrors.Errorf("could not get TriggerBindings: %w", err)
 	}
@@ -190,7 +183,7 @@ func getCRDYaml(cs *clients, ns string) ([]byte, error) {
 		printOrAdd("TriggerBindings", i.Name, i)
 	}
 	// TODO: Update TriggerTemplates Marshalling so it isn't a byte array in debug log
-	tts, err := cs.TriggersClient.TriggersV1alpha1().TriggerTemplates(ns).List(metav1.ListOptions{})
+	tts, err := cs.TriggersClient.TektonV1alpha1().TriggerTemplates(ns).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, xerrors.Errorf("could not get TriggerTemplates: %w", err)
 	}

@@ -19,14 +19,13 @@ package eventlistener
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/tektoncd/pipeline/pkg/system"
 	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
-	"github.com/tektoncd/triggers/pkg/system"
 	"github.com/tektoncd/triggers/test"
 	bldr "github.com/tektoncd/triggers/test/builder"
 	appsv1 "k8s.io/api/apps/v1"
@@ -62,18 +61,12 @@ var (
 	ignoreLastTransitionTime = cmpopts.IgnoreTypes(apis.Condition{}.LastTransitionTime.Inner.Time)
 
 	// 0 indicates pre-reconciliation
-	eventListener0      *v1alpha1.EventListener
-	eventListenerName   = "my-eventlistener"
-	namespace           = "test-pipelines"
-	reconcilerNamespace = "tekton-pipelines"
-	namespaceResource   = &corev1.Namespace{
+	eventListener0    *v1alpha1.EventListener
+	eventListenerName = "my-eventlistener"
+	namespace         = "tekton-pipelines"
+	namespaceResource = &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
-		},
-	}
-	reconcilerNamespaceResource = &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: reconcilerNamespace,
 		},
 	}
 	reconcileKey                 = fmt.Sprintf("%s/%s", namespace, eventListenerName)
@@ -155,7 +148,7 @@ func Test_reconcileService(t *testing.T) {
 	}
 	service2 := service1.DeepCopy()
 	service2.Labels = mergeLabels(generatedLabels, updateLabel)
-	service2.Spec.Selector = generatedLabels
+	service2.Spec.Selector = mergeLabels(generatedLabels, updateLabel)
 
 	service3 := service1.DeepCopy()
 	service3.Spec.Ports[0].NodePort = 30000
@@ -291,28 +284,6 @@ func Test_reconcileDeployment(t *testing.T) {
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path:   "/live",
-										Scheme: corev1.URISchemeHTTP,
-										Port:   intstr.FromInt((*ElPort)),
-									},
-								},
-								PeriodSeconds:    int32(*PeriodSeconds),
-								FailureThreshold: int32(*FailureThreshold),
-							},
-							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path:   "/live",
-										Scheme: corev1.URISchemeHTTP,
-										Port:   intstr.FromInt((*ElPort)),
-									},
-								},
-								PeriodSeconds:    int32(*PeriodSeconds),
-								FailureThreshold: int32(*FailureThreshold),
-							},
 							Args: []string{
 								"-el-name", eventListenerName,
 								"-el-namespace", namespace,
@@ -362,7 +333,7 @@ func Test_reconcileDeployment(t *testing.T) {
 	// deployment 2 == initial deployment + labels from eventListener
 	deployment2 := deployment1.DeepCopy()
 	deployment2.Labels = mergeLabels(generatedLabels, updateLabel)
-	deployment2.Spec.Selector.MatchLabels = generatedLabels
+	deployment2.Spec.Selector.MatchLabels = mergeLabels(generatedLabels, updateLabel)
 	deployment2.Spec.Template.Labels = mergeLabels(generatedLabels, updateLabel)
 
 	// deployment 3 == initial deployment + updated replicas
@@ -508,7 +479,6 @@ func Test_reconcileDeployment(t *testing.T) {
 }
 
 func TestReconcile(t *testing.T) {
-	os.Setenv("SYSTEM_NAMESPACE", "tekton-pipelines")
 	eventListener1 := bldr.EventListener(eventListenerName, namespace,
 		bldr.EventListenerSpec(
 			bldr.EventListenerServiceAccount("sa"),
@@ -571,28 +541,6 @@ func TestReconcile(t *testing.T) {
 							ContainerPort: int32(*ElPort),
 							Protocol:      corev1.ProtocolTCP,
 						}},
-						LivenessProbe: &corev1.Probe{
-							Handler: corev1.Handler{
-								HTTPGet: &corev1.HTTPGetAction{
-									Path:   "/live",
-									Scheme: corev1.URISchemeHTTP,
-									Port:   intstr.FromInt((*ElPort)),
-								},
-							},
-							PeriodSeconds:    int32(*PeriodSeconds),
-							FailureThreshold: int32(*FailureThreshold),
-						},
-						ReadinessProbe: &corev1.Probe{
-							Handler: corev1.Handler{
-								HTTPGet: &corev1.HTTPGetAction{
-									Path:   "/live",
-									Scheme: corev1.URISchemeHTTP,
-									Port:   intstr.FromInt((*ElPort)),
-								},
-							},
-							PeriodSeconds:    int32(*PeriodSeconds),
-							FailureThreshold: int32(*FailureThreshold),
-						},
 						Args: []string{
 							"-el-name", eventListenerName,
 							"-el-namespace", namespace,
@@ -634,7 +582,7 @@ func TestReconcile(t *testing.T) {
 
 	deployment2 := deployment1.DeepCopy()
 	deployment2.Labels = mergeLabels(updateLabel, generatedLabels)
-	deployment2.Spec.Selector.MatchLabels = generatedLabels
+	deployment2.Spec.Selector.MatchLabels = mergeLabels(updateLabel, generatedLabels)
 	deployment2.Spec.Template.Labels = mergeLabels(updateLabel, generatedLabels)
 
 	deployment3 := deployment2.DeepCopy()
@@ -660,15 +608,13 @@ func TestReconcile(t *testing.T) {
 
 	service2 := service1.DeepCopy()
 	service2.Labels = mergeLabels(updateLabel, generatedLabels)
-	service2.Spec.Selector = generatedLabels
+	service2.Spec.Selector = mergeLabels(updateLabel, generatedLabels)
 
 	service3 := service2.DeepCopy()
 	service3.Spec.Type = corev1.ServiceTypeNodePort
 
 	loggingConfigMap := defaultLoggingConfigMap()
 	loggingConfigMap.ObjectMeta.Namespace = namespace
-	reconcilerLoggingConfigMap := defaultLoggingConfigMap()
-	reconcilerLoggingConfigMap.ObjectMeta.Namespace = reconcilerNamespace
 
 	tests := []struct {
 		name           string
@@ -692,16 +638,12 @@ func TestReconcile(t *testing.T) {
 	}, {
 		name: "update-eventlistener-labels",
 		key:  reconcileKey,
-		// Resources before reconcile starts: EL has extra label that deployment/svc does not
 		startResources: test.Resources{
 			Namespaces:     []*corev1.Namespace{namespaceResource},
 			EventListeners: []*v1alpha1.EventListener{eventListener2},
 			Deployments:    []*appsv1.Deployment{deployment1},
 			Services:       []*corev1.Service{service1},
 		},
-		// We expect the deployment and services to propagate the extra label
-		// but the selectors in both Service and deployment should have the same
-		// label
 		endResources: test.Resources{
 			Namespaces:     []*corev1.Namespace{namespaceResource},
 			EventListeners: []*v1alpha1.EventListener{eventListener2},
@@ -757,17 +699,6 @@ func TestReconcile(t *testing.T) {
 			Namespaces: []*corev1.Namespace{namespaceResource},
 		},
 	}, {
-		name: "delete-last-eventlistener-in-our-namespace",
-		key:  fmt.Sprintf("%s/%s", reconcilerNamespace, eventListenerName),
-		startResources: test.Resources{
-			Namespaces: []*corev1.Namespace{reconcilerNamespaceResource},
-			ConfigMaps: []*corev1.ConfigMap{reconcilerLoggingConfigMap},
-		},
-		endResources: test.Resources{
-			Namespaces: []*corev1.Namespace{reconcilerNamespaceResource},
-			ConfigMaps: []*corev1.ConfigMap{reconcilerLoggingConfigMap},
-		},
-	}, {
 		name: "delete-eventlistener-with-remaining-eventlistener",
 		key:  reconcileKey,
 		startResources: test.Resources{
@@ -789,6 +720,7 @@ func TestReconcile(t *testing.T) {
 			// Setup with startResources
 			testAssets, cancel := getEventListenerTestAssets(t, tt.startResources)
 			defer cancel()
+
 			// Run Reconcile
 			err := testAssets.Controller.Reconciler.Reconcile(context.Background(), tt.key)
 			if err != nil {
@@ -915,7 +847,7 @@ func Test_generateObjectMeta(t *testing.T) {
 			Namespace: "",
 			Name:      "",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "triggers.tekton.dev/v1alpha1",
+				APIVersion:         "tekton.dev/v1alpha1",
 				Kind:               "EventListener",
 				Name:               eventListenerName,
 				UID:                "",
@@ -935,7 +867,7 @@ func Test_generateObjectMeta(t *testing.T) {
 			Namespace: "",
 			Name:      "generatedName",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "triggers.tekton.dev/v1alpha1",
+				APIVersion:         "tekton.dev/v1alpha1",
 				Kind:               "EventListener",
 				Name:               eventListenerName,
 				UID:                "",
@@ -955,7 +887,7 @@ func Test_generateObjectMeta(t *testing.T) {
 			Namespace: "",
 			Name:      "",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "triggers.tekton.dev/v1alpha1",
+				APIVersion:         "tekton.dev/v1alpha1",
 				Kind:               "EventListener",
 				Name:               eventListenerName,
 				UID:                "",

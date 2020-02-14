@@ -35,8 +35,6 @@ type reconcilerControllerStubGenerator struct {
 
 	reconcilerPkg       string
 	informerPackagePath string
-	reconcilerClass     string
-	hasReconcilerClass  bool
 }
 
 var _ generator.Generator = (*reconcilerControllerStubGenerator)(nil)
@@ -63,9 +61,7 @@ func (g *reconcilerControllerStubGenerator) GenerateType(c *generator.Context, t
 	klog.V(5).Infof("processing type %v", t)
 
 	m := map[string]interface{}{
-		"type":     t,
-		"class":    g.reconcilerClass,
-		"hasClass": g.hasReconcilerClass,
+		"type": t,
 		"informerGet": c.Universe.Function(types.Name{
 			Package: g.informerPackagePath,
 			Name:    "Get",
@@ -87,18 +83,6 @@ func (g *reconcilerControllerStubGenerator) GenerateType(c *generator.Context, t
 			Package: "knative.dev/pkg/configmap",
 			Name:    "Watcher",
 		}),
-		"classAnnotationKey": c.Universe.Variable(types.Name{
-			Package: g.reconcilerPkg,
-			Name:    "ClassAnnotationKey",
-		}),
-		"annotationFilterFunc": c.Universe.Function(types.Name{
-			Package: "knative.dev/pkg/reconciler",
-			Name:    "AnnotationFilterFunc",
-		}),
-		"filterHandler": c.Universe.Type(types.Name{
-			Package: "k8s.io/client-go/tools/cache",
-			Name:    "FilteringResourceEventHandler",
-		}),
 	}
 
 	sw.Do(reconcilerControllerStub, m)
@@ -118,27 +102,14 @@ func NewController(
 
 	{{.type|lowercaseSingular}}Informer := {{.informerGet|raw}}(ctx)
 
-	{{if .hasClass}}
-	classValue := "default" // TODO: update this to the appropriate value.
-	classFilter := {{.annotationFilterFunc|raw}}({{.classAnnotationKey|raw}}, classValue, false /*allowUnset*/)
-	{{end}}
-
 	// TODO: setup additional informers here.
-	{{if .hasClass}}// TODO: remember to use the classFilter from above to filter appropriately.{{end}}
 
 	r := &Reconciler{}
-	impl := {{.reconcilerNewImpl|raw}}(ctx, r{{if .hasClass}}, classValue{{end}})
+	impl := {{.reconcilerNewImpl|raw}}(ctx, r)
 
 	logger.Info("Setting up event handlers.")
 
-	{{if .hasClass}}
-	{{.type|lowercaseSingular}}Informer.Informer().AddEventHandler({{.filterHandler|raw}}{
-		FilterFunc: classFilter,
-		Handler:    controller.HandleAll(impl.Enqueue),
-	})
-	{{else}}
 	{{.type|lowercaseSingular}}Informer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
-	{{end}}
 
 	// TODO: add additional informer event handlers here.
 

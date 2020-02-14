@@ -21,9 +21,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	resource "github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
-	"github.com/tektoncd/pipeline/test/diff"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
@@ -32,17 +31,17 @@ import (
 func TestClusterTaskConversionBadType(t *testing.T) {
 	good, bad := &ClusterTask{}, &Pipeline{}
 
-	if err := good.ConvertTo(context.Background(), bad); err == nil {
-		t.Errorf("ConvertTo() = %#v, wanted error", bad)
+	if err := good.ConvertUp(context.Background(), bad); err == nil {
+		t.Errorf("ConvertUp() = %#v, wanted error", bad)
 	}
 
-	if err := good.ConvertFrom(context.Background(), bad); err == nil {
-		t.Errorf("ConvertTo() = %#v, wanted error", bad)
+	if err := good.ConvertDown(context.Background(), bad); err == nil {
+		t.Errorf("ConvertUp() = %#v, wanted error", bad)
 	}
 }
 
 func TestClusterTaskConversion(t *testing.T) {
-	versions := []apis.Convertible{&v1beta1.ClusterTask{}}
+	versions := []apis.Convertible{&v1alpha2.ClusterTask{}}
 
 	tests := []struct {
 		name    string
@@ -57,22 +56,22 @@ func TestClusterTaskConversion(t *testing.T) {
 				Generation: 1,
 			},
 			Spec: TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
-					Steps: []v1beta1.Step{{Container: corev1.Container{
+				TaskSpec: v1alpha2.TaskSpec{
+					Steps: []v1alpha2.Step{{Container: corev1.Container{
 						Image: "foo",
 					}}},
 					Volumes: []corev1.Volume{{}},
-					Params: []v1beta1.ParamSpec{{
+					Params: []v1alpha2.ParamSpec{{
 						Name:        "param-1",
-						Type:        v1beta1.ParamTypeString,
+						Type:        v1alpha2.ParamTypeString,
 						Description: "My first param",
 					}},
-					Resources: &v1beta1.TaskResources{
-						Inputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+					Resources: &v1alpha2.TaskResources{
+						Inputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 							Name: "input-1",
 							Type: resource.PipelineResourceTypeGit,
 						}}},
-						Outputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+						Outputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 							Name: "output-1",
 							Type: resource.PipelineResourceTypeGit,
 						}}},
@@ -89,9 +88,9 @@ func TestClusterTaskConversion(t *testing.T) {
 				Generation: 1,
 			},
 			Spec: TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
-					Resources: &v1beta1.TaskResources{
-						Inputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+				TaskSpec: v1alpha2.TaskSpec{
+					Resources: &v1alpha2.TaskResources{
+						Inputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 							Name: "input-1",
 							Type: resource.PipelineResourceTypeGit,
 						}}},
@@ -115,17 +114,17 @@ func TestClusterTaskConversion(t *testing.T) {
 				Generation: 1,
 			},
 			Spec: TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
-					Params: []v1beta1.ParamSpec{{
+				TaskSpec: v1alpha2.TaskSpec{
+					Params: []v1alpha2.ParamSpec{{
 						Name:        "param-1",
-						Type:        v1beta1.ParamTypeString,
+						Type:        v1alpha2.ParamTypeString,
 						Description: "My first param",
 					}},
 				},
 				Inputs: &Inputs{
 					Params: []ParamSpec{{
 						Name:        "param-1",
-						Type:        v1beta1.ParamTypeString,
+						Type:        v1alpha2.ParamTypeString,
 						Description: "My first param",
 					}},
 				},
@@ -141,9 +140,9 @@ func TestClusterTaskConversion(t *testing.T) {
 				Generation: 1,
 			},
 			Spec: TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
-					Resources: &v1beta1.TaskResources{
-						Outputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+				TaskSpec: v1alpha2.TaskSpec{
+					Resources: &v1alpha2.TaskResources{
+						Outputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 							Name: "output-1",
 							Type: resource.PipelineResourceTypeGit,
 						}}},
@@ -164,20 +163,20 @@ func TestClusterTaskConversion(t *testing.T) {
 		for _, version := range versions {
 			t.Run(test.name, func(t *testing.T) {
 				ver := version
-				if err := test.in.ConvertTo(context.Background(), ver); err != nil {
+				if err := test.in.ConvertUp(context.Background(), ver); err != nil {
 					if !test.wantErr {
-						t.Errorf("ConvertTo() = %v", err)
+						t.Errorf("ConvertUp() = %v", err)
 					}
 					return
 				}
-				t.Logf("ConvertTo() = %#v", ver)
+				t.Logf("ConvertUp() = %#v", ver)
 				got := &ClusterTask{}
-				if err := got.ConvertFrom(context.Background(), ver); err != nil {
-					t.Errorf("ConvertFrom() = %v", err)
+				if err := got.ConvertDown(context.Background(), ver); err != nil {
+					t.Errorf("ConvertDown() = %v", err)
 				}
-				t.Logf("ConvertFrom() = %#v", got)
-				if d := cmp.Diff(test.in, got); d != "" {
-					t.Errorf("roundtrip %s", diff.PrintWantGot(d))
+				t.Logf("ConvertDown() = %#v", got)
+				if diff := cmp.Diff(test.in, got); diff != "" {
+					t.Errorf("roundtrip (-want, +got) = %v", diff)
 				}
 			})
 		}
@@ -185,7 +184,7 @@ func TestClusterTaskConversion(t *testing.T) {
 }
 
 func TestClusterTaskConversionFromDeprecated(t *testing.T) {
-	versions := []apis.Convertible{&v1beta1.ClusterTask{}}
+	versions := []apis.Convertible{&v1alpha2.ClusterTask{}}
 	tests := []struct {
 		name     string
 		in       *ClusterTask
@@ -203,7 +202,7 @@ func TestClusterTaskConversionFromDeprecated(t *testing.T) {
 				Inputs: &Inputs{
 					Params: []ParamSpec{{
 						Name:        "param-1",
-						Type:        v1beta1.ParamTypeString,
+						Type:        v1alpha2.ParamTypeString,
 						Description: "My first param",
 					}},
 				},
@@ -216,10 +215,10 @@ func TestClusterTaskConversionFromDeprecated(t *testing.T) {
 				Generation: 1,
 			},
 			Spec: TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
-					Params: []v1beta1.ParamSpec{{
+				TaskSpec: v1alpha2.TaskSpec{
+					Params: []v1alpha2.ParamSpec{{
 						Name:        "param-1",
-						Type:        v1beta1.ParamTypeString,
+						Type:        v1alpha2.ParamTypeString,
 						Description: "My first param",
 					}},
 				},
@@ -249,9 +248,9 @@ func TestClusterTaskConversionFromDeprecated(t *testing.T) {
 				Generation: 1,
 			},
 			Spec: TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
-					Resources: &v1beta1.TaskResources{
-						Inputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+				TaskSpec: v1alpha2.TaskSpec{
+					Resources: &v1alpha2.TaskResources{
+						Inputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 							Name: "input-1",
 							Type: resource.PipelineResourceTypeGit,
 						}}},
@@ -283,9 +282,9 @@ func TestClusterTaskConversionFromDeprecated(t *testing.T) {
 				Generation: 1,
 			},
 			Spec: TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
-					Resources: &v1beta1.TaskResources{
-						Outputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+				TaskSpec: v1alpha2.TaskSpec{
+					Resources: &v1alpha2.TaskResources{
+						Outputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 							Name: "output-1",
 							Type: resource.PipelineResourceTypeGit,
 						}}},
@@ -298,23 +297,23 @@ func TestClusterTaskConversionFromDeprecated(t *testing.T) {
 		for _, version := range versions {
 			t.Run(test.name, func(t *testing.T) {
 				ver := version
-				if err := test.in.ConvertTo(context.Background(), ver); err != nil {
+				if err := test.in.ConvertUp(context.Background(), ver); err != nil {
 					if test.badField != "" {
 						cce, ok := err.(*CannotConvertError)
 						if ok && cce.Field == test.badField {
 							return
 						}
 					}
-					t.Errorf("ConvertTo() = %v", err)
+					t.Errorf("ConvertUp() = %v", err)
 				}
-				t.Logf("ConvertTo() = %#v", ver)
+				t.Logf("ConvertUp() = %#v", ver)
 				got := &ClusterTask{}
-				if err := got.ConvertFrom(context.Background(), ver); err != nil {
-					t.Errorf("ConvertFrom() = %v", err)
+				if err := got.ConvertDown(context.Background(), ver); err != nil {
+					t.Errorf("ConvertDown() = %v", err)
 				}
-				t.Logf("ConvertFrom() = %#v", got)
-				if d := cmp.Diff(test.want, got); d != "" {
-					t.Errorf("roundtrip %s", diff.PrintWantGot(d))
+				t.Logf("ConvertDown() = %#v", got)
+				if diff := cmp.Diff(test.want, got); diff != "" {
+					t.Errorf("roundtrip (-want, +got) = %v", diff)
 				}
 			})
 		}

@@ -22,11 +22,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	tb "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	resource "github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
-	"github.com/tektoncd/pipeline/test/diff"
+	"github.com/tektoncd/pipeline/test/builder"
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/apis"
 )
@@ -106,7 +105,7 @@ func TestTaskSpecValidate(t *testing.T) {
 				Params: []v1alpha1.ParamSpec{{
 					Name:        "task",
 					Description: "param",
-					Default:     tb.ArrayOrString("default"),
+					Default:     builder.ArrayOrString("default"),
 				}},
 			},
 			Steps: validSteps,
@@ -120,7 +119,7 @@ func TestTaskSpecValidate(t *testing.T) {
 					Name:        "task",
 					Type:        v1alpha1.ParamTypeString,
 					Description: "param",
-					Default:     tb.ArrayOrString("default"),
+					Default:     builder.ArrayOrString("default"),
 				}},
 			},
 			Steps: validSteps,
@@ -227,42 +226,9 @@ func TestTaskSpecValidate(t *testing.T) {
 			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:       "mystep",
 				Image:      "$(inputs.resources.source.url)",
-				Command:    []string{"$(inputs.params.foo-is-baz)"},
+				Command:    []string{"$(inputs.param.foo-is-baz)"},
 				Args:       []string{"$(inputs.params.baz)", "middle string", "$(input.params.foo-is-baz)"},
 				WorkingDir: "/foo/bar/$(outputs.resources.source)",
-			}}},
-		},
-	}, {
-		name: "valid star array template variable",
-		fields: fields{
-			Inputs: &v1alpha1.Inputs{
-				Resources: []v1alpha1.TaskResource{validImageResource},
-				Params: []v1alpha1.ParamSpec{{
-					Name: "baz",
-					Type: v1alpha1.ParamTypeArray,
-				}, {
-					Name: "foo-is-baz",
-					Type: v1alpha1.ParamTypeArray,
-				}},
-			},
-			Outputs: &v1alpha1.Outputs{
-				Resources: []v1alpha1.TaskResource{validResource},
-			},
-			Steps: []v1alpha1.Step{{Container: corev1.Container{
-				Name:       "mystep",
-				Image:      "$(inputs.resources.source.url)",
-				Command:    []string{"$(inputs.params.foo-is-baz)"},
-				Args:       []string{"$(inputs.params.baz[*])", "middle string", "$(input.params.foo-is-baz[*])"},
-				WorkingDir: "/foo/bar/$(outputs.resources.source)",
-			}}},
-		},
-	}, {
-		name: "valid creds-init path variable",
-		fields: fields{
-			Steps: []v1alpha1.Step{{Container: corev1.Container{
-				Name:  "mystep",
-				Image: "echo",
-				Args:  []string{"$(credentials.path)"},
 			}}},
 		},
 	}, {
@@ -332,7 +298,7 @@ func TestTaskSpecValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ts := &v1alpha1.TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
+				TaskSpec: v1alpha2.TaskSpec{
 					Steps:        tt.fields.Steps,
 					StepTemplate: tt.fields.StepTemplate,
 					Workspaces:   tt.fields.Workspaces,
@@ -357,19 +323,19 @@ func TestTaskSpecValidateError(t *testing.T) {
 		Volumes      []corev1.Volume
 		StepTemplate *corev1.Container
 		Workspaces   []v1alpha1.WorkspaceDeclaration
-		// v1beta1
-		Params    []v1beta1.ParamSpec
-		Resources *v1beta1.TaskResources
+		// v1alpha2
+		Params    []v1alpha2.ParamSpec
+		Resources *v1alpha2.TaskResources
 	}
 	tests := []struct {
 		name          string
 		fields        fields
 		expectedError apis.FieldError
 	}{{
-		name: "empty spec",
+		name: "nil",
 		expectedError: apis.FieldError{
 			Message: `missing field(s)`,
-			Paths:   []string{"steps"},
+			Paths:   []string{""},
 		},
 	}, {
 		name: "no build",
@@ -411,12 +377,12 @@ func TestTaskSpecValidateError(t *testing.T) {
 					Name:        "validparam",
 					Type:        v1alpha1.ParamTypeString,
 					Description: "parameter",
-					Default:     tb.ArrayOrString("default"),
+					Default:     builder.ArrayOrString("default"),
 				}, {
 					Name:        "param-with-invalid-type",
 					Type:        "invalidtype",
 					Description: "invalidtypedesc",
-					Default:     tb.ArrayOrString("default"),
+					Default:     builder.ArrayOrString("default"),
 				}},
 			},
 			Steps: validSteps,
@@ -434,7 +400,7 @@ func TestTaskSpecValidateError(t *testing.T) {
 					Name:        "task",
 					Type:        v1alpha1.ParamTypeArray,
 					Description: "param",
-					Default:     tb.ArrayOrString("default"),
+					Default:     builder.ArrayOrString("default"),
 				}},
 			},
 			Steps: validSteps,
@@ -452,7 +418,7 @@ func TestTaskSpecValidateError(t *testing.T) {
 					Name:        "task",
 					Type:        v1alpha1.ParamTypeString,
 					Description: "param",
-					Default:     tb.ArrayOrString("default", "array"),
+					Default:     builder.ArrayOrString("default", "array"),
 				}},
 			},
 			Steps: validSteps,
@@ -578,41 +544,13 @@ func TestTaskSpecValidateError(t *testing.T) {
 			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:       "mystep",
 				Image:      "$(inputs.params.baz)",
-				Command:    []string{"$(inputs.params.foo-is-baz)"},
+				Command:    []string{"$(inputs.param.foo-is-baz)"},
 				Args:       []string{"$(inputs.params.baz)", "middle string", "$(input.resources.foo.url)"},
 				WorkingDir: "/foo/bar/$(outputs.resources.source)",
 			}}},
 		},
 		expectedError: apis.FieldError{
 			Message: `variable type invalid in "$(inputs.params.baz)" for step image`,
-			Paths:   []string{"taskspec.steps.image"},
-		},
-	}, {
-		name: "star array used in unaccepted field",
-		fields: fields{
-			Inputs: &v1alpha1.Inputs{
-				Resources: []v1alpha1.TaskResource{validImageResource},
-				Params: []v1alpha1.ParamSpec{{
-					Name: "baz",
-					Type: v1alpha1.ParamTypeArray,
-				}, {
-					Name: "foo-is-baz",
-					Type: v1alpha1.ParamTypeArray,
-				}},
-			},
-			Outputs: &v1alpha1.Outputs{
-				Resources: []v1alpha1.TaskResource{validResource},
-			},
-			Steps: []v1alpha1.Step{{Container: corev1.Container{
-				Name:       "mystep",
-				Image:      "$(inputs.params.baz[*])",
-				Command:    []string{"$(inputs.params.foo-is-baz)"},
-				Args:       []string{"$(inputs.params.baz)", "middle string", "$(input.resources.foo.url)"},
-				WorkingDir: "/foo/bar/$(outputs.resources.source)",
-			}}},
-		},
-		expectedError: apis.FieldError{
-			Message: `variable type invalid in "$(inputs.params.baz[*])" for step image`,
 			Paths:   []string{"taskspec.steps.image"},
 		},
 	}, {
@@ -634,7 +572,7 @@ func TestTaskSpecValidateError(t *testing.T) {
 			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:       "mystep",
 				Image:      "someimage",
-				Command:    []string{"$(inputs.params.foo-is-baz)"},
+				Command:    []string{"$(inputs.param.foo-is-baz)"},
 				Args:       []string{"not isolated: $(inputs.params.baz)", "middle string", "$(input.resources.foo.url)"},
 				WorkingDir: "/foo/bar/$(outputs.resources.source)",
 			}}},
@@ -644,7 +582,7 @@ func TestTaskSpecValidateError(t *testing.T) {
 			Paths:   []string{"taskspec.steps.arg[0]"},
 		},
 	}, {
-		name: "star array not properly isolated",
+		name: "array not properly isolated",
 		fields: fields{
 			Inputs: &v1alpha1.Inputs{
 				Resources: []v1alpha1.TaskResource{validImageResource},
@@ -662,13 +600,13 @@ func TestTaskSpecValidateError(t *testing.T) {
 			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:       "mystep",
 				Image:      "someimage",
-				Command:    []string{"$(inputs.params.foo-is-baz)"},
-				Args:       []string{"not isolated: $(inputs.params.baz[*])", "middle string", "$(input.resources.foo.url)"},
+				Command:    []string{"$(inputs.param.foo-is-baz)"},
+				Args:       []string{"not isolated: $(inputs.params.baz)", "middle string", "$(input.resources.foo.url)"},
 				WorkingDir: "/foo/bar/$(outputs.resources.source)",
 			}}},
 		},
 		expectedError: apis.FieldError{
-			Message: `variable is not properly isolated in "not isolated: $(inputs.params.baz[*])" for step arg[0]`,
+			Message: `variable is not properly isolated in "not isolated: $(inputs.params.baz)" for step arg[0]`,
 			Paths:   []string{"taskspec.steps.arg[0]"},
 		},
 	}, {
@@ -708,7 +646,7 @@ func TestTaskSpecValidateError(t *testing.T) {
 			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:       "mystep",
 				Image:      "someimage",
-				Command:    []string{"$(inputs.params.foo-is-baz)"},
+				Command:    []string{"$(inputs.param.foo-is-baz)"},
 				Args:       []string{"not isolated: $(inputs.params.baz)", "middle string", "$(input.resources.foo.url)"},
 				WorkingDir: "/foo/bar/$(outputs.resources.source)",
 			}}},
@@ -750,7 +688,7 @@ func TestTaskSpecValidateError(t *testing.T) {
 					{
 						Name:        "foo",
 						Description: "param",
-						Default:     tb.ArrayOrString("default"),
+						Default:     builder.ArrayOrString("default"),
 					},
 				},
 			},
@@ -934,17 +872,17 @@ func TestTaskSpecValidateError(t *testing.T) {
 			Paths:   []string{"workspaces.mountpath"},
 		},
 	}, {
-		name: "v1beta1: params and deprecated inputs.params",
+		name: "v1alpha2: params and deprecated inputs.params",
 		fields: fields{
 			Steps: validSteps,
-			Params: []v1beta1.ParamSpec{{
+			Params: []v1alpha2.ParamSpec{{
 				Name: "param1",
-				Type: v1beta1.ParamTypeString,
+				Type: v1alpha2.ParamTypeString,
 			}},
 			Inputs: &v1alpha1.Inputs{
 				Params: []v1alpha1.ParamSpec{{
 					Name: "param1",
-					Type: v1beta1.ParamTypeString,
+					Type: v1alpha2.ParamTypeString,
 				}},
 			},
 		},
@@ -953,11 +891,11 @@ func TestTaskSpecValidateError(t *testing.T) {
 			Paths:   []string{"inputs.params", "params"},
 		},
 	}, {
-		name: "v1beta1: resources.inputs and deprecated inputs.resource",
+		name: "v1alpha2: resources.inputs and deprecated inputs.resource",
 		fields: fields{
 			Steps: validSteps,
-			Resources: &v1beta1.TaskResources{
-				Inputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+			Resources: &v1alpha2.TaskResources{
+				Inputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 					Name: "input-1",
 					Type: resource.PipelineResourceTypeGit,
 				}}},
@@ -974,11 +912,11 @@ func TestTaskSpecValidateError(t *testing.T) {
 			Paths:   []string{"inputs.resources", "resources.inputs"},
 		},
 	}, {
-		name: "v1beta1: resources.outputs and deprecated outputs.resource",
+		name: "v1alpha2: resources.outputs and deprecated outputs.resource",
 		fields: fields{
 			Steps: validSteps,
-			Resources: &v1beta1.TaskResources{
-				Outputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+			Resources: &v1alpha2.TaskResources{
+				Outputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 					Name: "output-1",
 					Type: resource.PipelineResourceTypeGit,
 				}}},
@@ -998,7 +936,7 @@ func TestTaskSpecValidateError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ts := &v1alpha1.TaskSpec{
-				TaskSpec: v1beta1.TaskSpec{
+				TaskSpec: v1alpha2.TaskSpec{
 					Steps:        tt.fields.Steps,
 					Volumes:      tt.fields.Volumes,
 					StepTemplate: tt.fields.StepTemplate,
@@ -1016,7 +954,7 @@ func TestTaskSpecValidateError(t *testing.T) {
 				t.Fatalf("Expected an error, got nothing for %v", ts)
 			}
 			if d := cmp.Diff(tt.expectedError, *err, cmpopts.IgnoreUnexported(apis.FieldError{})); d != "" {
-				t.Errorf("TaskSpec.Validate() errors diff %s", diff.PrintWantGot(d))
+				t.Errorf("TaskSpec.Validate() errors diff -want, +got: %v", d)
 			}
 		})
 	}

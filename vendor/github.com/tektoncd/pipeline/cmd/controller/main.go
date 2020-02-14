@@ -22,10 +22,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	"github.com/tektoncd/pipeline/pkg/reconciler/pipelinerun"
 	"github.com/tektoncd/pipeline/pkg/reconciler/taskrun"
-	corev1 "k8s.io/api/core/v1"
-	"knative.dev/pkg/injection"
 	"knative.dev/pkg/injection/sharedmain"
-	"knative.dev/pkg/signals"
 )
 
 const (
@@ -52,7 +49,6 @@ var (
 		"The container image containing our PR binary.")
 	imageDigestExporterImage = flag.String("imagedigest-exporter-image", "override-with-imagedigest-exporter-image:latest",
 		"The container image containing our image digest exporter binary.")
-	namespace = flag.String("namespace", corev1.NamespaceAll, "Namespace to restrict informer to. Optional, defaults to all namespaces.")
 )
 
 func main() {
@@ -69,8 +65,8 @@ func main() {
 		PRImage:                  *prImage,
 		ImageDigestExporterImage: *imageDigestExporterImage,
 	}
-	sharedmain.MainWithContext(injection.WithNamespaceScope(signals.NewContext(), *namespace), ControllerLogKey,
-		taskrun.NewController(*namespace, images),
-		pipelinerun.NewController(*namespace, images),
+	sharedmain.Main(ControllerLogKey,
+		taskrun.NewController(images),
+		pipelinerun.NewController(images),
 	)
 }

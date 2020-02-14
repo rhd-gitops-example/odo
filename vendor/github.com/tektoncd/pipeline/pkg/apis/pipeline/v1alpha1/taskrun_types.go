@@ -18,23 +18,12 @@ package v1alpha1
 
 import (
 	"fmt"
-	"time"
 
-	apisconfig "github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/apis"
-)
-
-var (
-	taskRunGroupVersionKind = schema.GroupVersionKind{
-		Group:   SchemeGroupVersion.Group,
-		Version: SchemeGroupVersion.Version,
-		Kind:    pipeline.TaskRunControllerName,
-	}
 )
 
 // TaskRunSpec defines the desired state of TaskRun
@@ -60,29 +49,32 @@ type TaskRunSpec struct {
 	// Workspaces is a list of WorkspaceBindings from volumes to workspaces.
 	// +optional
 	Workspaces []WorkspaceBinding `json:"workspaces,omitempty"`
-	// From v1beta1
+	// Used to specify name of LimitRange that exists in namespace
+	// where TaskRun will run so that the LimitRange's minimum for
+	// container requests can be used by containers of TaskRun
+	// +optional
+	LimitRangeName string `json:"limitRangeName"`
+
+	// From v1alpha2
 	// +optional
 	Params []Param `json:"params,omitempty"`
 	// +optional
-	Resources *v1beta1.TaskRunResources `json:"resources,omitempty"`
+	Resources *v1alpha2.TaskRunResources `json:"resources,omitempty"`
+
 	// Deprecated
 	// +optional
-	Inputs *TaskRunInputs `json:"inputs,omitempty"`
+	Inputs TaskRunInputs `json:"inputs,omitempty"`
 	// +optional
-	Outputs *TaskRunOutputs `json:"outputs,omitempty"`
+	Outputs TaskRunOutputs `json:"outputs,omitempty"`
 }
 
 // TaskRunSpecStatus defines the taskrun spec status the user can provide
-type TaskRunSpecStatus = v1beta1.TaskRunSpecStatus
+type TaskRunSpecStatus = v1alpha2.TaskRunSpecStatus
 
 const (
 	// TaskRunSpecStatusCancelled indicates that the user wants to cancel the task,
 	// if not already cancelled or terminated
-	TaskRunSpecStatusCancelled = v1beta1.TaskRunSpecStatusCancelled
-
-	// TaskRunReasonCancelled indicates that the TaskRun has been cancelled
-	// because it was requested so by the user
-	TaskRunReasonCancelled = v1beta1.TaskRunSpecStatusCancelled
+	TaskRunSpecStatusCancelled = v1alpha2.TaskRunSpecStatusCancelled
 )
 
 // TaskRunInputs holds the input values that this task was invoked with.
@@ -95,7 +87,14 @@ type TaskRunInputs struct {
 
 // TaskResourceBinding points to the PipelineResource that
 // will be used for the Task input or output called Name.
-type TaskResourceBinding = v1beta1.TaskResourceBinding
+type TaskResourceBinding struct {
+	PipelineResourceBinding
+	// Paths will probably be removed in #1284, and then PipelineResourceBinding can be used instead.
+	// The optional Path field corresponds to a path on disk at which the Resource can be found
+	// (used when providing the resource via mounted volume, overriding the default logic to fetch the Resource).
+	// +optional
+	Paths []string `json:"paths,omitempty"`
+}
 
 // TaskRunOutputs holds the output values that this task was invoked with.
 type TaskRunOutputs struct {
@@ -104,42 +103,42 @@ type TaskRunOutputs struct {
 }
 
 // TaskRunStatus defines the observed state of TaskRun
-type TaskRunStatus = v1beta1.TaskRunStatus
+type TaskRunStatus = v1alpha2.TaskRunStatus
 
 // TaskRunStatusFields holds the fields of TaskRun's status.  This is defined
 // separately and inlined so that other types can readily consume these fields
 // via duck typing.
-type TaskRunStatusFields = v1beta1.TaskRunStatusFields
+type TaskRunStatusFields = v1alpha2.TaskRunStatusFields
 
 // TaskRunResult used to describe the results of a task
-type TaskRunResult = v1beta1.TaskRunResult
+type TaskRunResult = v1alpha2.TaskRunResult
 
 // StepState reports the results of running a step in the Task.
-type StepState = v1beta1.StepState
+type StepState = v1alpha2.StepState
 
 // SidecarState reports the results of sidecar in the Task.
-type SidecarState = v1beta1.SidecarState
+type SidecarState = v1alpha2.SidecarState
 
 // CloudEventDelivery is the target of a cloud event along with the state of
 // delivery.
-type CloudEventDelivery = v1beta1.CloudEventDelivery
+type CloudEventDelivery = v1alpha2.CloudEventDelivery
 
 // CloudEventCondition is a string that represents the condition of the event.
-type CloudEventCondition = v1beta1.CloudEventCondition
+type CloudEventCondition = v1alpha2.CloudEventCondition
 
 const (
 	// CloudEventConditionUnknown means that the condition for the event to be
 	// triggered was not met yet, or we don't know the state yet.
-	CloudEventConditionUnknown CloudEventCondition = v1beta1.CloudEventConditionUnknown
+	CloudEventConditionUnknown CloudEventCondition = v1alpha2.CloudEventConditionUnknown
 	// CloudEventConditionSent means that the event was sent successfully
-	CloudEventConditionSent CloudEventCondition = v1beta1.CloudEventConditionSent
+	CloudEventConditionSent CloudEventCondition = v1alpha2.CloudEventConditionSent
 	// CloudEventConditionFailed means that there was one or more attempts to
 	// send the event, and none was successful so far.
-	CloudEventConditionFailed CloudEventCondition = v1beta1.CloudEventConditionFailed
+	CloudEventConditionFailed CloudEventCondition = v1alpha2.CloudEventConditionFailed
 )
 
 // CloudEventDeliveryState reports the state of a cloud event to be sent.
-type CloudEventDeliveryState = v1beta1.CloudEventDeliveryState
+type CloudEventDeliveryState = v1alpha2.CloudEventDeliveryState
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -178,11 +177,6 @@ func (tr *TaskRun) GetBuildPodRef() corev1.ObjectReference {
 		Namespace:  tr.Namespace,
 		Name:       tr.Name,
 	}
-}
-
-// GetOwnerReference gets the task run as owner reference for any related objects
-func (tr *TaskRun) GetOwnerReference() metav1.OwnerReference {
-	return *metav1.NewControllerRef(tr, taskRunGroupVersionKind)
 }
 
 // GetPipelineRunPVCName for taskrun gets pipelinerun
@@ -229,28 +223,6 @@ func (tr *TaskRun) IsCancelled() bool {
 	return tr.Spec.Status == TaskRunSpecStatusCancelled
 }
 
-// HasTimedOut returns true if the TaskRun runtime is beyond the allowed timeout
-func (tr *TaskRun) HasTimedOut() bool {
-	if tr.Status.StartTime.IsZero() {
-		return false
-	}
-	timeout := tr.GetTimeout()
-	// If timeout is set to 0 or defaulted to 0, there is no timeout.
-	if timeout == apisconfig.NoTimeoutDuration {
-		return false
-	}
-	runtime := time.Since(tr.Status.StartTime.Time)
-	return runtime > timeout
-}
-
-func (tr *TaskRun) GetTimeout() time.Duration {
-	// Use the platform default is no timeout is set
-	if tr.Spec.Timeout == nil {
-		return apisconfig.DefaultTimeoutMinutes * time.Minute
-	}
-	return tr.Spec.Timeout.Duration
-}
-
 // GetRunKey return the taskrun key for timeout handler map
 func (tr *TaskRun) GetRunKey() string {
 	// The address of the pointer is a threadsafe unique identifier for the taskrun
@@ -269,15 +241,4 @@ func (tr *TaskRun) IsPartOfPipeline() (bool, string, string) {
 	}
 
 	return false, "", ""
-}
-
-// HasVolumeClaimTemplate returns true if TaskRun contains volumeClaimTemplates that is
-// used for creating PersistentVolumeClaims with an OwnerReference for each run
-func (tr *TaskRun) HasVolumeClaimTemplate() bool {
-	for _, ws := range tr.Spec.Workspaces {
-		if ws.VolumeClaimTemplate != nil {
-			return true
-		}
-	}
-	return false
 }

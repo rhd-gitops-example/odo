@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -25,7 +24,6 @@ import (
 
 	"cloud.google.com/go/compute/metadata"
 	corev1 "k8s.io/api/core/v1"
-	cm "knative.dev/pkg/configmap"
 )
 
 const (
@@ -67,17 +65,13 @@ func (cfg *Config) Equals(other *Config) bool {
 	return reflect.DeepEqual(other, cfg)
 }
 
-func defaultConfig() *Config {
-	return &Config{
+// NewTracingConfigFromMap returns a Config given a map corresponding to a ConfigMap
+func NewTracingConfigFromMap(cfgMap map[string]string) (*Config, error) {
+	tc := Config{
 		Backend:    None,
 		Debug:      false,
 		SampleRate: 0.1,
 	}
-}
-
-// NewTracingConfigFromMap returns a Config given a map corresponding to a ConfigMap
-func NewTracingConfigFromMap(cfgMap map[string]string) (*Config, error) {
-	tc := defaultConfig()
 
 	if backend, ok := cfgMap[backendKey]; ok {
 		switch bt := BackendType(backend); bt {
@@ -91,7 +85,7 @@ func NewTracingConfigFromMap(cfgMap map[string]string) (*Config, error) {
 		if enable, ok := cfgMap[enableKey]; ok {
 			enableBool, err := strconv.ParseBool(enable)
 			if err != nil {
-				return nil, fmt.Errorf("failed parsing tracing config %q: %w", enableKey, err)
+				return nil, fmt.Errorf("failed parsing tracing config %q: %v", enableKey, err)
 			}
 			if enableBool {
 				tc.Backend = Zipkin
@@ -99,75 +93,42 @@ func NewTracingConfigFromMap(cfgMap map[string]string) (*Config, error) {
 		}
 	}
 
-	if err := cm.Parse(cfgMap,
-		cm.AsString(zipkinEndpointKey, &tc.ZipkinEndpoint),
-		cm.AsString(stackdriverProjectIDKey, &tc.StackdriverProjectID),
-		cm.AsBool(debugKey, &tc.Debug),
-		cm.AsFloat64(sampleRateKey, &tc.SampleRate),
-	); err != nil {
-		return nil, err
-	}
-
-	if tc.Backend == Zipkin && tc.ZipkinEndpoint == "" {
+	if endpoint, ok := cfgMap[zipkinEndpointKey]; !ok && tc.Backend == Zipkin {
 		return nil, errors.New("zipkin tracing enabled without a zipkin endpoint specified")
+	} else {
+		tc.ZipkinEndpoint = endpoint
 	}
 
-	if tc.Backend == Stackdriver && tc.StackdriverProjectID == "" {
+	if projectID, ok := cfgMap[stackdriverProjectIDKey]; ok {
+		tc.StackdriverProjectID = projectID
+	} else if tc.Backend == Stackdriver {
 		projectID, err := metadata.ProjectID()
 		if err != nil {
-			return nil, fmt.Errorf("stackdriver tracing enabled without a project-id specified: %w", err)
+			return nil, fmt.Errorf("stackdriver tracing enabled without a project-id specified: %v", err)
 		}
 		tc.StackdriverProjectID = projectID
 	}
 
-	if tc.SampleRate < 0 || tc.SampleRate > 1 {
-		return nil, fmt.Errorf("sample-rate = %v must be in [0, 1] range", tc.SampleRate)
+	if debug, ok := cfgMap[debugKey]; ok {
+		debugBool, err := strconv.ParseBool(debug)
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing tracing config %q", debugKey)
+		}
+		tc.Debug = debugBool
 	}
 
-	return tc, nil
+	if sampleRate, ok := cfgMap[sampleRateKey]; ok {
+		sampleRateFloat, err := strconv.ParseFloat(sampleRate, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse sampleRate in tracing config: %v", err)
+		}
+		tc.SampleRate = sampleRateFloat
+	}
+
+	return &tc, nil
 }
 
 // NewTracingConfigFromConfigMap returns a Config for the given configmap
 func NewTracingConfigFromConfigMap(config *corev1.ConfigMap) (*Config, error) {
 	return NewTracingConfigFromMap(config.Data)
-}
-
-// JsonToTracingConfig converts a json string of a Config.
-// Returns a non-nil Config always and an eventual error.
-func JsonToTracingConfig(jsonCfg string) (*Config, error) {
-	if jsonCfg == "" {
-		return defaultConfig(), errors.New("empty json tracing config")
-	}
-
-	var configMap map[string]string
-	if err := json.Unmarshal([]byte(jsonCfg), &configMap); err != nil {
-		return defaultConfig(), err
-	}
-
-	cfg, err := NewTracingConfigFromMap(configMap)
-	if err != nil {
-		return defaultConfig(), nil
-	}
-	return cfg, nil
-}
-
-// TracingConfigToJson converts a Config to a json string.
-func TracingConfigToJson(cfg *Config) (string, error) {
-	if cfg == nil {
-		return "", nil
-	}
-
-	out := make(map[string]string, 5)
-	out[backendKey] = string(cfg.Backend)
-	if cfg.ZipkinEndpoint != "" {
-		out[zipkinEndpointKey] = cfg.ZipkinEndpoint
-	}
-	if cfg.StackdriverProjectID != "" {
-		out[stackdriverProjectIDKey] = cfg.StackdriverProjectID
-	}
-	out[debugKey] = fmt.Sprint(cfg.Debug)
-	out[sampleRateKey] = fmt.Sprint(cfg.SampleRate)
-
-	jsonCfg, err := json.Marshal(out)
-	return string(jsonCfg), err
 }

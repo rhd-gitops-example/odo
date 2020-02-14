@@ -48,7 +48,6 @@ type ResourceSpec struct {
 	FieldWithValidation            string `json:"fieldWithValidation,omitempty"`
 	FieldThatsImmutable            string `json:"fieldThatsImmutable,omitempty"`
 	FieldThatsImmutableWithDefault string `json:"fieldThatsImmutableWithDefault,omitempty"`
-	FieldForCallbackValidation     string `json:"fieldThatCallbackRejects,omitempty"`
 }
 
 // GetGroupVersionKind returns the GroupVersionKind.

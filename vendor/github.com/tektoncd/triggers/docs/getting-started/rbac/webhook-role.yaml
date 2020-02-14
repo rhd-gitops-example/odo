@@ -15,7 +15,7 @@ rules:
   - update
   - delete
 - apiGroups:
-  - triggers.tekton.dev
+  - tekton.dev
   resources:
   - eventlisteners
   verbs:

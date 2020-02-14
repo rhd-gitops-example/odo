@@ -121,9 +121,6 @@ To use [`tkn`](https://github.com/tektoncd/cli) to run the `publish-tekton-pipel
    # Double-check the git revision that is going to be used for the release:
    kubectl get pipelineresource/tekton-pipelines-git-vX-Y-Z -o=jsonpath="{'Target Revision: '}{.spec.params[?(@.name == 'revision')].value}{'\n'}"
 
-   # Execute the release pipeline.
-   # By default this will tag the release as Pipelines' latest. If you would like to prevent
-   # this from happening add --param=releaseAsLatest="false"
    tkn pipeline start \
 		--param=versionTag=${VERSION_TAG} \
 		--param=imageRegistry=${IMAGE_REGISTRY} \
@@ -186,6 +183,7 @@ Install Task from plumbing too:
 
 ```bash
 # Apply the Tasks we are using from the catalog
+kubectl apply -f https://raw.githubusercontent.com/tektoncd/catalog/master/golang/lint.yaml
 kubectl apply -f https://raw.githubusercontent.com/tektoncd/catalog/master/golang/build.yaml
 kubectl apply -f https://raw.githubusercontent.com/tektoncd/catalog/master/golang/tests.yaml
 kubectl apply -f https://raw.githubusercontent.com/tektoncd/plumbing/master/tekton/resources/release/

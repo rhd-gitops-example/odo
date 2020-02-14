@@ -95,16 +95,7 @@ func Filter(gvk schema.GroupVersionKind) func(obj interface{}) bool {
 // FilterGroupVersionKind makes it simple to create FilterFunc's for use with
 // cache.FilteringResourceEventHandler that filter based on the
 // schema.GroupVersionKind of the controlling resources.
-//
-// Deprecated: Use FilterControllerGVK instead.
 func FilterGroupVersionKind(gvk schema.GroupVersionKind) func(obj interface{}) bool {
-	return FilterControllerGVK(gvk)
-}
-
-// FilterControllerGVK makes it simple to create FilterFunc's for use with
-// cache.FilteringResourceEventHandler that filter based on the
-// schema.GroupVersionKind of the controlling resources.
-func FilterControllerGVK(gvk schema.GroupVersionKind) func(obj interface{}) bool {
 	return func(obj interface{}) bool {
 		object, ok := obj.(metav1.Object)
 		if !ok {
@@ -121,16 +112,7 @@ func FilterControllerGVK(gvk schema.GroupVersionKind) func(obj interface{}) bool
 // FilterGroupKind makes it simple to create FilterFunc's for use with
 // cache.FilteringResourceEventHandler that filter based on the
 // schema.GroupKind of the controlling resources.
-//
-// Deprecated: Use FilterControllerGK instead
 func FilterGroupKind(gk schema.GroupKind) func(obj interface{}) bool {
-	return FilterControllerGK(gk)
-}
-
-// FilterControllerGK makes it simple to create FilterFunc's for use with
-// cache.FilteringResourceEventHandler that filter based on the
-// schema.GroupKind of the controlling resources.
-func FilterControllerGK(gk schema.GroupKind) func(obj interface{}) bool {
 	return func(obj interface{}) bool {
 		object, ok := obj.(metav1.Object)
 		if !ok {
@@ -324,16 +306,6 @@ func (c *Impl) EnqueueLabelOfClusterScopedResource(nameLabel string) func(obj in
 	}
 }
 
-// EnqueueNamespaceOf takes a resource, and enqueues the Namespace to which it belongs.
-func (c *Impl) EnqueueNamespaceOf(obj interface{}) {
-	object, err := kmeta.DeletionHandlingAccessor(obj)
-	if err != nil {
-		c.logger.Errorw("EnqueueNamespaceOf", zap.Error(err))
-		return
-	}
-	c.EnqueueKey(types.NamespacedName{Name: object.GetNamespace()})
-}
-
 // EnqueueKey takes a namespace/name string and puts it onto the work queue.
 func (c *Impl) EnqueueKey(key types.NamespacedName) {
 	c.WorkQueue.Add(key)
@@ -347,11 +319,10 @@ func (c *Impl) EnqueueKeyAfter(key types.NamespacedName, delay time.Duration) {
 	c.logger.Debugf("Adding to queue %s (delay: %v, depth: %d)", safeKey(key), delay, c.WorkQueue.Len())
 }
 
-// RunContext starts the controller's worker threads, the number of which is threadiness.
-// It then blocks until the context is cancelled, at which point it shuts down its
-// internal work queue and waits for workers to finish processing their current
-// work items.
-func (c *Impl) RunContext(ctx context.Context, threadiness int) error {
+// Run starts the controller's worker threads, the number of which is threadiness.
+// It then blocks until stopCh is closed, at which point it shuts down its internal
+// work queue and waits for workers to finish processing their current work items.
+func (c *Impl) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer runtime.HandleCrash()
 	sg := sync.WaitGroup{}
 	defer sg.Wait()
@@ -375,21 +346,10 @@ func (c *Impl) RunContext(ctx context.Context, threadiness int) error {
 	}
 
 	logger.Info("Started workers")
-	<-ctx.Done()
+	<-stopCh
 	logger.Info("Shutting down workers")
 
 	return nil
-}
-
-// DEPRECATED use RunContext instead.
-func (c *Impl) Run(threadiness int, stopCh <-chan struct{}) error {
-	// Create a context that is cancelled when the stopCh is called.
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-stopCh
-		cancel()
-	}()
-	return c.RunContext(ctx, threadiness)
 }
 
 // processNextWorkItem will read a single work item off the workqueue and
@@ -427,20 +387,20 @@ func (c *Impl) processNextWorkItem() bool {
 	// Embed the key into the logger and attach that to the context we pass
 	// to the Reconciler.
 	logger := c.logger.With(zap.String(logkey.TraceId, uuid.New().String()), zap.String(logkey.Key, keyStr))
-	ctx := logging.WithLogger(context.Background(), logger)
+	ctx := logging.WithLogger(context.TODO(), logger)
 
 	// Run Reconcile, passing it the namespace/name string of the
 	// resource to be synced.
 	if err = c.Reconciler.Reconcile(ctx, keyStr); err != nil {
 		c.handleErr(err, key)
-		logger.Info("Reconcile failed. Time taken: ", time.Since(startTime))
+		logger.Infof("Reconcile failed. Time taken: %v.", time.Since(startTime))
 		return true
 	}
 
 	// Finally, if no error occurs we Forget this item so it does not
 	// have any delay when another change happens.
 	c.WorkQueue.Forget(key)
-	logger.Info("Reconcile succeeded. Time taken: ", time.Since(startTime))
+	logger.Infof("Reconcile succeeded. Time taken: %v.", time.Since(startTime))
 
 	return true
 }
@@ -559,14 +519,14 @@ func RunInformers(stopCh <-chan struct{}, informers ...Informer) (func(), error)
 }
 
 // StartAll kicks off all of the passed controllers with DefaultThreadsPerController.
-func StartAll(ctx context.Context, controllers ...*Impl) {
+func StartAll(stopCh <-chan struct{}, controllers ...*Impl) {
 	wg := sync.WaitGroup{}
 	// Start all of the controllers.
 	for _, ctrlr := range controllers {
 		wg.Add(1)
 		go func(c *Impl) {
 			defer wg.Done()
-			c.RunContext(ctx, DefaultThreadsPerController)
+			c.Run(DefaultThreadsPerController, stopCh)
 		}(ctrlr)
 	}
 	wg.Wait()

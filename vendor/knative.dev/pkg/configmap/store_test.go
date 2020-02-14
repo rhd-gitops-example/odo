@@ -32,15 +32,6 @@ import (
 	. "knative.dev/pkg/logging/testing"
 )
 
-const (
-	config1 = "config-name-1"
-	config2 = "config-name-2"
-)
-
-var constructor = func(c *corev1.ConfigMap) (interface{}, error) {
-	return c.Name, nil
-}
-
 func TestStoreBadConstructors(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -78,13 +69,17 @@ func TestStoreBadConstructors(t *testing.T) {
 }
 
 func TestStoreWatchConfigs(t *testing.T) {
+	constructor := func(c *corev1.ConfigMap) (interface{}, error) {
+		return c.Name, nil
+	}
+
 	defer ClearAll()
 	store := NewUntypedStore(
 		"name",
 		TestLogger(t),
 		Constructors{
-			config1: constructor,
-			config2: constructor,
+			"config-name-1": constructor,
+			"config-name-2": constructor,
 		},
 	)
 
@@ -92,8 +87,8 @@ func TestStoreWatchConfigs(t *testing.T) {
 	store.WatchConfigs(watcher)
 
 	want := []string{
-		config1,
-		config2,
+		"config-name-1",
+		"config-name-2",
 	}
 
 	got := watcher.watches
@@ -103,64 +98,112 @@ func TestStoreWatchConfigs(t *testing.T) {
 	}
 }
 
+func appendTo(evidence *[]string) func(int) func(string, interface{}) {
+	return func(i int) func(string, interface{}) {
+		return func(name string, value interface{}) {
+			*evidence = append(*evidence, fmt.Sprintf("%s:%s:%v", name, value, i))
+		}
+	}
+}
+
+func listOf(f func(int) func(string, interface{}), count int, tail ...func(string, interface{})) []func(string, interface{}) {
+	result := make([]func(string, interface{}), 0, count)
+	for i := 0; i < count; i++ {
+		result = append(result, f(i))
+	}
+	return append(result, tail...)
+}
+
+func expectedEvidence(name string, count int) []string {
+	var result []string
+	for i := 0; i < count; i++ {
+		result = append(result, fmt.Sprintf("%s:%s:%v", name, name, i))
+	}
+	return result
+}
+
+func signalComplete(done chan<- string) func(string, interface{}) {
+	return func(name string, value interface{}) {
+		done <- fmt.Sprintf("%s:%s", name, value)
+	}
+}
+
 func TestOnAfterStore(t *testing.T) {
-	var calledFor string
+	constructor := func(c *corev1.ConfigMap) (interface{}, error) {
+		return c.Name, nil
+	}
+
+	var evidence []string
+	completeCh := make(chan string)
+
 	store := NewUntypedStore(
 		"name",
 		TestLogger(t),
 		Constructors{
-			config1: constructor,
-			config2: constructor,
+			"config-name-1": constructor,
+			"config-name-2": constructor,
 		},
-		func(name string, value interface{}) {
-			calledFor = name
-		},
+		listOf(appendTo(&evidence), 100, signalComplete(completeCh))...,
 	)
 
 	store.OnConfigChanged(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config1,
+			Name: "config-name-1",
 		},
 	})
 
-	if calledFor != config1 {
-		t.Fatalf("calledFor = %s, want %s", calledFor, config1)
+	if diff := cmp.Diff("config-name-1:config-name-1", <-completeCh); diff != "" {
+		t.Fatalf("Expected value from completeCh diff: %s", diff)
 	}
+
+	if diff := cmp.Diff(expectedEvidence("config-name-1", 100), evidence); diff != "" {
+		t.Fatalf("Expected evidence diff: %s", diff)
+	}
+
+	evidence = nil
 
 	store.OnConfigChanged(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config2,
+			Name: "config-name-2",
 		},
 	})
 
-	if calledFor != config2 {
-		t.Fatalf("calledFor = %s, want %s", calledFor, config2)
+	if diff := cmp.Diff("config-name-2:config-name-2", <-completeCh); diff != "" {
+		t.Fatalf("Expected value from completeCh diff: %s", diff)
+	}
+
+	if diff := cmp.Diff(expectedEvidence("config-name-2", 100), evidence); diff != "" {
+		t.Fatalf("Expected evidence diff: %s", diff)
 	}
 }
 
 func TestStoreConfigChange(t *testing.T) {
+	constructor := func(c *corev1.ConfigMap) (interface{}, error) {
+		return c.Name, nil
+	}
+
 	store := NewUntypedStore(
 		"name",
 		TestLogger(t),
 		Constructors{
-			config1: constructor,
-			config2: constructor,
+			"config-name-1": constructor,
+			"config-name-2": constructor,
 		},
 	)
 
 	store.OnConfigChanged(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config1,
+			Name: "config-name-1",
 		},
 	})
 
-	result := store.UntypedLoad(config1)
+	result := store.UntypedLoad("config-name-1")
 
-	if diff := cmp.Diff(result, config1); diff != "" {
+	if diff := cmp.Diff(result, "config-name-1"); diff != "" {
 		t.Errorf("Expected loaded value diff: %s", diff)
 	}
 
-	result = store.UntypedLoad(config2)
+	result = store.UntypedLoad("config-name-2")
 
 	if diff := cmp.Diff(result, nil); diff != "" {
 		t.Errorf("Unexpected loaded value diff: %s", diff)
@@ -168,13 +211,13 @@ func TestStoreConfigChange(t *testing.T) {
 
 	store.OnConfigChanged(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config2,
+			Name: "config-name-2",
 		},
 	})
 
-	result = store.UntypedLoad(config2)
+	result = store.UntypedLoad("config-name-2")
 
-	if diff := cmp.Diff(result, config2); diff != "" {
+	if diff := cmp.Diff(result, "config-name-2"); diff != "" {
 		t.Errorf("Expected loaded value diff: %s", diff)
 	}
 }
@@ -186,12 +229,12 @@ func TestStoreFailedFirstConversionCrashes(t *testing.T) {
 		}
 
 		store := NewUntypedStore("name", TestLogger(t),
-			Constructors{config1: constructor},
+			Constructors{"config-name-1": constructor},
 		)
 
 		store.OnConfigChanged(&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: config1,
+				Name: "config-name-1",
 			},
 		})
 		return
@@ -218,25 +261,25 @@ func TestStoreFailedUpdate(t *testing.T) {
 	}
 
 	store := NewUntypedStore("name", TestLogger(t),
-		Constructors{config1: constructor},
+		Constructors{"config-name-1": constructor},
 	)
 
 	store.OnConfigChanged(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config1,
+			Name: "config-name-1",
 		},
 	})
 
-	firstLoad := store.UntypedLoad(config1)
+	firstLoad := store.UntypedLoad("config-name-1")
 
 	induceConstructorFailure = true
 	store.OnConfigChanged(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config1,
+			Name: "config-name-1",
 		},
 	})
 
-	secondLoad := store.UntypedLoad(config1)
+	secondLoad := store.UntypedLoad("config-name-1")
 
 	if diff := cmp.Diff(firstLoad, secondLoad); diff != "" {
 		t.Errorf("Expected loaded value to remain the same dff: %s", diff)

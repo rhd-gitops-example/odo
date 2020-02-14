@@ -20,12 +20,14 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/apis"
+	duckv1b1 "knative.dev/pkg/apis/duck/v1beta1"
 	"knative.dev/pkg/test"
 )
 
 // CheckCondition checks if condition `c` on `cc` has value `cs`.
-func CheckCondition(a apis.ConditionAccessor, c apis.ConditionType, cs corev1.ConditionStatus) error {
-	cond := a.GetCondition(c)
+// DEPRECATED: Use versioned test helper
+func CheckCondition(s *duckv1b1.Status, c apis.ConditionType, cs corev1.ConditionStatus) error {
+	cond := s.GetCondition(c)
 	if cond == nil {
 		return fmt.Errorf("condition %v is nil", c)
 	}
@@ -36,25 +38,28 @@ func CheckCondition(a apis.ConditionAccessor, c apis.ConditionType, cs corev1.Co
 }
 
 // CheckConditionOngoing checks if the condition is in state `Unknown`.
-func CheckConditionOngoing(a apis.ConditionAccessor, c apis.ConditionType, t test.T) {
+// DEPRECATED: Use versioned test helper
+func CheckConditionOngoing(s *duckv1b1.Status, c apis.ConditionType, t test.T) {
 	t.Helper()
-	if err := CheckCondition(a, c, corev1.ConditionUnknown); err != nil {
+	if err := CheckCondition(s, c, corev1.ConditionUnknown); err != nil {
 		t.Error(err)
 	}
 }
 
 // CheckConditionFailed checks if the condition is in state `False`.
-func CheckConditionFailed(a apis.ConditionAccessor, c apis.ConditionType, t test.T) {
+// DEPRECATED: Use versioned test helper
+func CheckConditionFailed(s *duckv1b1.Status, c apis.ConditionType, t test.T) {
 	t.Helper()
-	if err := CheckCondition(a, c, corev1.ConditionFalse); err != nil {
+	if err := CheckCondition(s, c, corev1.ConditionFalse); err != nil {
 		t.Error(err)
 	}
 }
 
 // CheckConditionSucceeded checks if the condition is in state `True`.
-func CheckConditionSucceeded(a apis.ConditionAccessor, c apis.ConditionType, t test.T) {
+// DEPRECATED: Use versioned test helper
+func CheckConditionSucceeded(s *duckv1b1.Status, c apis.ConditionType, t test.T) {
 	t.Helper()
-	if err := CheckCondition(a, c, corev1.ConditionTrue); err != nil {
+	if err := CheckCondition(s, c, corev1.ConditionTrue); err != nil {
 		t.Error(err)
 	}
 }

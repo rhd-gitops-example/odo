@@ -21,9 +21,9 @@ aliases:
   - mattmoor
   - mdemirhan
   - dprotaso
-  - vagababov
 
   controller-approvers:
+  - dgerd
   - grantr
   - mattmoor
   - tcnghia
@@ -31,6 +31,7 @@ aliases:
 
   kmeta-approvers:
   - mattmoor
+  - dgerd
   - vagababov
 
   logging-approvers:

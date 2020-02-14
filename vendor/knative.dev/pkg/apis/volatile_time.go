@@ -22,12 +22,6 @@ import (
 )
 
 // VolatileTime wraps metav1.Time
-//
-// Unlike metav1.Time, VolatileTimes are considered semantically equal when
-// using kubernetes semantic equality checks.
-// Thus differing VolatileTime values are not considered different.
-// Note, go-cmp will still return inequality, see unit test if you
-// need this behavior for go-cmp.
 type VolatileTime struct {
 	Inner metav1.Time
 }
@@ -45,7 +39,7 @@ func (t *VolatileTime) UnmarshalJSON(b []byte) error {
 func init() {
 	equality.Semantic.AddFunc(
 		// Always treat VolatileTime fields as equivalent.
-		func(VolatileTime, VolatileTime) bool {
+		func(a, b VolatileTime) bool {
 			return true
 		},
 	)

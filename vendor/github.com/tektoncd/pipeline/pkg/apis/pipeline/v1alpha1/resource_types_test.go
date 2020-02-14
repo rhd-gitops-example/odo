@@ -18,8 +18,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/test/diff"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -71,7 +70,7 @@ func TestApplyTaskModifier(t *testing.T) {
 		ts:   v1alpha1.TaskSpec{},
 	}, {
 		name: "identical volume already added",
-		ts: v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
 			// Trying to add the same Volume that has already been added shouldn't be an error
 			// and it should not be added twice
 			Volumes: []corev1.Volume{volume},
@@ -83,7 +82,7 @@ func TestApplyTaskModifier(t *testing.T) {
 				t.Fatalf("Did not expect error modifying TaskSpec but got %v", err)
 			}
 
-			expectedTaskSpec := v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
+			expectedTaskSpec := v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
 				Steps: []v1alpha1.Step{{
 					Container: prependStep,
 				}, {
@@ -95,7 +94,7 @@ func TestApplyTaskModifier(t *testing.T) {
 			}}
 
 			if d := cmp.Diff(expectedTaskSpec, tc.ts); d != "" {
-				t.Errorf("TaskSpec was not modified as expected %s", diff.PrintWantGot(d))
+				t.Errorf("TaskSpec was not modified as expected (-want, +got): %s", d)
 			}
 		})
 	}
@@ -107,27 +106,27 @@ func TestApplyTaskModifier_AlreadyAdded(t *testing.T) {
 		ts   v1alpha1.TaskSpec
 	}{{
 		name: "prepend already added",
-		ts: v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
 			Steps: []v1alpha1.Step{{Container: prependStep}},
 		}},
 	}, {
 		name: "append already added",
-		ts: v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
 			Steps: []v1alpha1.Step{{Container: appendStep}},
 		}},
 	}, {
 		name: "both steps already added",
-		ts: v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
 			Steps: []v1alpha1.Step{{Container: prependStep}, {Container: appendStep}},
 		}},
 	}, {
 		name: "both steps already added reverse order",
-		ts: v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
 			Steps: []v1alpha1.Step{{Container: appendStep}, {Container: prependStep}},
 		}},
 	}, {
 		name: "volume with same name but diff content already added",
-		ts: v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
 			Volumes: []corev1.Volume{{
 				Name: "magic-volume",
 				VolumeSource: corev1.VolumeSource{

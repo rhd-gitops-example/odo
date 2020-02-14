@@ -21,7 +21,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/test/diff"
 	"github.com/tektoncd/pipeline/test/names"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -67,7 +66,7 @@ func TestWorkingDirInit(t *testing.T) {
 		t.Run(c.desc, func(t *testing.T) {
 			got := workingDirInit(images.ShellImage, c.stepContainers)
 			if d := cmp.Diff(c.want, got); d != "" {
-				t.Fatalf("Diff %s", diff.PrintWantGot(d))
+				t.Fatalf("Diff (-want, +got): %s", d)
 			}
 		})
 	}

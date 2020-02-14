@@ -16,7 +16,6 @@ rules:
 - apiGroups:
   - tekton.dev
   resources:
-  - clustertriggerbindings
   - eventlisteners
   - triggerbindings
   - triggertemplates

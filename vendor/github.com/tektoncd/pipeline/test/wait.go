@@ -46,9 +46,9 @@ package test
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"go.opencensus.io/trace"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -62,14 +62,17 @@ const (
 	timeout  = 10 * time.Minute
 )
 
-// ConditionAccessorFn is a condition function used polling functions
-type ConditionAccessorFn func(ca apis.ConditionAccessor) (bool, error)
+// TaskRunStateFn is a condition function on TaskRun used polling functions
+type TaskRunStateFn func(r *v1alpha1.TaskRun) (bool, error)
+
+// PipelineRunStateFn is a condition function on TaskRun used polling functions
+type PipelineRunStateFn func(pr *v1alpha1.PipelineRun) (bool, error)
 
 // WaitForTaskRunState polls the status of the TaskRun called name from client every
 // interval until inState returns `true` indicating it is done, returns an
 // error or timeout. desc will be used to name the metric that is emitted to
 // track how long it took for name to get into the state checked by inState.
-func WaitForTaskRunState(c *clients, name string, inState ConditionAccessorFn, desc string) error {
+func WaitForTaskRunState(c *clients, name string, inState TaskRunStateFn, desc string) error {
 	metricName := fmt.Sprintf("WaitForTaskRunState/%s/%s", name, desc)
 	_, span := trace.StartSpan(context.Background(), metricName)
 	defer span.End()
@@ -79,7 +82,7 @@ func WaitForTaskRunState(c *clients, name string, inState ConditionAccessorFn, d
 		if err != nil {
 			return true, err
 		}
-		return inState(&r.Status)
+		return inState(r)
 	})
 }
 
@@ -123,7 +126,7 @@ func WaitForPodState(c *clients, name string, namespace string, inState func(r *
 // interval until inState returns `true` indicating it is done, returns an
 // error or timeout. desc will be used to name the metric that is emitted to
 // track how long it took for name to get into the state checked by inState.
-func WaitForPipelineRunState(c *clients, name string, polltimeout time.Duration, inState ConditionAccessorFn, desc string) error {
+func WaitForPipelineRunState(c *clients, name string, polltimeout time.Duration, inState PipelineRunStateFn, desc string) error {
 	metricName := fmt.Sprintf("WaitForPipelineRunState/%s/%s", name, desc)
 	_, span := trace.StartSpan(context.Background(), metricName)
 	defer span.End()
@@ -133,7 +136,7 @@ func WaitForPipelineRunState(c *clients, name string, polltimeout time.Duration,
 		if err != nil {
 			return true, err
 		}
-		return inState(&r.Status)
+		return inState(r)
 	})
 }
 
@@ -155,112 +158,66 @@ func WaitForServiceExternalIPState(c *clients, namespace, name string, inState f
 	})
 }
 
-// Succeed provides a poll condition function that checks if the ConditionAccessor
-// resource has successfully completed or not.
-func Succeed(name string) ConditionAccessorFn {
-	return func(ca apis.ConditionAccessor) (bool, error) {
-		c := ca.GetCondition(apis.ConditionSucceeded)
-		if c != nil {
-			if c.Status == corev1.ConditionTrue {
-				return true, nil
-			} else if c.Status == corev1.ConditionFalse {
-				return true, fmt.Errorf("%q failed", name)
-			}
-		}
-		return false, nil
-	}
-}
-
-// Failed provides a poll condition function that checks if the ConditionAccessor
-// resource has failed or not.
-func Failed(name string) ConditionAccessorFn {
-	return func(ca apis.ConditionAccessor) (bool, error) {
-		c := ca.GetCondition(apis.ConditionSucceeded)
-		if c != nil {
-			if c.Status == corev1.ConditionTrue {
-				return true, fmt.Errorf("%q succeeded", name)
-			} else if c.Status == corev1.ConditionFalse {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-}
-
-// FailedWithReason provides a poll function that checks if the ConditionAccessor
-// resource has failed with the TimeoudOut reason
-func FailedWithReason(reason, name string) ConditionAccessorFn {
-	return func(ca apis.ConditionAccessor) (bool, error) {
-		c := ca.GetCondition(apis.ConditionSucceeded)
-		if c != nil {
-			if c.Status == corev1.ConditionFalse {
-				if c.Reason == reason {
-					return true, nil
-				}
-				return true, fmt.Errorf("%q completed with the wrong reason: %s", name, c.Reason)
-			} else if c.Status == corev1.ConditionTrue {
-				return true, fmt.Errorf("%q completed successfully, should have been failed with reason %q", name, reason)
-			}
-		}
-		return false, nil
-	}
-}
-
-// FailedWithMessage provides a poll function that checks if the ConditionAccessor
-// resource has failed with the TimeoudOut reason
-func FailedWithMessage(message, name string) ConditionAccessorFn {
-	return func(ca apis.ConditionAccessor) (bool, error) {
-		c := ca.GetCondition(apis.ConditionSucceeded)
-		if c != nil {
-			if c.Status == corev1.ConditionFalse {
-				if strings.Contains(c.Message, message) {
-					return true, nil
-				}
-				return true, fmt.Errorf("%q completed with the wrong message: %s", name, c.Message)
-			} else if c.Status == corev1.ConditionTrue {
-				return true, fmt.Errorf("%q completed successfully, should have been failed with message %q", name, message)
-			}
-		}
-		return false, nil
-	}
-}
-
-// Running provides a poll condition function that checks if the ConditionAccessor
-// resource is currently running.
-func Running(name string) ConditionAccessorFn {
-	return func(ca apis.ConditionAccessor) (bool, error) {
-		c := ca.GetCondition(apis.ConditionSucceeded)
-		if c != nil {
-			if c.Status == corev1.ConditionTrue || c.Status == corev1.ConditionFalse {
-				return true, fmt.Errorf(`%q already finished`, name)
-			} else if c.Status == corev1.ConditionUnknown && (c.Reason == "Running" || c.Reason == "Pending") {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-}
-
 // TaskRunSucceed provides a poll condition function that checks if the TaskRun
 // has successfully completed.
-func TaskRunSucceed(name string) ConditionAccessorFn {
-	return Succeed(name)
+func TaskRunSucceed(name string) TaskRunStateFn {
+	return func(tr *v1alpha1.TaskRun) (bool, error) {
+		c := tr.Status.GetCondition(apis.ConditionSucceeded)
+		if c != nil {
+			if c.Status == corev1.ConditionTrue {
+				return true, nil
+			} else if c.Status == corev1.ConditionFalse {
+				return true, fmt.Errorf("task run %q failed", name)
+			}
+		}
+		return false, nil
+	}
 }
 
 // TaskRunFailed provides a poll condition function that checks if the TaskRun
 // has failed.
-func TaskRunFailed(name string) ConditionAccessorFn {
-	return Failed(name)
+func TaskRunFailed(name string) TaskRunStateFn {
+	return func(tr *v1alpha1.TaskRun) (bool, error) {
+		c := tr.Status.GetCondition(apis.ConditionSucceeded)
+		if c != nil {
+			if c.Status == corev1.ConditionTrue {
+				return true, fmt.Errorf("task run %q succeeded", name)
+			} else if c.Status == corev1.ConditionFalse {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
 }
 
 // PipelineRunSucceed provides a poll condition function that checks if the PipelineRun
 // has successfully completed.
-func PipelineRunSucceed(name string) ConditionAccessorFn {
-	return Succeed(name)
+func PipelineRunSucceed(name string) PipelineRunStateFn {
+	return func(pr *v1alpha1.PipelineRun) (bool, error) {
+		c := pr.Status.GetCondition(apis.ConditionSucceeded)
+		if c != nil {
+			if c.Status == corev1.ConditionTrue {
+				return true, nil
+			} else if c.Status == corev1.ConditionFalse {
+				return true, fmt.Errorf("pipeline run %q failed", name)
+			}
+		}
+		return false, nil
+	}
 }
 
 // PipelineRunFailed provides a poll condition function that checks if the PipelineRun
 // has failed.
-func PipelineRunFailed(name string) ConditionAccessorFn {
-	return Failed(name)
+func PipelineRunFailed(name string) PipelineRunStateFn {
+	return func(tr *v1alpha1.PipelineRun) (bool, error) {
+		c := tr.Status.GetCondition(apis.ConditionSucceeded)
+		if c != nil {
+			if c.Status == corev1.ConditionTrue {
+				return true, fmt.Errorf("task run %q succeeded", name)
+			} else if c.Status == corev1.ConditionFalse {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
 }

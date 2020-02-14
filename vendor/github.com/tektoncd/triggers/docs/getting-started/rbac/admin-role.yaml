@@ -6,11 +6,12 @@ metadata:
   namespace: getting-started
 rules:
 - apiGroups:
-  - triggers.tekton.dev
+  - tekton.dev
   resources:
   - eventlisteners
   - triggerbindings
   - triggertemplates
+  - pipelineresources
   verbs:
   - get
 - apiGroups:

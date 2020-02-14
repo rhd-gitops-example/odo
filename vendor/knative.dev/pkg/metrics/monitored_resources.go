@@ -17,6 +17,7 @@ limitations under the License.
 package metrics
 
 import (
+	"go.opencensus.io/tag"
 	"knative.dev/pkg/metrics/metricskey"
 )
 
@@ -24,6 +25,14 @@ type Global struct{}
 
 func (g *Global) MonitoredResource() (resType string, labels map[string]string) {
 	return "global", nil
+}
+
+func getTagsMap(tags []tag.Tag) map[string]string {
+	tagsMap := map[string]string{}
+	for _, t := range tags {
+		tagsMap[t.Key.Name()] = t.Value
+	}
+	return tagsMap
 }
 
 func valueOrUnknown(key string, tagsMap map[string]string) string {

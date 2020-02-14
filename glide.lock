@@ -1,5 +1,5 @@
-hash: 6627303d1f977429bd15b9c8bdc32137922bf54ac048fcc4b0bbb28fb4791158
-updated: 2020-02-10T10:26:08.263153828Z
+hash: 2890ebafdfa82906e890bf6bda8d4a002eef006050c0e383442f344fe45a1e78
+updated: 2020-02-14T14:48:04.844370863+05:30
 imports:
 - name: cloud.google.com/go
   version: 8c41231e01b2085512d98153bcffb847ff9b4b9f
@@ -464,21 +464,22 @@ imports:
   - assert
   - require
 - name: github.com/tektoncd/pipeline
-  version: bfa9d6155161e17c105ccf14fe3ff31b510e28fe
+  version: 34d823820ce564920394a783e0892d25868a4d8f
   subpackages:
   - pkg/apis/config
   - pkg/apis/pipeline
   - pkg/apis/pipeline/pod
   - pkg/apis/pipeline/v1alpha1
-  - pkg/apis/pipeline/v1beta1
+  - pkg/apis/pipeline/v1alpha2
   - pkg/apis/resource/v1alpha1
   - pkg/apis/validate
   - pkg/contexts
   - pkg/list
+  - pkg/names
   - pkg/reconciler/pipeline/dag
   - pkg/substitution
 - name: github.com/tektoncd/triggers
-  version: 8e7c4798a520fe371c815d40f8fbdb2c72604bdd
+  version: 6fd954437e30a23124d869e0fc24673aad042af7
   subpackages:
   - pkg/apis/triggers/v1alpha1
 - name: github.com/xeipuuv/gojsonpointer
@@ -566,7 +567,7 @@ imports:
   subpackages:
   - internal
 - name: gomodules.xyz/jsonpatch
-  version: 1c2a0262323edc27502942d9727c95646b1c3cbe
+  version: e8422f09d27ee2c8cfb2c7f8089eb9eeb0764849
   subpackages:
   - v2
 - name: google.golang.org/appengine
@@ -739,7 +740,7 @@ imports:
   - dynamic
   - informers
   - informers/admissionregistration
-  - informers/admissionregistration/v1
+  - informers/admissionregistration/v1alpha1
   - informers/admissionregistration/v1beta1
   - informers/apps
   - informers/apps/v1
@@ -758,26 +759,16 @@ imports:
   - informers/certificates
   - informers/certificates/v1beta1
   - informers/coordination
-  - informers/coordination/v1
   - informers/coordination/v1beta1
   - informers/core
   - informers/core/v1
-  - informers/discovery
-  - informers/discovery/v1alpha1
-  - informers/discovery/v1beta1
   - informers/events
   - informers/events/v1beta1
   - informers/extensions
   - informers/extensions/v1beta1
-  - informers/flowcontrol
-  - informers/flowcontrol/v1alpha1
   - informers/internalinterfaces
   - informers/networking
   - informers/networking/v1
-  - informers/networking/v1beta1
-  - informers/node
-  - informers/node/v1alpha1
-  - informers/node/v1beta1
   - informers/policy
   - informers/policy/v1beta1
   - informers/rbac
@@ -785,7 +776,6 @@ imports:
   - informers/rbac/v1alpha1
   - informers/rbac/v1beta1
   - informers/scheduling
-  - informers/scheduling/v1
   - informers/scheduling/v1alpha1
   - informers/scheduling/v1beta1
   - informers/settings
@@ -877,7 +867,7 @@ imports:
   - kubernetes/typed/storage/v1alpha1/fake
   - kubernetes/typed/storage/v1beta1
   - kubernetes/typed/storage/v1beta1/fake
-  - listers/admissionregistration/v1
+  - listers/admissionregistration/v1alpha1
   - listers/admissionregistration/v1beta1
   - listers/apps/v1
   - listers/apps/v1beta1
@@ -890,23 +880,15 @@ imports:
   - listers/batch/v1beta1
   - listers/batch/v2alpha1
   - listers/certificates/v1beta1
-  - listers/coordination/v1
   - listers/coordination/v1beta1
   - listers/core/v1
-  - listers/discovery/v1alpha1
-  - listers/discovery/v1beta1
   - listers/events/v1beta1
   - listers/extensions/v1beta1
-  - listers/flowcontrol/v1alpha1
   - listers/networking/v1
-  - listers/networking/v1beta1
-  - listers/node/v1alpha1
-  - listers/node/v1beta1
   - listers/policy/v1beta1
   - listers/rbac/v1
   - listers/rbac/v1alpha1
   - listers/rbac/v1beta1
-  - listers/scheduling/v1
   - listers/scheduling/v1alpha1
   - listers/scheduling/v1beta1
   - listers/settings/v1alpha1
@@ -992,10 +974,9 @@ imports:
   subpackages:
   - buffer
   - exec
-  - integer
-  - trace
+  - pointer
 - name: knative.dev/pkg
-  version: 7893fe6758a4211943c3d462f4e5e84001aedb8e
+  version: d8b36f3593257b2b39ab9bb6fbd8ad6828983755
   subpackages:
   - apis
   - apis/duck
@@ -1006,32 +987,6 @@ imports:
   - kmeta
   - kmp
   - tracker
-- name: sigs.k8s.io/kustomize
-  version: a6f65144121d1955266b0cd836ce954c04122dc8
-  subpackages:
-  - api
-  - pkg/commands/build
-  - pkg/constants
-  - pkg/expansion
-  - pkg/factory
-  - pkg/fs
-  - pkg/git
-  - pkg/gvk
-  - pkg/ifc
-  - pkg/ifc/transformer
-  - pkg/image
-  - pkg/internal/error
-  - pkg/loader
-  - pkg/patch
-  - pkg/patch/transformer
-  - pkg/resid
-  - pkg/resmap
-  - pkg/resource
-  - pkg/target
-  - pkg/transformers
-  - pkg/transformers/config
-  - pkg/transformers/config/defaultconfig
-  - pkg/types
 - name: sigs.k8s.io/yaml
   version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 testImports: []

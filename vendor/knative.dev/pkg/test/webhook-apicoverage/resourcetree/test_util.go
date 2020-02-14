@@ -49,13 +49,11 @@ type arrayType struct {
 	baseArr   []bool
 }
 
-//nolint:structcheck,unused // Disable warnings about unused fields.
 type otherType struct {
 	structMap map[string]baseType
 	baseMap   map[string]string
 }
 
-//nolint:structcheck,unused // Disable warnings about unused fields.
 type combinedNodeType struct {
 	b baseType
 	a arrayType

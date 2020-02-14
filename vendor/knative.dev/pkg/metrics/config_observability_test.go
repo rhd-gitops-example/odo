@@ -21,61 +21,82 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"knative.dev/pkg/system"
 
 	_ "knative.dev/pkg/system/testing"
 )
 
 func TestObservabilityConfiguration(t *testing.T) {
 	observabilityConfigTests := []struct {
-		name       string
-		data       map[string]string
-		wantErr    bool
-		wantConfig *ObservabilityConfig
+		name           string
+		wantErr        bool
+		wantController interface{}
+		config         *corev1.ConfigMap
 	}{{
 		name:    "observability configuration with all inputs",
 		wantErr: false,
-		wantConfig: &ObservabilityConfig{
-			EnableProbeRequestLog:  true,
-			EnableProfiling:        true,
-			EnableVarLogCollection: true,
+		wantController: &ObservabilityConfig{
 			LoggingURLTemplate:     "https://logging.io",
+			EnableVarLogCollection: true,
 			RequestLogTemplate:     `{"requestMethod": "{{.Request.Method}}"}`,
+			EnableProbeRequestLog:  true,
 			RequestMetricsBackend:  "stackdriver",
 		},
-		data: map[string]string{
-			"logging.enable-probe-request-log":            "true",
-			"logging.enable-var-log-collection":           "true",
-			"logging.request-log-template":                `{"requestMethod": "{{.Request.Method}}"}`,
-			"logging.revision-url-template":               "https://logging.io",
-			"logging.write-request-logs":                  "true",
-			"metrics.request-metrics-backend-destination": "stackdriver",
-			"profiling.enable":                            "true",
+		config: &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: system.Namespace(),
+				Name:      ConfigMapName(),
+			},
+			Data: map[string]string{
+				"logging.enable-var-log-collection":           "true",
+				"logging.revision-url-template":               "https://logging.io",
+				"logging.enable-probe-request-log":            "true",
+				"logging.write-request-logs":                  "true",
+				"logging.request-log-template":                `{"requestMethod": "{{.Request.Method}}"}`,
+				"metrics.request-metrics-backend-destination": "stackdriver",
+			},
 		},
 	}, {
-		name:       "observability config with no map",
-		wantErr:    false,
-		wantConfig: defaultConfig(),
+		name:    "observability config with no map",
+		wantErr: false,
+		wantController: &ObservabilityConfig{
+			EnableVarLogCollection: false,
+			LoggingURLTemplate:     DefaultLogURLTemplate,
+			RequestLogTemplate:     "",
+			RequestMetricsBackend:  DefaultRequestMetricsBackend,
+		},
+		config: &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: system.Namespace(),
+				Name:      ConfigMapName(),
+			},
+		},
 	}, {
-		name:       "invalid request log template",
-		wantErr:    true,
-		wantConfig: nil,
-		data: map[string]string{
-			"logging.request-log-template": `{{ something }}`,
+		name:           "invalid request log template",
+		wantErr:        true,
+		wantController: (*ObservabilityConfig)(nil),
+		config: &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: system.Namespace(),
+				Name:      ConfigMapName(),
+			},
+			Data: map[string]string{
+				"logging.request-log-template": `{{ something }}`,
+			},
 		},
 	}}
 
 	for _, tt := range observabilityConfigTests {
 		t.Run(tt.name, func(t *testing.T) {
-			obsConfig, err := NewObservabilityConfigFromConfigMap(&corev1.ConfigMap{
-				Data: tt.data,
-			})
+			actualController, err := NewObservabilityConfigFromConfigMap(tt.config)
 
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("NewObservabilityFromConfigMap() error = %v, WantErr %v", err, tt.wantErr)
+				t.Fatalf("Test: %q; NewObservabilityFromConfigMap() error = %v, WantErr %v", tt.name, err, tt.wantErr)
 			}
 
-			if got, want := obsConfig, tt.wantConfig; !cmp.Equal(got, want) {
-				t.Errorf("Got = %v, want: %v, diff(-want,+got)\n%s", got, want, cmp.Diff(want, got))
+			if diff := cmp.Diff(actualController, tt.wantController); diff != "" {
+				t.Fatalf("Test: %q; want %v, but got %v", tt.name, tt.wantController, actualController)
 			}
 		})
 	}

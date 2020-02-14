@@ -20,11 +20,11 @@ import (
 	"testing"
 	"time"
 
-	tb "github.com/tektoncd/pipeline/internal/builder/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	informersv1beta1 "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1"
-	faketaskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	alpha1 "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1alpha1"
+	faketaskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/taskrun/fake"
+	tb "github.com/tektoncd/pipeline/test/builder"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
@@ -35,7 +35,7 @@ import (
 func TestUninitializedMetrics(t *testing.T) {
 	metrics := Recorder{}
 
-	durationCountError := metrics.DurationAndCount(&v1beta1.TaskRun{})
+	durationCountError := metrics.DurationAndCount(&v1alpha1.TaskRun{})
 	taskrunsCountError := metrics.RunningTaskRuns(nil)
 	podLatencyError := metrics.RecordPodLatency(nil, nil)
 
@@ -49,15 +49,14 @@ func TestRecordTaskrunDurationCount(t *testing.T) {
 
 	for _, c := range []struct {
 		name              string
-		taskRun           *v1beta1.TaskRun
+		taskRun           *v1alpha1.TaskRun
 		expectedTags      map[string]string
 		expectedCountTags map[string]string
 		expectedDuration  float64
 		expectedCount     int64
 	}{{
 		name: "for_succeeded_task",
-		taskRun: tb.TaskRun("taskrun-1",
-			tb.TaskRunNamespace("ns"),
+		taskRun: tb.TaskRun("taskrun-1", "ns",
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("task-1"),
 			),
@@ -82,8 +81,7 @@ func TestRecordTaskrunDurationCount(t *testing.T) {
 		expectedCount:    1,
 	}, {
 		name: "for_failed_task",
-		taskRun: tb.TaskRun("taskrun-1",
-			tb.TaskRunNamespace("ns"),
+		taskRun: tb.TaskRun("taskrun-1", "ns",
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("task-1"),
 			),
@@ -127,15 +125,14 @@ func TestRecordPipelinerunTaskrunDurationCount(t *testing.T) {
 
 	for _, c := range []struct {
 		name              string
-		taskRun           *v1beta1.TaskRun
+		taskRun           *v1alpha1.TaskRun
 		expectedTags      map[string]string
 		expectedCountTags map[string]string
 		expectedDuration  float64
 		expectedCount     int64
 	}{{
 		name: "for_succeeded_task",
-		taskRun: tb.TaskRun("taskrun-1",
-			tb.TaskRunNamespace("ns"),
+		taskRun: tb.TaskRun("taskrun-1", "ns",
 			tb.TaskRunLabel(pipeline.GroupName+pipeline.PipelineLabelKey, "pipeline-1"),
 			tb.TaskRunLabel(pipeline.GroupName+pipeline.PipelineRunLabelKey, "pipelinerun-1"),
 			tb.TaskRunSpec(
@@ -164,8 +161,7 @@ func TestRecordPipelinerunTaskrunDurationCount(t *testing.T) {
 		expectedCount:    1,
 	}, {
 		name: "for_failed_task",
-		taskRun: tb.TaskRun("taskrun-1",
-			tb.TaskRunNamespace("ns"),
+		taskRun: tb.TaskRun("taskrun-1", "ns",
 			tb.TaskRunLabel(pipeline.GroupName+pipeline.PipelineLabelKey, "pipeline-1"),
 			tb.TaskRunLabel(pipeline.GroupName+pipeline.PipelineRunLabelKey, "pipelinerun-1"),
 			tb.TaskRunSpec(
@@ -229,14 +225,13 @@ func TestRecordPodLatency(t *testing.T) {
 	testData := []struct {
 		name           string
 		pod            *corev1.Pod
-		taskRun        *v1beta1.TaskRun
+		taskRun        *v1alpha1.TaskRun
 		expectedTags   map[string]string
 		expectedValue  float64
 		expectingError bool
 	}{{
 		name: "for_scheduled_pod",
-		pod: tb.Pod("test-taskrun-pod-123456",
-			tb.PodNamespace("foo"),
+		pod: tb.Pod("test-taskrun-pod-123456", "foo",
 			tb.PodCreationTimestamp(creationTime),
 			tb.PodStatus(
 				tb.PodStatusConditions(corev1.PodCondition{
@@ -244,8 +239,7 @@ func TestRecordPodLatency(t *testing.T) {
 					LastTransitionTime: metav1.Time{Time: creationTime.Add(4 * time.Second)},
 				}),
 			)),
-		taskRun: tb.TaskRun("test-taskrun",
-			tb.TaskRunNamespace("foo"),
+		taskRun: tb.TaskRun("test-taskrun", "foo",
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("task-1"),
 			),
@@ -259,12 +253,10 @@ func TestRecordPodLatency(t *testing.T) {
 		expectedValue: 4e+09,
 	}, {
 		name: "for_non_scheduled_pod",
-		pod: tb.Pod("test-taskrun-pod-123456",
-			tb.PodNamespace("foo"),
+		pod: tb.Pod("test-taskrun-pod-123456", "foo",
 			tb.PodCreationTimestamp(creationTime),
 		),
-		taskRun: tb.TaskRun("test-taskrun",
-			tb.TaskRunNamespace("foo"),
+		taskRun: tb.TaskRun("test-taskrun", "foo",
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("task-1"),
 			),
@@ -292,9 +284,8 @@ func TestRecordPodLatency(t *testing.T) {
 
 }
 
-func addTaskruns(informer informersv1beta1.TaskRunInformer, taskrun, task, ns string, status corev1.ConditionStatus, t *testing.T) {
-	err := informer.Informer().GetIndexer().Add(tb.TaskRun(taskrun,
-		tb.TaskRunNamespace(ns),
+func addTaskruns(informer alpha1.TaskRunInformer, taskrun, task, ns string, status corev1.ConditionStatus, t *testing.T) {
+	err := informer.Informer().GetIndexer().Add(tb.TaskRun(taskrun, ns,
 		tb.TaskRunSpec(
 			tb.TaskRunTaskRef(task),
 		),

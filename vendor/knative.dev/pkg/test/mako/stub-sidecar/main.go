@@ -52,9 +52,9 @@ type server struct {
 func (s *server) Store(ctx context.Context, in *qspb.StoreInput) (*qspb.StoreOutput, error) {
 	m := jsonpb.Marshaler{}
 	qi, _ := m.MarshalToString(in.GetQuickstoreInput())
-	fmt.Println("# Received input")
+	fmt.Printf("# Received input")
 
-	fmt.Fprintln(s.sb, "#", qi)
+	fmt.Fprintf(s.sb, "# %s\n", qi)
 	writer := csv.NewWriter(s.sb)
 
 	kv := calculateKeyIndexColumnsMap(s.info)
@@ -62,30 +62,30 @@ func (s *server) Store(ctx context.Context, in *qspb.StoreInput) (*qspb.StoreOut
 	for k, i := range kv {
 		cols[i] = k
 	}
-	fmt.Fprintln(s.sb, "#", strings.Join(cols, ","))
+	fmt.Fprintf(s.sb, "# %s\n", strings.Join(cols, ","))
 
 	for _, sp := range in.GetSamplePoints() {
 		for _, mv := range sp.GetMetricValueList() {
-			vals := map[string]string{"inputValue": fmt.Sprint(sp.GetInputValue())}
-			vals[mv.GetValueKey()] = fmt.Sprint(mv.GetValue())
+			vals := map[string]string{"inputValue": fmt.Sprintf("%f", sp.GetInputValue())}
+			vals[mv.GetValueKey()] = fmt.Sprintf("%f", mv.GetValue())
 			writer.Write(makeRow(vals, kv))
 		}
 	}
 
 	for _, ra := range in.GetRunAggregates() {
-		vals := map[string]string{ra.GetValueKey(): fmt.Sprint(ra.GetValue())}
+		vals := map[string]string{ra.GetValueKey(): fmt.Sprintf("%f", ra.GetValue())}
 		writer.Write(makeRow(vals, kv))
 	}
 
 	for _, sa := range in.GetSampleErrors() {
-		vals := map[string]string{"inputValue": fmt.Sprint(sa.GetInputValue()), "errorMessage": sa.GetErrorMessage()}
+		vals := map[string]string{"inputValue": fmt.Sprintf("%f", sa.GetInputValue()), "errorMessage": sa.GetErrorMessage()}
 		writer.Write(makeRow(vals, kv))
 	}
 
 	writer.Flush()
 
-	fmt.Fprintln(s.sb, "# CSV end")
-	fmt.Println("# Input completed")
+	fmt.Fprintf(s.sb, "# CSV end\n")
+	fmt.Printf("# Input completed")
 
 	return &qspb.StoreOutput{}, nil
 }
@@ -124,7 +124,7 @@ func main() {
 
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatal("Failed to listen:", err)
+		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer(grpc.MaxRecvMsgSize(defaultServerMaxReceiveMessageSize))
 	stopCh := make(chan struct{})
@@ -136,7 +136,7 @@ func main() {
 	go func() {
 		qspb.RegisterQuickstoreServer(s, &server{info: info, stopCh: stopCh, sb: &sb})
 		if err := s.Serve(lis); err != nil {
-			log.Fatal("Failed to serve:", err)
+			log.Fatalf("failed to serve: %v", err)
 		}
 	}()
 	<-stopCh
@@ -161,8 +161,8 @@ func main() {
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
-		fmt.Println("Successfully served the results")
+		fmt.Print("Successfully served the results")
 	} else {
-		fmt.Println(sb.String())
+		fmt.Print(sb.String())
 	}
 }

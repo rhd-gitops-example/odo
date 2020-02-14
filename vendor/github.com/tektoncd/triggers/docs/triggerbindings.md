@@ -1,9 +1,3 @@
-<!--
----
-linkTitle: "Trigger Bindings"
-weight: 4
----
--->
 # TriggerBindings
 
 As per the name, `TriggerBinding`s bind against events/triggers.
@@ -12,8 +6,9 @@ parameters. The separation of `TriggerBinding`s from `TriggerTemplate`s was
 deliberate to encourage reuse between them.
 
 <!-- FILE: examples/triggerbindings/triggerbinding.yaml -->
+
 ```YAML
-apiVersion: triggers.tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: pipeline-binding
@@ -27,7 +22,6 @@ spec:
     value: $(header.Content-Type)
 ```
 
-
 `TriggerBinding`s are connected to `TriggerTemplate`s within an
 [`EventListener`](eventlisteners.md), which is where the pod is actually
 instantiated that "listens" for the respective events.
@@ -40,8 +34,7 @@ Each parameter has a `name` and a `value`.
 ## Event Variable Interpolation
 
 TriggerBindings can access values from the HTTP JSON body and the headers using
-JSONPath expressions wrapped in `$()`. The key in the header is
-case-insensitive.
+JSONPath expressions wrapped in `$()`.
 
 These are all valid expressions:
 
@@ -57,21 +50,12 @@ These are invalid expressions:
 $({body) # INVALID - Ending curly brace absent
 ```
 
-If the `$()` is embedded inside another `$()` we will use the contents of the
-innermost `$()` as the JSONPath expression
+If the `$()` is embedded inside another `$()` we will use the contents of the innermost
+`$()` as the JSONPath expression
 
 ```shell script
 $($(body.b)) -> $(body.b)
 $($($(body.b))) -> $(body.b)
-```
-
-#### Keys with dots `.`
-
-To access JSON keys that contain `.` character, we need to escape the `.` e.g.
-
-```shell script
-# body contains a filed called "tekton.dev" e.g. {"body": {"tekton.dev": "triggers"}}
-$(body.tekton\.dev) -> "triggers"
 ```
 
 ### Examples
@@ -98,8 +82,6 @@ $(header) -> "{"One":["one"], "Two":["one","two","three"]}"
 
 $(header.One) -> "one"
 
-$(header.one) -> "one"
-
 $(header.Two) -> "one two three"
 
 $(header.Two[1]) -> "two"
@@ -114,7 +96,7 @@ that extracts event information, and another binding that provides deploy
 environment information:
 
 ```yaml
-apiVersion: triggers.tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: event-binding
@@ -125,7 +107,7 @@ spec:
     - name: gitrepositoryurl
       value: $(body.repository.url)
 ---
-apiVersion: triggers.tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: prod-env
@@ -134,7 +116,7 @@ spec:
     - name: environment
       value: prod
 ---
-apiVersion: triggers.tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: staging-env
@@ -143,7 +125,7 @@ spec:
     - name: environment
       value: staging
 ---
-apiVersion: triggers.tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1alpha1
 kind: EventListener
 metadata:
   name: listener

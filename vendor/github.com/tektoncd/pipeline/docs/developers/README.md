@@ -59,8 +59,8 @@ expected in directory path `/workspace/output/resource_name`.
     name: get-gcs-task
     namespace: default
   spec:
-    resources:
-      outputs:
+    outputs:
+      resources:
         - name: gcs-workspace
           type: storage
   ```
@@ -76,8 +76,8 @@ expected in directory path `/workspace/output/resource_name`.
     name: get-gcs-task
     namespace: default
   spec:
-    resources:
-      outputs:
+    outputs:
+      resources:
         - name: gcs-workspace
           type: storage
           targetPath: /workspace/outputstuff
@@ -95,20 +95,21 @@ expected in directory path `/workspace/output/resource_name`.
     name: get-gcs-task
     namespace: default
   spec:
-    resources:
-      inputs:
+    inputs:
+      resources:
         - name: gcs-workspace
           type: storage
           targetPath: random-space
-      outputs:
+    outputs:
+      resources:
         - name: gcs-workspace
           type: storage
   ```
 
-- If resource is declared both in input and output for task without custom
-  target directory then copy step includes resource being copied to PVC to
-  path `/pvc/task_name/resource_name` from `/workspace/resource_name/` like
-  the following example.
+  - If resource is declared both in input and output for task without custom
+    target directory then copy step includes resource being copied to PVC to
+    path `/pvc/task_name/resource_name` from `/workspace/resource_name/` like
+    the following example.
 
   ```yaml
   kind: Task
@@ -116,11 +117,12 @@ expected in directory path `/workspace/output/resource_name`.
     name: get-gcs-task
     namespace: default
   spec:
-    resources:
-      inputs:
+    inputs:
+      resources:
         - name: gcs-workspace
           type: storage
-      outputs:
+    outputs:
+      resources:
         - name: gcs-workspace
           type: storage
   ```
@@ -143,23 +145,13 @@ with the binary and file(s) is mounted.
 If the image is a private registry, the service account should include an
 [ImagePullSecret](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#add-imagepullsecrets-to-a-service-account)
 
-## Reserved directories
+## Builder namespace on containers
 
-The `/tekton/` directory is reserved on containers for internal usage. Examples
-of how this directory is used:
+The `/tekton/` namespace is reserved on containers for various system tools,
+such as the following:
 
-* `/workspace` - This directory is where [resources](#resources) and [workspaces](#workspaces)
-  are mounted.
-* `/tekton` - This directory is used for Tekton specific functionality:
-  * These folders are [part of the Tekton API](../api_compatibility_policy.md):
-    * `/tekton/results` is where [results](#results) are written to
-      (path available to `Task` authors via [`$(results.name.path)`](../variables.md))
-  * These folders are implementation details of Tekton and **users should not
-    rely on this specific behavior as it may change in the future**:
-    * `/tekton/tools` contains tools like the [entrypoint binary](#entrypoint-rewriting-and-step-ordering)
-    * `/tekton/termination` is where the eventual [termination log message](https://kubernetes.io/docs/tasks/debug-application-cluster/determine-reason-pod-failure/#writing-and-reading-a-termination-message) is written to
-    * [Sequencing step containers](#entrypoint-rewriting-and-step-ordering)
-      is done using both `/tekton/downward/ready` and numbered files in `/tekton/tools`
+- The environment variable HOME is set to `/tekton/home`, used by the builder
+  tools and injected on into all of the step containers
 
 ## Handling of injected sidecars
 
@@ -168,7 +160,7 @@ TaskRun Pods. Without intervention sidecars will typically run for the entire
 lifetime of a Pod but in Tekton's case it's desirable for the sidecars to run
 only as long as Steps take to complete. There's also a need for Tekton to
 schedule the sidecars to start before a Task's Steps begin, just in case the
-Steps rely on a sidecars behavior, for example to join an Istio service mesh.
+Steps rely on a sidecars behaviour, for example to join an Istio service mesh.
 To handle all of this, Tekton Pipelines implements the following lifecycle
 for sidecar containers:
 
@@ -285,69 +277,3 @@ status:
 ```
 
 Instead of hardcoding the path to the result file, the user can also use a variable. So `/tekton/results/current-date-unix-timestamp` can be replaced with: `$(results.current-date-unix-timestamp.path)`. This is more flexible if the path to result files ever changes.
-
-### Known issues
-
-- Task Results are returned to the TaskRun controller via the container's
-termination log. At time of writing this has a capped maximum size of ["2048 bytes or 80 lines, whichever is smaller"](https://kubernetes.io/docs/tasks/debug-application-cluster/determine-reason-pod-failure/#customizing-the-termination-message).
-
-## How task results can be used in pipeline's tasks
-
-Now that we have tasks that can return a result, the user can refer to a task result in a pipeline by using the syntax
-`$(tasks.<task name>.results.<result name>)`. This will substitute the task result at the location of the variable.
-
-```yaml
-apiVersion: tekton.dev/v1alpha1
-kind: Pipeline
-metadata:
-  name: sum-and-multiply-pipeline
-    #...
-  tasks:
-    - name: sum-inputs
-    #...
-    - name: multiply-inputs
-    #...
-    - name: sum-and-multiply
-      taskRef:
-        name: sum
-      params:
-        - name: a
-          value: "$(tasks.multiply-inputs.results.product)$(tasks.sum-inputs.results.sum)"
-        - name: b
-          value: "$(tasks.multiply-inputs.results.product)$(tasks.sum-inputs.results.sum)"
-```
-
-This results in:
-
-```shell
-tkn pipeline start sum-and-multiply-pipeline
-? Value for param `a` of type `string`? (Default is `1`) 10
-? Value for param `b` of type `string`? (Default is `1`) 15
-Pipelinerun started: sum-and-multiply-pipeline-run-rgd9j
-
-In order to track the pipelinerun progress run:
-tkn pipelinerun logs sum-and-multiply-pipeline-run-rgd9j -f -n default
-```
-
-```shell
-tkn pipelinerun logs sum-and-multiply-pipeline-run-rgd9j -f -n default
-[multiply-inputs : product] 150
-
-[sum-inputs : sum] 25
-
-[sum-and-multiply : sum] 30050
-```
-
-As you can see, you can define multiple tasks in the same pipeline and use the result of more than one task inside another task parameter. The substitution is only done inside `pipeline.spec.tasks[].params[]`. For a complete example demonstrating Task Results in a Pipeline, see the [pipelinerun example](../../examples/v1beta1/pipelineruns/task_results_example.yaml).
-
-## Support for running in multi-tenant configuration
-
-In order to support potential multi-tenant configurations the roles of the controller are split into two:
-
-    `tekton-pipelines-controller-cluster-access`: those permissions needed cluster-wide by the controller.
-    `tekton-pipelines-controller-tenant-access`: those permissions needed on a namespace-by-namespace basis.
-
-By default the roles are cluster-scoped for backwards-compatibility and ease-of-use. If you want to
-start running a multi-tenant service you are able to bind `tekton-pipelines-controller-tenant-access`
-using a `RoleBinding` instead of a `ClusterRoleBinding`, thereby limiting the access that the controller has to
-specific tenant namespaces.

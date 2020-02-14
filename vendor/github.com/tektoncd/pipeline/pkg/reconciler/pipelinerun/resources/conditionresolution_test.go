@@ -21,19 +21,16 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	tbv1alpha1 "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
-	tb "github.com/tektoncd/pipeline/internal/builder/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	resourcev1alpha1 "github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
-	"github.com/tektoncd/pipeline/test/diff"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
+	tb "github.com/tektoncd/pipeline/test/builder"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
 )
 
-var c = tbv1alpha1.Condition("conditionname")
+var c = tb.Condition("conditionname", "foo")
 
 var notStartedState = TaskConditionCheckState{{
 	ConditionCheckName: "foo",
@@ -43,7 +40,7 @@ var notStartedState = TaskConditionCheckState{{
 var runningState = TaskConditionCheckState{{
 	ConditionCheckName: "foo",
 	Condition:          c,
-	ConditionCheck: &v1beta1.ConditionCheck{
+	ConditionCheck: &v1alpha1.ConditionCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "running-condition-check",
 		},
@@ -53,12 +50,12 @@ var runningState = TaskConditionCheckState{{
 var successState = TaskConditionCheckState{{
 	ConditionCheckName: "foo",
 	Condition:          c,
-	ConditionCheck: &v1beta1.ConditionCheck{
+	ConditionCheck: &v1alpha1.ConditionCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "successful-condition-check",
 		},
-		Spec: v1beta1.TaskRunSpec{},
-		Status: v1beta1.TaskRunStatus{
+		Spec: v1alpha1.TaskRunSpec{},
+		Status: v1alpha1.TaskRunStatus{
 			Status: duckv1beta1.Status{
 				Conditions: []apis.Condition{{
 					Type:   apis.ConditionSucceeded,
@@ -72,12 +69,12 @@ var successState = TaskConditionCheckState{{
 var failedState = TaskConditionCheckState{{
 	ConditionCheckName: "foo",
 	Condition:          c,
-	ConditionCheck: &v1beta1.ConditionCheck{
+	ConditionCheck: &v1alpha1.ConditionCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "failed-condition-check",
 		},
-		Spec: v1beta1.TaskRunSpec{},
-		Status: v1beta1.TaskRunStatus{
+		Spec: v1alpha1.TaskRunSpec{},
+		Status: v1alpha1.TaskRunStatus{
 			Status: duckv1beta1.Status{
 				Conditions: []apis.Condition{{
 					Type:   apis.ConditionSucceeded,
@@ -191,74 +188,86 @@ func TestResolvedConditionCheck_ConditionToTaskSpec(t *testing.T) {
 	tcs := []struct {
 		name              string
 		cond              *v1alpha1.Condition
-		resolvedResources map[string]*resourcev1alpha1.PipelineResource
-		want              v1beta1.TaskSpec
+		resolvedResources map[string]*v1alpha1.PipelineResource
+		want              v1alpha1.TaskSpec
 	}{{
 		name: "user-provided-container-name",
-		cond: tbv1alpha1.Condition("name", tbv1alpha1.ConditionSpec(
-			tbv1alpha1.ConditionSpecCheck("foo", "ubuntu"),
+		cond: tb.Condition("name", "foo", tb.ConditionSpec(
+			tb.ConditionSpecCheck("foo", "ubuntu"),
 		)),
-		want: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
-				Name:  "foo",
-				Image: "ubuntu",
-			}}},
+		want: v1alpha1.TaskSpec{
+			TaskSpec: v1alpha2.TaskSpec{
+				Steps: []v1alpha1.Step{{Container: corev1.Container{
+					Name:  "foo",
+					Image: "ubuntu",
+				}}},
+			},
+			Inputs: &v1alpha1.Inputs{},
 		},
 	}, {
 		name: "default-container-name",
-		cond: tbv1alpha1.Condition("bar", tbv1alpha1.ConditionSpec(
-			tbv1alpha1.ConditionSpecCheck("", "ubuntu"),
+		cond: tb.Condition("bar", "foo", tb.ConditionSpec(
+			tb.ConditionSpecCheck("", "ubuntu"),
 		)),
-		want: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
-				Name:  "condition-check-bar",
-				Image: "ubuntu",
-			}}},
+		want: v1alpha1.TaskSpec{
+			TaskSpec: v1alpha2.TaskSpec{
+				Steps: []v1alpha1.Step{{Container: corev1.Container{
+					Name:  "condition-check-bar",
+					Image: "ubuntu",
+				}}},
+			},
+			Inputs: &v1alpha1.Inputs{},
 		},
 	}, {
 		name: "with-input-params",
-		cond: tbv1alpha1.Condition("bar", tbv1alpha1.ConditionSpec(
-			tbv1alpha1.ConditionSpecCheck("$(params.name)", "$(params.img)",
+		cond: tb.Condition("bar", "foo", tb.ConditionSpec(
+			tb.ConditionSpecCheck("$(params.name)", "$(params.img)",
 				tb.WorkingDir("$(params.not.replaced)")),
-			tbv1alpha1.ConditionParamSpec("name", v1beta1.ParamTypeString),
-			tbv1alpha1.ConditionParamSpec("img", v1beta1.ParamTypeString),
+			tb.ConditionParamSpec("name", v1alpha1.ParamTypeString),
+			tb.ConditionParamSpec("img", v1alpha1.ParamTypeString),
 		)),
-		want: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
-				Name:       "$(inputs.params.name)",
-				Image:      "$(inputs.params.img)",
-				WorkingDir: "$(params.not.replaced)",
-			}}},
-			Params: []v1beta1.ParamSpec{{
-				Name: "name",
-				Type: "string",
-			}, {
-				Name: "img",
-				Type: "string",
-			}},
+		want: v1alpha1.TaskSpec{
+			TaskSpec: v1alpha2.TaskSpec{
+				Steps: []v1alpha1.Step{{Container: corev1.Container{
+					Name:       "$(inputs.params.name)",
+					Image:      "$(inputs.params.img)",
+					WorkingDir: "$(params.not.replaced)",
+				}}},
+			},
+			Inputs: &v1alpha1.Inputs{
+				Params: []v1alpha1.ParamSpec{{
+					Name: "name",
+					Type: "string",
+				}, {
+					Name: "img",
+					Type: "string",
+				}},
+			},
 		},
 	}, {
 		name: "with-resources",
-		cond: tbv1alpha1.Condition("bar", tbv1alpha1.ConditionSpec(
-			tbv1alpha1.ConditionSpecCheck("name", "ubuntu",
+		cond: tb.Condition("bar", "foo", tb.ConditionSpec(
+			tb.ConditionSpecCheck("name", "ubuntu",
 				tb.Args("$(resources.git-resource.revision)")),
-			tbv1alpha1.ConditionResource("git-resource", resourcev1alpha1.PipelineResourceTypeGit),
+			tb.ConditionResource("git-resource", v1alpha1.PipelineResourceTypeGit),
 		)),
-		resolvedResources: map[string]*resourcev1alpha1.PipelineResource{
-			"git-resource": tb.PipelineResource("git-resource",
-				tb.PipelineResourceSpec(resourcev1alpha1.PipelineResourceTypeGit,
+		resolvedResources: map[string]*v1alpha1.PipelineResource{
+			"git-resource": tb.PipelineResource("git-resource", "foo",
+				tb.PipelineResourceSpec(v1alpha1.PipelineResourceTypeGit,
 					tb.PipelineResourceSpecParam("revision", "master"),
 				)),
 		},
-		want: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
-				Name:  "name",
-				Image: "ubuntu",
-				Args:  []string{"master"},
-			}}},
-			Resources: &v1beta1.TaskResources{
-				Inputs: []v1beta1.TaskResource{{
-					ResourceDeclaration: v1beta1.ResourceDeclaration{
+		want: v1alpha1.TaskSpec{
+			TaskSpec: v1alpha2.TaskSpec{
+				Steps: []v1alpha1.Step{{Container: corev1.Container{
+					Name:  "name",
+					Image: "ubuntu",
+					Args:  []string{"master"},
+				}}},
+			},
+			Inputs: &v1alpha1.Inputs{
+				Resources: []v1alpha1.TaskResource{{
+					ResourceDeclaration: v1alpha1.ResourceDeclaration{
 						Name: "git-resource",
 						Type: "git",
 					}}},
@@ -275,7 +284,7 @@ func TestResolvedConditionCheck_ConditionToTaskSpec(t *testing.T) {
 			}
 
 			if d := cmp.Diff(&tc.want, got); d != "" {
-				t.Errorf("TaskSpec generated from Condition is unexpected %s", diff.PrintWantGot(d))
+				t.Errorf("TaskSpec generated from Condition is unexpected -want, +got: %v", d)
 			}
 		})
 	}
@@ -283,18 +292,18 @@ func TestResolvedConditionCheck_ConditionToTaskSpec(t *testing.T) {
 
 func TestResolvedConditionCheck_ToTaskResourceBindings(t *testing.T) {
 	rcc := ResolvedConditionCheck{
-		ResolvedResources: map[string]*resourcev1alpha1.PipelineResource{
-			"git-resource": tb.PipelineResource("some-repo"),
+		ResolvedResources: map[string]*v1alpha1.PipelineResource{
+			"git-resource": tb.PipelineResource("some-repo", "foo"),
 		},
 	}
 
-	expected := []v1beta1.TaskResourceBinding{{
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+	expected := []v1alpha1.TaskResourceBinding{{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "git-resource",
 		},
 	}}
 
 	if d := cmp.Diff(expected, rcc.ToTaskResourceBindings()); d != "" {
-		t.Errorf("Did not get expected task resouce binding from condition %s", diff.PrintWantGot(d))
+		t.Errorf("Did not get expected task resouce binding from condition: %s", d)
 	}
 }

@@ -18,16 +18,14 @@ package pod
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/system"
-	"github.com/tektoncd/pipeline/test/diff"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	"github.com/tektoncd/pipeline/test/names"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -46,16 +44,12 @@ var (
 func TestMakePod(t *testing.T) {
 	names.TestingSeed()
 
-	implicitEnvVars := []corev1.EnvVar{{
-		Name:  "HOME",
-		Value: pipeline.HomeDir,
-	}}
 	secretsVolumeMount := corev1.VolumeMount{
-		Name:      "tekton-internal-secret-volume-multi-creds-9l9zj",
+		Name:      "tekton-internal-secret-volume-multi-creds",
 		MountPath: "/tekton/creds-secrets/multi-creds",
 	}
 	secretsVolume := corev1.Volume{
-		Name:         "tekton-internal-secret-volume-multi-creds-9l9zj",
+		Name:         "tekton-internal-secret-volume-multi-creds",
 		VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: "multi-creds"}},
 	}
 
@@ -74,19 +68,19 @@ func TestMakePod(t *testing.T) {
 
 	for _, c := range []struct {
 		desc            string
-		trs             v1beta1.TaskRunSpec
-		ts              v1beta1.TaskSpec
+		trs             v1alpha1.TaskRunSpec
+		ts              v1alpha1.TaskSpec
 		want            *corev1.PodSpec
 		wantAnnotations map[string]string
 	}{{
 		desc: "simple",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:    "name",
 				Image:   "image",
 				Command: []string{"cmd"}, // avoid entrypoint lookup.
 			}}},
-		},
+		}},
 		want: &corev1.PodSpec{
 			RestartPolicy:  corev1.RestartPolicyNever,
 			InitContainers: []corev1.Container{placeToolsInit},
@@ -116,14 +110,14 @@ func TestMakePod(t *testing.T) {
 		},
 	}, {
 		desc: "with service account",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:    "name",
 				Image:   "image",
 				Command: []string{"cmd"}, // avoid entrypoint lookup.
 			}}},
-		},
-		trs: v1beta1.TaskRunSpec{
+		}},
+		trs: v1alpha1.TaskRunSpec{
 			ServiceAccountName: "service-account",
 		},
 		want: &corev1.PodSpec{
@@ -170,15 +164,15 @@ func TestMakePod(t *testing.T) {
 		},
 	}, {
 		desc: "with-pod-template",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:    "name",
 				Image:   "image",
 				Command: []string{"cmd"}, // avoid entrypoint lookup.
 			}}},
-		},
-		trs: v1beta1.TaskRunSpec{
-			PodTemplate: &v1beta1.PodTemplate{
+		}},
+		trs: v1alpha1.TaskRunSpec{
+			PodTemplate: &v1alpha1.PodTemplate{
 				SecurityContext: &corev1.PodSecurityContext{
 					Sysctls: []corev1.Sysctl{
 						{Name: "net.ipv4.tcp_syncookies", Value: "1"},
@@ -238,13 +232,13 @@ func TestMakePod(t *testing.T) {
 		},
 	}, {
 		desc: "very long step name",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:    "a-very-very-long-character-step-name-to-trigger-max-len----and-invalid-characters",
 				Image:   "image",
 				Command: []string{"cmd"}, // avoid entrypoint lookup.
 			}}},
-		},
+		}},
 		want: &corev1.PodSpec{
 			RestartPolicy:  corev1.RestartPolicyNever,
 			InitContainers: []corev1.Container{placeToolsInit},
@@ -274,13 +268,13 @@ func TestMakePod(t *testing.T) {
 		},
 	}, {
 		desc: "step name ends with non alphanumeric",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:    "ends-with-invalid-%%__$$",
 				Image:   "image",
 				Command: []string{"cmd"}, // avoid entrypoint lookup.
 			}}},
-		},
+		}},
 		want: &corev1.PodSpec{
 			RestartPolicy:  corev1.RestartPolicyNever,
 			InitContainers: []corev1.Container{placeToolsInit},
@@ -310,25 +304,24 @@ func TestMakePod(t *testing.T) {
 		},
 	}, {
 		desc: "workingDir in workspace",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:       "name",
 				Image:      "image",
 				Command:    []string{"cmd"}, // avoid entrypoint lookup.
 				WorkingDir: filepath.Join(pipeline.WorkspaceDir, "test"),
 			}}},
-		},
+		}},
 		want: &corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
-			InitContainers: []corev1.Container{
-				{
-					Name:         "working-dir-initializer",
-					Image:        images.ShellImage,
-					Command:      []string{"sh"},
-					Args:         []string{"-c", fmt.Sprintf("mkdir -p %s", filepath.Join(pipeline.WorkspaceDir, "test"))},
-					WorkingDir:   pipeline.WorkspaceDir,
-					VolumeMounts: implicitVolumeMounts,
-				},
+			InitContainers: []corev1.Container{{
+				Name:         "working-dir-initializer",
+				Image:        images.ShellImage,
+				Command:      []string{"sh"},
+				Args:         []string{"-c", fmt.Sprintf("mkdir -p %s", filepath.Join(pipeline.WorkspaceDir, "test"))},
+				WorkingDir:   pipeline.WorkspaceDir,
+				VolumeMounts: implicitVolumeMounts,
+			},
 				placeToolsInit,
 			},
 			Containers: []corev1.Container{{
@@ -357,19 +350,19 @@ func TestMakePod(t *testing.T) {
 		},
 	}, {
 		desc: "sidecar container",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:    "primary-name",
 				Image:   "primary-image",
 				Command: []string{"cmd"}, // avoid entrypoint lookup.
 			}}},
-			Sidecars: []v1beta1.Sidecar{{
+			Sidecars: []v1alpha1.Sidecar{{
 				Container: corev1.Container{
 					Name:  "sc-name",
 					Image: "sidecar-image",
 				},
 			}},
-		},
+		}},
 		wantAnnotations: map[string]string{},
 		want: &corev1.PodSpec{
 			RestartPolicy:  corev1.RestartPolicyNever,
@@ -406,38 +399,37 @@ func TestMakePod(t *testing.T) {
 		},
 	}, {
 		desc: "sidecar container with script",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:    "primary-name",
 				Image:   "primary-image",
 				Command: []string{"cmd"}, // avoid entrypoint lookup.
 			}}},
-			Sidecars: []v1beta1.Sidecar{{
+			Sidecars: []v1alpha1.Sidecar{{
 				Container: corev1.Container{
 					Name:  "sc-name",
 					Image: "sidecar-image",
 				},
 				Script: "#!/bin/sh\necho hello from sidecar",
 			}},
-		},
+		}},
 		wantAnnotations: map[string]string{},
 		want: &corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
-			InitContainers: []corev1.Container{
-				{
-					Name:         "place-scripts",
-					Image:        "busybox",
-					Command:      []string{"sh"},
-					TTY:          true,
-					VolumeMounts: []corev1.VolumeMount{scriptsVolumeMount},
-					Args: []string{"-c", `tmpfile="/tekton/scripts/sidecar-script-0-9l9zj"
+			InitContainers: []corev1.Container{{
+				Name:         "place-scripts",
+				Image:        "busybox",
+				Command:      []string{"sh"},
+				TTY:          true,
+				VolumeMounts: []corev1.VolumeMount{scriptsVolumeMount},
+				Args: []string{"-c", `tmpfile="/tekton/scripts/sidecar-script-0-9l9zj"
 touch ${tmpfile} && chmod +x ${tmpfile}
 cat > ${tmpfile} << 'sidecar-script-heredoc-randomly-generated-mz4c7'
 #!/bin/sh
 echo hello from sidecar
 sidecar-script-heredoc-randomly-generated-mz4c7
 `},
-				},
+			},
 				placeToolsInit,
 			},
 			Containers: []corev1.Container{{
@@ -474,8 +466,8 @@ sidecar-script-heredoc-randomly-generated-mz4c7
 		},
 	}, {
 		desc: "resource request",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{{Container: corev1.Container{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Image:   "image",
 				Command: []string{"cmd"}, // avoid entrypoint lookup.
 				Resources: corev1.ResourceRequirements{
@@ -494,7 +486,7 @@ sidecar-script-heredoc-randomly-generated-mz4c7
 					},
 				},
 			}}},
-		},
+		}},
 		want: &corev1.PodSpec{
 			RestartPolicy:  corev1.RestartPolicyNever,
 			InitContainers: []corev1.Container{placeToolsInit},
@@ -556,12 +548,12 @@ sidecar-script-heredoc-randomly-generated-mz4c7
 		},
 	}, {
 		desc: "step with script and stepTemplate",
-		ts: v1beta1.TaskSpec{
+		ts: v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
 			StepTemplate: &corev1.Container{
 				Env:  []corev1.EnvVar{{Name: "FOO", Value: "bar"}},
 				Args: []string{"template", "args"},
 			},
-			Steps: []v1beta1.Step{{
+			Steps: []v1alpha1.Step{{
 				Container: corev1.Container{
 					Name:  "one",
 					Image: "image",
@@ -582,16 +574,15 @@ print("Hello from Python")`,
 					Command: []string{"regular", "command"},
 				},
 			}},
-		},
+		}},
 		want: &corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
-			InitContainers: []corev1.Container{
-				{
-					Name:    "place-scripts",
-					Image:   images.ShellImage,
-					Command: []string{"sh"},
-					TTY:     true,
-					Args: []string{"-c", `tmpfile="/tekton/scripts/script-0-9l9zj"
+			InitContainers: []corev1.Container{{
+				Name:    "place-scripts",
+				Image:   images.ShellImage,
+				Command: []string{"sh"},
+				TTY:     true,
+				Args: []string{"-c", `tmpfile="/tekton/scripts/script-0-9l9zj"
 touch ${tmpfile} && chmod +x ${tmpfile}
 cat > ${tmpfile} << 'script-heredoc-randomly-generated-mz4c7'
 #!/bin/sh
@@ -604,14 +595,13 @@ cat > ${tmpfile} << 'script-heredoc-randomly-generated-78c5n'
 print("Hello from Python")
 script-heredoc-randomly-generated-78c5n
 `},
-					VolumeMounts: []corev1.VolumeMount{scriptsVolumeMount},
-				},
-				{
-					Name:         "place-tools",
-					Image:        images.EntrypointImage,
-					Command:      []string{"cp", "/ko-app/entrypoint", "/tekton/tools/entrypoint"},
-					VolumeMounts: []corev1.VolumeMount{toolsMount},
-				}},
+				VolumeMounts: []corev1.VolumeMount{scriptsVolumeMount},
+			}, {
+				Name:         "place-tools",
+				Image:        images.EntrypointImage,
+				Command:      []string{"cp", "/ko-app/entrypoint", "/tekton/tools/entrypoint"},
+				VolumeMounts: []corev1.VolumeMount{toolsMount},
+			}},
 			Containers: []corev1.Container{{
 				Name:    "step-one",
 				Image:   "image",
@@ -683,98 +673,6 @@ script-heredoc-randomly-generated-78c5n
 			}},
 			Volumes: append(implicitVolumes, scriptsVolume, toolsVolume, downwardVolume),
 		},
-	}, {
-		desc: "using another scheduler",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{
-				{
-					Container: corev1.Container{
-						Name:    "schedule-me",
-						Image:   "image",
-						Command: []string{"cmd"}, // avoid entrypoint lookup.
-					},
-				},
-			},
-		},
-		trs: v1beta1.TaskRunSpec{
-			PodTemplate: &v1beta1.PodTemplate{
-				SchedulerName: "there-scheduler",
-			},
-		},
-		want: &corev1.PodSpec{
-			RestartPolicy:  corev1.RestartPolicyNever,
-			InitContainers: []corev1.Container{placeToolsInit},
-			SchedulerName:  "there-scheduler",
-			Volumes:        append(implicitVolumes, toolsVolume, downwardVolume),
-			Containers: []corev1.Container{{
-				Name:    "step-schedule-me",
-				Image:   "image",
-				Command: []string{"/tekton/tools/entrypoint"},
-				Args: []string{
-					"-wait_file",
-					"/tekton/downward/ready",
-					"-wait_file_content",
-					"-post_file",
-					"/tekton/tools/0",
-					"-termination_path",
-					"/tekton/termination",
-					"-entrypoint",
-					"cmd",
-					"--",
-				},
-				Env:                    implicitEnvVars,
-				VolumeMounts:           append([]corev1.VolumeMount{toolsMount, downwardMount}, implicitVolumeMounts...),
-				WorkingDir:             pipeline.WorkspaceDir,
-				Resources:              corev1.ResourceRequirements{Requests: allZeroQty()},
-				TerminationMessagePath: "/tekton/termination",
-			}},
-		},
-	}, {
-		desc: "using hostNetwork",
-		ts: v1beta1.TaskSpec{
-			Steps: []v1beta1.Step{
-				{
-					Container: corev1.Container{
-						Name:    "use-my-hostNetwork",
-						Image:   "image",
-						Command: []string{"cmd"}, // avoid entrypoint lookup.
-					},
-				},
-			},
-		},
-		trs: v1beta1.TaskRunSpec{
-			PodTemplate: &v1beta1.PodTemplate{
-				HostNetwork: true,
-			},
-		},
-		want: &corev1.PodSpec{
-			RestartPolicy:  corev1.RestartPolicyNever,
-			InitContainers: []corev1.Container{placeToolsInit},
-			HostNetwork:    true,
-			Volumes:        append(implicitVolumes, toolsVolume, downwardVolume),
-			Containers: []corev1.Container{{
-				Name:    "step-use-my-hostNetwork",
-				Image:   "image",
-				Command: []string{"/tekton/tools/entrypoint"},
-				Args: []string{
-					"-wait_file",
-					"/tekton/downward/ready",
-					"-wait_file_content",
-					"-post_file",
-					"/tekton/tools/0",
-					"-termination_path",
-					"/tekton/termination",
-					"-entrypoint",
-					"cmd",
-					"--",
-				},
-				Env:                    implicitEnvVars,
-				VolumeMounts:           append([]corev1.VolumeMount{toolsMount, downwardMount}, implicitVolumeMounts...),
-				WorkingDir:             pipeline.WorkspaceDir,
-				Resources:              corev1.ResourceRequirements{Requests: allZeroQty()},
-				TerminationMessagePath: "/tekton/termination",
-			}},
-		},
 	}} {
 		t.Run(c.desc, func(t *testing.T) {
 			names.TestingSeed()
@@ -800,7 +698,7 @@ script-heredoc-randomly-generated-78c5n
 					},
 				},
 			)
-			tr := &v1beta1.TaskRun{
+			tr := &v1alpha1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "taskrun-name",
 					Annotations: map[string]string{
@@ -813,7 +711,7 @@ script-heredoc-randomly-generated-78c5n
 			// No entrypoints should be looked up.
 			entrypointCache := fakeCache{}
 
-			got, err := MakePod(images, tr, c.ts, kubeclient, entrypointCache, true)
+			got, err := MakePod(images, tr, c.ts, kubeclient, entrypointCache)
 			if err != nil {
 				t.Fatalf("MakePod: %v", err)
 			}
@@ -823,7 +721,7 @@ script-heredoc-randomly-generated-78c5n
 			}
 
 			if d := cmp.Diff(c.want, &got.Spec, resourceQuantityCmp); d != "" {
-				t.Errorf("Diff %s", diff.PrintWantGot(d))
+				t.Errorf("Diff(-want, +got):\n%s", d)
 			}
 		})
 	}
@@ -836,7 +734,7 @@ func TestMakeLabels(t *testing.T) {
 		"foo":           "bar",
 		"hello":         "world",
 	}
-	got := MakeLabels(&v1beta1.TaskRun{
+	got := MakeLabels(&v1alpha1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: taskRunName,
 			Labels: map[string]string{
@@ -846,121 +744,6 @@ func TestMakeLabels(t *testing.T) {
 		},
 	})
 	if d := cmp.Diff(got, want); d != "" {
-		t.Errorf("Diff labels %s", diff.PrintWantGot(d))
-	}
-}
-
-func TestShouldOverrideHomeEnv(t *testing.T) {
-	for _, tc := range []struct {
-		description string
-		configMap   *corev1.ConfigMap
-		expected    bool
-	}{{
-		description: "Default behaviour: A missing disable-home-env-overwrite flag should result in true",
-		configMap: &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: GetFeatureFlagsConfigName(), Namespace: system.GetNamespace()},
-			Data:       map[string]string{},
-		},
-		expected: true,
-	}, {
-		description: "Setting disable-home-env-overwrite to false should result in true",
-		configMap: &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: GetFeatureFlagsConfigName(), Namespace: system.GetNamespace()},
-			Data: map[string]string{
-				featureFlagDisableHomeEnvKey: "false",
-			},
-		},
-		expected: true,
-	}, {
-		description: "Setting disable-home-env-overwrite to true should result in false",
-		configMap: &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: GetFeatureFlagsConfigName(), Namespace: system.GetNamespace()},
-			Data: map[string]string{
-				featureFlagDisableHomeEnvKey: "true",
-			},
-		},
-		expected: false,
-	}} {
-		t.Run(tc.description, func(t *testing.T) {
-			kubeclient := fakek8s.NewSimpleClientset(
-				tc.configMap,
-			)
-			if result := ShouldOverrideHomeEnv(kubeclient); result != tc.expected {
-				t.Errorf("Expected %t Received %t", tc.expected, result)
-			}
-		})
-	}
-}
-
-func TestGetFeatureFlagsConfigName(t *testing.T) {
-	for _, tc := range []struct {
-		description         string
-		featureFlagEnvValue string
-		expected            string
-	}{{
-		description:         "Feature flags config value not set",
-		featureFlagEnvValue: "",
-		expected:            "feature-flags",
-	}, {
-		description:         "Feature flags config value set",
-		featureFlagEnvValue: "feature-flags-test",
-		expected:            "feature-flags-test",
-	}} {
-		t.Run(tc.description, func(t *testing.T) {
-			original := os.Getenv("CONFIG_FEATURE_FLAGS_NAME")
-			defer t.Cleanup(func() {
-				os.Setenv("CONFIG_FEATURE_FLAGS_NAME", original)
-			})
-			if tc.featureFlagEnvValue != "" {
-				os.Setenv("CONFIG_FEATURE_FLAGS_NAME", tc.featureFlagEnvValue)
-			}
-			got := GetFeatureFlagsConfigName()
-			want := tc.expected
-			if got != want {
-				t.Errorf("GetFeatureFlagsConfigName() = %s, want %s", got, want)
-			}
-		})
-	}
-}
-
-func TestShouldOverrideWorkingDir(t *testing.T) {
-	for _, tc := range []struct {
-		description string
-		configMap   *corev1.ConfigMap
-		expected    bool
-	}{{
-		description: "Default behaviour: A missing disable-working-directory-overwrite flag should result in true",
-		configMap: &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: GetFeatureFlagsConfigName(), Namespace: system.GetNamespace()},
-			Data:       map[string]string{},
-		},
-		expected: true,
-	}, {
-		description: "Setting disable-working-directory-overwrite to false should result in true",
-		configMap: &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: GetFeatureFlagsConfigName(), Namespace: system.GetNamespace()},
-			Data: map[string]string{
-				featureFlagDisableWorkingDirKey: "false",
-			},
-		},
-		expected: true,
-	}, {
-		description: "Setting disable-working-directory-overwrite to true should result in false",
-		configMap: &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: GetFeatureFlagsConfigName(), Namespace: system.GetNamespace()},
-			Data: map[string]string{
-				featureFlagDisableWorkingDirKey: "true",
-			},
-		},
-		expected: false,
-	}} {
-		t.Run(tc.description, func(t *testing.T) {
-			kubeclient := fakek8s.NewSimpleClientset(
-				tc.configMap,
-			)
-			if result := shouldOverrideWorkingDir(kubeclient); result != tc.expected {
-				t.Errorf("Expected %t Received %t", tc.expected, result)
-			}
-		})
+		t.Errorf("Diff labels:\n%s", d)
 	}
 }

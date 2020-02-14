@@ -76,13 +76,13 @@ func (*Addressable) GetFullType() duck.Populatable {
 	return &AddressableType{}
 }
 
-// ConvertTo implements apis.Convertible
-func (a *Addressable) ConvertTo(ctx context.Context, to apis.Convertible) error {
+// ConvertUp implements apis.Convertible
+func (a *Addressable) ConvertUp(ctx context.Context, to apis.Convertible) error {
 	return fmt.Errorf("v1 is the highest known version, got: %T", to)
 }
 
-// ConvertFrom implements apis.Convertible
-func (a *Addressable) ConvertFrom(ctx context.Context, from apis.Convertible) error {
+// ConvertDown implements apis.Convertible
+func (a *Addressable) ConvertDown(ctx context.Context, from apis.Convertible) error {
 	return fmt.Errorf("v1 is the highest known version, got: %T", from)
 }
 

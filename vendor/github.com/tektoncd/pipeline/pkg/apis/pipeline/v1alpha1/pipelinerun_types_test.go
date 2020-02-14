@@ -22,9 +22,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	tb "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/test/diff"
+	tb "github.com/tektoncd/pipeline/test/builder"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
@@ -50,7 +49,7 @@ func TestPipelineRunStatusConditions(t *testing.T) {
 
 	fooStatus := p.Status.GetCondition(foo.Type)
 	if d := cmp.Diff(fooStatus, foo, ignoreVolatileTime); d != "" {
-		t.Errorf("Unexpected pipeline run condition type; diff %s", diff.PrintWantGot(d))
+		t.Errorf("Unexpected pipeline run condition type; want %v got %v; diff %v", fooStatus, foo, d)
 	}
 
 	// Add a second condition.
@@ -59,7 +58,7 @@ func TestPipelineRunStatusConditions(t *testing.T) {
 	barStatus := p.Status.GetCondition(bar.Type)
 
 	if d := cmp.Diff(barStatus, bar, ignoreVolatileTime); d != "" {
-		t.Fatalf("Unexpected pipeline run condition type; diff %s", diff.PrintWantGot(d))
+		t.Fatalf("Unexpected pipeline run condition type; want %v got %v; diff %s", barStatus, bar, d)
 	}
 }
 
@@ -79,7 +78,7 @@ func TestPipelineRun_TaskRunref(t *testing.T) {
 	}
 
 	if d := cmp.Diff(p.GetTaskRunRef(), expectTaskRunRef); d != "" {
-		t.Fatalf("Taskrun reference mismatch; diff %s", diff.PrintWantGot(d))
+		t.Fatalf("Taskrun reference mismatch; want %v got %v; diff %s", expectTaskRunRef, p.GetTaskRunRef(), d)
 	}
 }
 
@@ -131,27 +130,8 @@ func TestPipelineRunIsCancelled(t *testing.T) {
 	}
 }
 
-func TestPipelineRunHasVolumeClaimTemplate(t *testing.T) {
-	pr := &v1alpha1.PipelineRun{
-		Spec: v1alpha1.PipelineRunSpec{
-			Workspaces: []v1alpha1.WorkspaceBinding{{
-				Name: "my-workspace",
-				VolumeClaimTemplate: &corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pvc",
-					},
-					Spec: corev1.PersistentVolumeClaimSpec{},
-				},
-			}},
-		},
-	}
-	if !pr.HasVolumeClaimTemplate() {
-		t.Fatal("Expected pipelinerun to have a volumeClaimTemplate workspace")
-	}
-}
-
 func TestPipelineRunKey(t *testing.T) {
-	pr := tb.PipelineRun("prunname")
+	pr := tb.PipelineRun("prunname", "testns")
 	expectedKey := fmt.Sprintf("PipelineRun/%p", pr)
 	if pr.GetRunKey() != expectedKey {
 		t.Fatalf("Expected taskrun key to be %s but got %s", expectedKey, pr.GetRunKey())
@@ -226,7 +206,7 @@ func TestPipelineRunHasTimedOut(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(t.Name(), func(t *testing.T) {
-			pr := tb.PipelineRun("pr",
+			pr := tb.PipelineRun("pr", "foo",
 				tb.PipelineRunSpec("test-pipeline",
 					tb.PipelineRunTimeout(tc.timeout),
 				),
@@ -250,7 +230,7 @@ func TestPipelineRunGetServiceAccountName(t *testing.T) {
 	}{
 		{
 			name: "default SA",
-			pr: tb.PipelineRun("pr",
+			pr: tb.PipelineRun("pr", "ns",
 				tb.PipelineRunSpec("prs",
 					tb.PipelineRunServiceAccountName("defaultSA"),
 					tb.PipelineRunServiceAccountNameTask("taskName", "taskSA"))),
@@ -261,7 +241,7 @@ func TestPipelineRunGetServiceAccountName(t *testing.T) {
 		},
 		{
 			name: "mixed default SA",
-			pr: tb.PipelineRun("defaultSA",
+			pr: tb.PipelineRun("defaultSA", "defaultSA",
 				tb.PipelineRunSpec("defaultSA",
 					tb.PipelineRunServiceAccountName("defaultSA"),
 					tb.PipelineRunServiceAccountNameTask("task1", "task1SA"),
@@ -279,113 +259,6 @@ func TestPipelineRunGetServiceAccountName(t *testing.T) {
 			if expected != sa {
 				t.Errorf("%s: wrong service account: got: %v, want: %v", tt.name, sa, expected)
 			}
-		}
-	}
-}
-
-func TestPipelineRunGetPodSpecSABackcompatibility(t *testing.T) {
-	for _, tt := range []struct {
-		name        string
-		pr          *v1alpha1.PipelineRun
-		expectedSAs map[string]string
-	}{
-		{
-			name: "test backward compatibility",
-			pr: &v1alpha1.PipelineRun{
-				ObjectMeta: metav1.ObjectMeta{Name: "pr"},
-				Spec: v1alpha1.PipelineRunSpec{
-					PipelineRef:        &v1alpha1.PipelineRef{Name: "prs"},
-					ServiceAccountName: "defaultSA",
-					ServiceAccountNames: []v1alpha1.PipelineRunSpecServiceAccountName{{
-						TaskName: "taskName", ServiceAccountName: "taskSA",
-					}},
-					TaskRunSpecs: []v1alpha1.PipelineTaskRunSpec{{
-						PipelineTaskName:       "taskName",
-						TaskServiceAccountName: "newTaskSA",
-					}},
-				},
-			},
-			expectedSAs: map[string]string{
-				"unknown":  "defaultSA",
-				"taskName": "newTaskSA",
-			},
-		},
-		{
-			name: "mixed default SA backward compatibility",
-			pr: &v1alpha1.PipelineRun{
-				ObjectMeta: metav1.ObjectMeta{Name: "pr"},
-				Spec: v1alpha1.PipelineRunSpec{
-					PipelineRef:        &v1alpha1.PipelineRef{Name: "prs"},
-					ServiceAccountName: "defaultSA",
-					TaskRunSpecs: []v1alpha1.PipelineTaskRunSpec{{
-						PipelineTaskName:       "taskNameOne",
-						TaskServiceAccountName: "TaskSAOne",
-					}, {
-						PipelineTaskName:       "taskNameTwo",
-						TaskServiceAccountName: "newTaskTwo",
-					}},
-				},
-			},
-			expectedSAs: map[string]string{
-				"unknown":     "defaultSA",
-				"taskNameOne": "TaskSAOne",
-				"taskNameTwo": "newTaskTwo",
-			},
-		},
-	} {
-		for taskName, expected := range tt.expectedSAs {
-			t.Run(tt.name, func(t *testing.T) {
-				sa, _ := tt.pr.GetTaskRunSpecs(taskName)
-				if expected != sa {
-					t.Errorf("%s: wrong service account: got: %v, want: %v", tt.name, sa, expected)
-				}
-			})
-		}
-	}
-}
-
-func TestPipelineRunGetPodSpec(t *testing.T) {
-	for _, tt := range []struct {
-		name                 string
-		pr                   *v1alpha1.PipelineRun
-		expectedPodTemplates map[string][]string
-	}{
-		{
-			name: "mix default and none default",
-			pr: &v1alpha1.PipelineRun{
-				ObjectMeta: metav1.ObjectMeta{Name: "pr"},
-				Spec: v1alpha1.PipelineRunSpec{
-					PodTemplate:        &v1alpha1.PodTemplate{SchedulerName: "scheduleTest"},
-					PipelineRef:        &v1alpha1.PipelineRef{Name: "prs"},
-					ServiceAccountName: "defaultSA",
-					TaskRunSpecs: []v1alpha1.PipelineTaskRunSpec{{
-						PipelineTaskName:       "taskNameOne",
-						TaskServiceAccountName: "TaskSAOne",
-						TaskPodTemplate:        &v1alpha1.PodTemplate{SchedulerName: "scheduleTestOne"},
-					}, {
-						PipelineTaskName:       "taskNameTwo",
-						TaskServiceAccountName: "newTaskTwo",
-						TaskPodTemplate:        &v1alpha1.PodTemplate{SchedulerName: "scheduleTestTwo"},
-					}},
-				},
-			},
-			expectedPodTemplates: map[string][]string{
-				"unknown":     {"scheduleTest", "defaultSA"},
-				"taskNameOne": {"scheduleTestOne", "TaskSAOne"},
-				"taskNameTwo": {"scheduleTestTwo", "newTaskTwo"},
-			},
-		},
-	} {
-		for taskName, values := range tt.expectedPodTemplates {
-			t.Run(tt.name, func(t *testing.T) {
-				sa, taskPodTemplate := tt.pr.GetTaskRunSpecs(taskName)
-				if values[0] != taskPodTemplate.SchedulerName {
-					t.Errorf("%s: wrong task podtemplate scheduler name: got: %v, want: %v", tt.name, taskPodTemplate.SchedulerName, values[0])
-				}
-				if values[1] != sa {
-					t.Errorf("%s: wrong service account: got: %v, want: %v", tt.name, sa, values[1])
-				}
-			})
 		}
 	}
 }

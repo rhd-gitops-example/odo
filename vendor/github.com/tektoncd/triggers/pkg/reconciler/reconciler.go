@@ -19,6 +19,7 @@ package reconciler
 import (
 	"time"
 
+	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	triggersclientset "github.com/tektoncd/triggers/pkg/client/clientset/versioned"
 	triggersScheme "github.com/tektoncd/triggers/pkg/client/clientset/versioned/scheme"
 	"go.uber.org/zap"
@@ -37,6 +38,7 @@ import (
 // creating our controllers.
 type Options struct {
 	KubeClientSet     kubernetes.Interface
+	PipelineClientSet pipelineclientset.Interface
 	TriggersClientSet triggersclientset.Interface
 	CachingClientSet  cachingclientset.Interface
 
@@ -59,6 +61,9 @@ func (o Options) GetTrackerLease() time.Duration {
 type Base struct {
 	// KubeClientSet allows us to talk to the k8s for core APIs
 	KubeClientSet kubernetes.Interface
+
+	// PipelineClientSet allows us to configure pipeline objects
+	PipelineClientSet pipelineclientset.Interface
 
 	// TriggersClientSet allows us to configure triggers objects
 	TriggersClientSet triggersclientset.Interface
@@ -104,6 +109,7 @@ func NewBase(opt Options, controllerAgentName string) *Base {
 
 	base := &Base{
 		KubeClientSet:     opt.KubeClientSet,
+		PipelineClientSet: opt.PipelineClientSet,
 		TriggersClientSet: opt.TriggersClientSet,
 		CachingClientSet:  opt.CachingClientSet,
 		ConfigMapWatcher:  opt.ConfigMapWatcher,

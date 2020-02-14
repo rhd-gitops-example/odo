@@ -50,8 +50,6 @@ var errMissingNewObject = errors.New("the new object may not be nil")
 
 // reconciler implements the AdmissionController for resources
 type reconciler struct {
-	webhook.StatelessAdmissionImpl
-
 	name     string
 	path     string
 	handlers map[schema.GroupVersionKind]resourcesemantics.GenericCRD
@@ -68,7 +66,6 @@ type reconciler struct {
 
 var _ controller.Reconciler = (*reconciler)(nil)
 var _ webhook.AdmissionController = (*reconciler)(nil)
-var _ webhook.StatelessAdmissionController = (*reconciler)(nil)
 
 // Reconcile implements controller.Reconciler
 func (ac *reconciler) Reconcile(ctx context.Context, key string) error {
@@ -127,7 +124,7 @@ func (ac *reconciler) Admit(ctx context.Context, request *admissionv1beta1.Admis
 func (ac *reconciler) reconcileMutatingWebhook(ctx context.Context, caCert []byte) error {
 	logger := logging.FromContext(ctx)
 
-	rules := make([]admissionregistrationv1beta1.RuleWithOperations, 0, len(ac.handlers))
+	var rules []admissionregistrationv1beta1.RuleWithOperations
 	for gvk := range ac.handlers {
 		plural := strings.ToLower(inflect.Pluralize(gvk.Kind))
 
@@ -158,7 +155,7 @@ func (ac *reconciler) reconcileMutatingWebhook(ctx context.Context, caCert []byt
 
 	configuredWebhook, err := ac.mwhlister.Get(ac.name)
 	if err != nil {
-		return fmt.Errorf("error retrieving webhook: %w", err)
+		return fmt.Errorf("error retrieving webhook: %v", err)
 	}
 
 	webhook := configuredWebhook.DeepCopy()
@@ -180,12 +177,12 @@ func (ac *reconciler) reconcileMutatingWebhook(ctx context.Context, caCert []byt
 	}
 
 	if ok, err := kmp.SafeEqual(configuredWebhook, webhook); err != nil {
-		return fmt.Errorf("error diffing webhooks: %w", err)
+		return fmt.Errorf("error diffing webhooks: %v", err)
 	} else if !ok {
 		logger.Info("Updating webhook")
 		mwhclient := ac.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
 		if _, err := mwhclient.Update(webhook); err != nil {
-			return fmt.Errorf("failed to update webhook: %w", err)
+			return fmt.Errorf("failed to update webhook: %v", err)
 		}
 	} else {
 		logger.Info("Webhook is valid")
@@ -221,7 +218,7 @@ func (ac *reconciler) mutate(ctx context.Context, req *admissionv1beta1.Admissio
 			newDecoder.DisallowUnknownFields()
 		}
 		if err := newDecoder.Decode(&newObj); err != nil {
-			return nil, fmt.Errorf("cannot decode incoming new object: %w", err)
+			return nil, fmt.Errorf("cannot decode incoming new object: %v", err)
 		}
 	}
 	if len(oldBytes) != 0 {
@@ -231,7 +228,7 @@ func (ac *reconciler) mutate(ctx context.Context, req *admissionv1beta1.Admissio
 			oldDecoder.DisallowUnknownFields()
 		}
 		if err := oldDecoder.Decode(&oldObj); err != nil {
-			return nil, fmt.Errorf("cannot decode incoming old object: %w", err)
+			return nil, fmt.Errorf("cannot decode incoming old object: %v", err)
 		}
 	}
 	var patches duck.JSONPatch
@@ -244,7 +241,7 @@ func (ac *reconciler) mutate(ctx context.Context, req *admissionv1beta1.Admissio
 		// because it expects the round tripped through Golang fields to be present already.
 		rtp, err := roundTripPatch(newBytes, newObj)
 		if err != nil {
-			return nil, fmt.Errorf("cannot create patch for round tripped newBytes: %w", err)
+			return nil, fmt.Errorf("cannot create patch for round tripped newBytes: %v", err)
 		}
 		patches = append(patches, rtp...)
 	}
@@ -324,7 +321,7 @@ func roundTripPatch(bytes []byte, unmarshalled interface{}) (duck.JSONPatch, err
 	}
 	marshaledBytes, err := json.Marshal(unmarshalled)
 	if err != nil {
-		return nil, fmt.Errorf("cannot marshal interface: %w", err)
+		return nil, fmt.Errorf("cannot marshal interface: %v", err)
 	}
 	return jsonpatch.CreatePatch(bytes, marshaledBytes)
 }

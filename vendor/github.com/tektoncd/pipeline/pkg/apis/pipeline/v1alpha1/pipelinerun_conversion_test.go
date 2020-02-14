@@ -22,8 +22,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/test/diff"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
@@ -32,17 +31,17 @@ import (
 func TestPipelineRunConversionBadType(t *testing.T) {
 	good, bad := &PipelineRun{}, &Pipeline{}
 
-	if err := good.ConvertTo(context.Background(), bad); err == nil {
-		t.Errorf("ConvertTo() = %#v, wanted error", bad)
+	if err := good.ConvertUp(context.Background(), bad); err == nil {
+		t.Errorf("ConvertUp() = %#v, wanted error", bad)
 	}
 
-	if err := good.ConvertFrom(context.Background(), bad); err == nil {
-		t.Errorf("ConvertTo() = %#v, wanted error", bad)
+	if err := good.ConvertDown(context.Background(), bad); err == nil {
+		t.Errorf("ConvertUp() = %#v, wanted error", bad)
 	}
 }
 
 func TestPipelineRunConversion(t *testing.T) {
-	versions := []apis.Convertible{&v1beta1.PipelineRun{}}
+	versions := []apis.Convertible{&v1alpha2.PipelineRun{}}
 
 	tests := []struct {
 		name    string
@@ -74,13 +73,14 @@ func TestPipelineRunConversion(t *testing.T) {
 					SubPath:  "foo",
 					EmptyDir: &corev1.EmptyDirVolumeSource{},
 				}},
+				LimitRangeName: "foo",
 				Params: []Param{{
 					Name:  "p1",
-					Value: v1beta1.ArrayOrString{StringVal: "baz"},
+					Value: v1alpha2.ArrayOrString{StringVal: "baz"},
 				}},
 				Resources: []PipelineResourceBinding{{
 					Name:        "i1",
-					ResourceRef: &v1beta1.PipelineResourceRef{Name: "r1"},
+					ResourceRef: &v1alpha2.PipelineResourceRef{Name: "r1"},
 				}},
 			},
 			Status: PipelineRunStatus{
@@ -112,8 +112,8 @@ func TestPipelineRunConversion(t *testing.T) {
 						},
 					}, {
 						Name: "task2",
-						TaskSpec: &TaskSpec{TaskSpec: v1beta1.TaskSpec{
-							Steps: []v1beta1.Step{{Container: corev1.Container{
+						TaskSpec: &TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+							Steps: []v1alpha2.Step{{Container: corev1.Container{
 								Image: "foo",
 							}}},
 						}},
@@ -134,13 +134,14 @@ func TestPipelineRunConversion(t *testing.T) {
 					SubPath:  "foo",
 					EmptyDir: &corev1.EmptyDirVolumeSource{},
 				}},
+				LimitRangeName: "foo",
 				Params: []Param{{
 					Name:  "p1",
-					Value: v1beta1.ArrayOrString{StringVal: "baz"},
+					Value: v1alpha2.ArrayOrString{StringVal: "baz"},
 				}},
 				Resources: []PipelineResourceBinding{{
 					Name:        "i1",
-					ResourceRef: &v1beta1.PipelineResourceRef{Name: "r1"},
+					ResourceRef: &v1alpha2.PipelineResourceRef{Name: "r1"},
 				}},
 			},
 			Status: PipelineRunStatus{
@@ -161,20 +162,20 @@ func TestPipelineRunConversion(t *testing.T) {
 		for _, version := range versions {
 			t.Run(test.name, func(t *testing.T) {
 				ver := version
-				if err := test.in.ConvertTo(context.Background(), ver); err != nil {
+				if err := test.in.ConvertUp(context.Background(), ver); err != nil {
 					if !test.wantErr {
-						t.Errorf("ConvertTo() = %v", err)
+						t.Errorf("ConvertUp() = %v", err)
 					}
 					return
 				}
-				t.Logf("ConvertTo() = %#v", ver)
+				t.Logf("ConvertUp() = %#v", ver)
 				got := &PipelineRun{}
-				if err := got.ConvertFrom(context.Background(), ver); err != nil {
-					t.Errorf("ConvertFrom() = %v", err)
+				if err := got.ConvertDown(context.Background(), ver); err != nil {
+					t.Errorf("ConvertDown() = %v", err)
 				}
-				t.Logf("ConvertFrom() = %#v", got)
-				if d := cmp.Diff(test.in, got); d != "" {
-					t.Errorf("roundtrip %s", diff.PrintWantGot(d))
+				t.Logf("ConvertDown() = %#v", got)
+				if diff := cmp.Diff(test.in, got); diff != "" {
+					t.Errorf("roundtrip (-want, +got) = %v", diff)
 				}
 			})
 		}

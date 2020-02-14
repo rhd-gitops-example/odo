@@ -9,7 +9,6 @@ import (
 
 var allowedTektonTypes = map[string][]string{
 	"v1alpha1": {"pipelineresources", "pipelineruns", "taskruns", "pipelines", "clustertasks", "tasks", "conditions"},
-	"v1beta1":  {"pipelineruns", "taskruns", "pipelines", "clustertasks", "tasks"},
 }
 
 // WithClient adds Tekton related clients to the Dynamic client.

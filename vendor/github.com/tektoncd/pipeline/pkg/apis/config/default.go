@@ -18,7 +18,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -28,6 +27,8 @@ import (
 )
 
 const (
+	// ConfigName is the name of the configmap
+	DefaultsConfigName            = "config-defaults"
 	DefaultTimeoutMinutes         = 60
 	NoTimeoutDuration             = 0 * time.Minute
 	defaultTimeoutMinutesKey      = "default-timeout-minutes"
@@ -44,15 +45,6 @@ type Defaults struct {
 	DefaultServiceAccount      string
 	DefaultManagedByLabelValue string
 	DefaultPodTemplate         *pod.Template
-}
-
-// GetBucketConfigName returns the name of the configmap containing all
-// customizations for the storage bucket.
-func GetDefaultsConfigName() string {
-	if e := os.Getenv("CONFIG_DEFAULTS_NAME"); e != "" {
-		return e
-	}
-	return "config-defaults"
 }
 
 // Equals returns true if two Configs are identical

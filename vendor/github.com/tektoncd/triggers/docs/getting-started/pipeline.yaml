@@ -5,7 +5,7 @@
 # - source is built into an image by img
 # - image output is pushed to ECR
 # - cloudevent emitted
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
   name: getting-started-pipeline
@@ -50,17 +50,18 @@ spec:
           - name: event-to-sink
             resource: event-to-sink
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: deploy-locally
   namespace: getting-started
 spec:
-  resources:
-    inputs:
+  inputs:
+    resources:
       - name: image-source
         type: image
-    outputs:
+  outputs:
+    resources:
     - name: event-to-sink
       type: cloudEvent
   steps:
@@ -71,25 +72,26 @@ spec:
         - "run"
         - "tekton-triggers-built-me"
         - "--image"
-        - "${resources.inputs.image-source.url}"
+        - "${inputs.resources.image-source.url}"
         - "--env=PORT=8080"
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: build-docker-image
   namespace: getting-started
 spec:
-  params:
-  - name: pathToContext
-    description:
-      The build directory used by img
-    default: /workspace/source-repo
-  resources:
-    inputs:
+  inputs:
+    resources:
       - name: source-repo
         type: git
-    outputs:
+    params:
+      - name: pathToContext
+        description:
+          The build directory used by img
+        default: /workspace/source-repo
+  outputs:
+    resources:
       - name: builtImage
         type: image
   steps:
@@ -100,9 +102,9 @@ spec:
       args:
         - build
         - -t
-        - "$(resources.outputs.builtImage.url)"
+        - "${outputs.resources.builtImage.url}"
         - --no-cache
-        - "$(params.pathToContext)"
+        - "${inputs.params.pathToContext}"
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Condition
@@ -116,7 +118,7 @@ spec:
   check:
     image: golang
     command: ["go"]
-    args: ['test', "$(resources.source-repo.path)/..."]
+    args: ['test', "$(inputs.resources.source-repo.path)/..."]
 ---
 # Finally, we need something to receive our cloudevent announcing success!
 # That is this services only purpose

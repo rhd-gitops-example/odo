@@ -1,14 +1,3 @@
-<!--
----
-title: "Tasks and Pipelines"
-linkTitle: "Tasks and Pipelines"
-weight: 2
-description: >
-  Building Blocks of Tekton CI/CD Workflow
-cascade:
-  github_project_repo: https://github.com/tektoncd/pipeline
----
--->
 # Tekton Pipelines
 
 Tekton Pipelines is a Kubernetes extension that installs and runs on your Kubernetes cluster.
@@ -39,19 +28,19 @@ Tekton Pipelines defines the following entities:
     <td>Defines a series of <code>Tasks</code> that accomplish a specific build or delivery goal. Can be triggered by an event or invoked from a <code>PipelineRun</code>.</td>
   </tr>
   <tr>
-    <td><code>PipelineRun</code></td>
-    <td>Instantiates a <code>Pipeline</code> for execution with specific inputs, outputs, and execution parameters.</td>
-  </tr>
-  <tr>
     <td><code>PipelineResource</code></td>
     <td>Defines locations for inputs ingested and outputs produced by the steps in <code>Tasks</code>.</td>
+  </tr>
+  <tr>
+    <td><code>PipelineRun</code></td>
+    <td>Instantiates a <code>Pipeline</code> for execution with specific inputs, outputs, and execution parameters.</td>
   </tr>
 </table>
 
 ## Getting started
 
-To get started, complete the [Tekton Pipelines Tutorial](https://github.com/tektoncd/pipeline/blob/master/docs/tutorial.md) and go through our
-[examples](https://github.com/tektoncd/pipeline/tree/master/examples).
+To get started, complete the [Tekton Pipelines Tutorial](tutorial.md) and go through our 
+[examples](https://github.com/tektoncd/pipeline/tree/master/examples)
 
 ## Understanding Tekton Pipelines
 
@@ -60,14 +49,11 @@ See the following topics to learn how to use Tekton Pipelines in your project:
 - [Creating a Task](tasks.md)
 - [Running a standalone Task](taskruns.md)
 - [Creating a Pipeline](pipelines.md)
-- [Running a Pipeline](pipelineruns.md)
-- [Defining Workspaces](workspaces.md)
 - [Creating PipelineResources](resources.md)
+- [Running a Pipeline](pipelineruns.md)
 - [Configuring authentication](auth.md)
 - [Using labels](labels.md)
 - [Viewing logs](logs.md)
-- [Pipelines metrics](metrics.md)
-- [Variable Substitutions](variables.md)
 
 ## Contributing to Tekton Pipelines
 

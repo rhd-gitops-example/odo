@@ -24,11 +24,11 @@ can use the builder (./builder) package to reduce noise:
 
 	func MyTest(t *testing.T){
 		// Pipeline
-		pipeline := tb.Pipeline("tomatoes",
+		pipeline := tb.Pipeline("tomatoes", "namespace",
 			tb.PipelineSpec(tb.PipelineTask("foo", "banana")),
 		)
 	 	// … and PipelineRun
-		pipelineRun := tb.PipelineRun("pear",
+		pipelineRun := tb.PipelineRun("pear", "namespace",
 			tb.PipelineRunSpec("tomatoes", tb.PipelineRunServiceAccount("inexistent")),
 		)
 		// And do something with them

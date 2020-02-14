@@ -97,13 +97,7 @@ func NewBase(opt Options, controllerAgentName string, images pipeline.Images) *B
 	if recorder == nil {
 		// Create event broadcaster
 		logger.Debug("Creating event broadcaster")
-
-		correlatorOptions := record.CorrelatorOptions{
-			// The default burst size is 25
-			BurstSize: 50,
-			QPS:       1,
-		}
-		eventBroadcaster := record.NewBroadcasterWithCorrelatorOptions(correlatorOptions)
+		eventBroadcaster := record.NewBroadcaster()
 		eventBroadcaster.StartLogging(logger.Named("event-broadcaster").Infof)
 		eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: opt.KubeClientSet.CoreV1().Events("")})
 

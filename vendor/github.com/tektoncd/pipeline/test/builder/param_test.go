@@ -17,12 +17,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	tb "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	"github.com/tektoncd/pipeline/test/builder"
 )
 
 func TestGenerateString(t *testing.T) {
-	value := tb.ArrayOrString("somestring")
+	value := builder.ArrayOrString("somestring")
 	expectedValue := &v1alpha1.ArrayOrString{
 		Type:      v1alpha1.ParamTypeString,
 		StringVal: "somestring",
@@ -33,7 +33,7 @@ func TestGenerateString(t *testing.T) {
 }
 
 func TestGenerateArray(t *testing.T) {
-	value := tb.ArrayOrString("some", "array", "elements")
+	value := builder.ArrayOrString("some", "array", "elements")
 	expectedValue := &v1alpha1.ArrayOrString{
 		Type:     v1alpha1.ParamTypeArray,
 		ArrayVal: []string{"some", "array", "elements"},

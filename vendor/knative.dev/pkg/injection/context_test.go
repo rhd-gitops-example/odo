@@ -19,11 +19,9 @@ package injection
 import (
 	"context"
 	"testing"
-
-	"k8s.io/client-go/rest"
 )
 
-func TestContextNamespace(t *testing.T) {
+func TestGetBaseline(t *testing.T) {
 	ctx := context.Background()
 
 	if HasNamespaceScope(ctx) {
@@ -39,20 +37,5 @@ func TestContextNamespace(t *testing.T) {
 
 	if got := GetNamespaceScope(ctx); got != want {
 		t.Errorf("GetNamespaceScope() = %v, wanted %v", got, want)
-	}
-}
-
-func TestContextConfig(t *testing.T) {
-	ctx := context.Background()
-
-	if cfg := GetConfig(ctx); cfg != nil {
-		t.Errorf("GetConfig() = %v, wanted nil", cfg)
-	}
-
-	want := &rest.Config{}
-	ctx = WithConfig(ctx, want)
-
-	if cfg := GetConfig(ctx); cfg != want {
-		t.Errorf("GetConfig() = %v, wanted %v", cfg, want)
 	}
 }

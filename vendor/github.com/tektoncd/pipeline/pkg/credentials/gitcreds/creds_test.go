@@ -26,7 +26,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/credentials"
-	"github.com/tektoncd/pipeline/test/diff"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -225,7 +224,7 @@ func TestSSHFlagHandling(t *testing.T) {
     IdentityFile %s/.ssh/id_foo
 `, credentials.VolumePath)
 	if d := cmp.Diff(expectedSSHConfig, string(b)); d != "" {
-		t.Errorf("ssh_config diff %s", diff.PrintWantGot(d))
+		t.Errorf("ssh_config diff: %s", d)
 	}
 
 	b, err = ioutil.ReadFile(filepath.Join(credentials.VolumePath, ".ssh", "known_hosts"))
@@ -315,7 +314,7 @@ Host gitlab.example.com
     IdentityFile %s/.ssh/id_baz
 `, credentials.VolumePath, credentials.VolumePath, credentials.VolumePath)
 	if d := cmp.Diff(expectedSSHConfig, string(b)); d != "" {
-		t.Errorf("ssh_config diff %s", diff.PrintWantGot(d))
+		t.Errorf("ssh_config diff: %s", d)
 	}
 
 	b, err = ioutil.ReadFile(filepath.Join(credentials.VolumePath, ".ssh", "known_hosts"))
@@ -326,7 +325,7 @@ Host gitlab.example.com
 ssh-rsa bbbb
 ssh-rsa cccc`
 	if d := cmp.Diff(expectedSSHKnownHosts, string(b)); d != "" {
-		t.Errorf("known_hosts diff %s", diff.PrintWantGot(d))
+		t.Errorf("known_hosts diff: %s", d)
 	}
 
 	b, err = ioutil.ReadFile(filepath.Join(credentials.VolumePath, ".ssh", "id_foo"))

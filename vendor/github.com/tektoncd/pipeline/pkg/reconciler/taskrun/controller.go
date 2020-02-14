@@ -21,16 +21,15 @@ import (
 	"time"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
-	clustertaskinformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/clustertask"
-	taskinformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/task"
-	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
+	clustertaskinformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/clustertask"
+	taskinformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/task"
+	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/taskrun"
 	resourceinformer "github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/resource/v1alpha1/pipelineresource"
 	"github.com/tektoncd/pipeline/pkg/pod"
 	"github.com/tektoncd/pipeline/pkg/reconciler"
-	cloudeventclient "github.com/tektoncd/pipeline/pkg/reconciler/events/cloudevent"
-	"github.com/tektoncd/pipeline/pkg/reconciler/volumeclaim"
+	cloudeventclient "github.com/tektoncd/pipeline/pkg/reconciler/taskrun/resources/cloudevent"
 	"k8s.io/client-go/tools/cache"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
@@ -44,8 +43,7 @@ const (
 	resyncPeriod = 10 * time.Hour
 )
 
-// NewController instantiates a new controller.Impl from knative.dev/pkg/controller
-func NewController(namespace string, images pipeline.Images) func(context.Context, configmap.Watcher) *controller.Impl {
+func NewController(images pipeline.Images) func(context.Context, configmap.Watcher) *controller.Impl {
 	return func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 		logger := logging.FromContext(ctx)
 		kubeclientset := kubeclient.Get(ctx)
@@ -67,7 +65,6 @@ func NewController(namespace string, images pipeline.Images) func(context.Contex
 			ConfigMapWatcher:  cmw,
 			ResyncPeriod:      resyncPeriod,
 			Logger:            logger,
-			Recorder:          controller.GetEventRecorder(ctx),
 		}
 
 		entrypointCache, err := pod.NewEntrypointCache(kubeclientset)
@@ -85,12 +82,11 @@ func NewController(namespace string, images pipeline.Images) func(context.Contex
 			cloudEventClient:  cloudeventclient.Get(ctx),
 			metrics:           metrics,
 			entrypointCache:   entrypointCache,
-			pvcHandler:        volumeclaim.NewPVCHandler(kubeclientset, logger),
 		}
 		impl := controller.NewImpl(c, c.Logger, pipeline.TaskRunControllerName)
 
 		timeoutHandler.SetTaskRunCallbackFunc(impl.Enqueue)
-		timeoutHandler.CheckTimeouts(namespace, kubeclientset, pipelineclientset)
+		timeoutHandler.CheckTimeouts(kubeclientset, pipelineclientset)
 
 		c.Logger.Info("Setting up event handlers")
 		taskRunInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -101,7 +97,7 @@ func NewController(namespace string, images pipeline.Images) func(context.Contex
 		c.tracker = tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 		podInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-			FilterFunc: controller.FilterGroupKind(v1beta1.Kind("TaskRun")),
+			FilterFunc: controller.Filter(v1alpha1.SchemeGroupVersion.WithKind("TaskRun")),
 			Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 		})
 

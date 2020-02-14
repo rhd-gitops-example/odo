@@ -21,18 +21,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	"knative.dev/pkg/apis"
 )
 
 var _ apis.Convertible = (*PipelineRun)(nil)
 
-// ConvertTo implements api.Convertible
-func (source *PipelineRun) ConvertTo(ctx context.Context, obj apis.Convertible) error {
+// ConvertUp implements api.Convertible
+func (source *PipelineRun) ConvertUp(ctx context.Context, obj apis.Convertible) error {
 	switch sink := obj.(type) {
-	case *v1beta1.PipelineRun:
+	case *v1alpha2.PipelineRun:
 		sink.ObjectMeta = source.ObjectMeta
-		if err := source.Spec.ConvertTo(ctx, &sink.Spec); err != nil {
+		if err := source.Spec.ConvertUp(ctx, &sink.Spec); err != nil {
 			return err
 		}
 		sink.Status = source.Status
@@ -42,11 +42,11 @@ func (source *PipelineRun) ConvertTo(ctx context.Context, obj apis.Convertible) 
 	}
 }
 
-func (source *PipelineRunSpec) ConvertTo(ctx context.Context, sink *v1beta1.PipelineRunSpec) error {
+func (source *PipelineRunSpec) ConvertUp(ctx context.Context, sink *v1alpha2.PipelineRunSpec) error {
 	sink.PipelineRef = source.PipelineRef
 	if source.PipelineSpec != nil {
-		sink.PipelineSpec = &v1beta1.PipelineSpec{}
-		if err := source.PipelineSpec.ConvertTo(ctx, sink.PipelineSpec); err != nil {
+		sink.PipelineSpec = &v1alpha2.PipelineSpec{}
+		if err := source.PipelineSpec.ConvertUp(ctx, sink.PipelineSpec); err != nil {
 			return err
 		}
 	}
@@ -58,15 +58,16 @@ func (source *PipelineRunSpec) ConvertTo(ctx context.Context, sink *v1beta1.Pipe
 	sink.Timeout = source.Timeout
 	sink.PodTemplate = source.PodTemplate
 	sink.Workspaces = source.Workspaces
+	sink.LimitRangeName = source.LimitRangeName
 	return nil
 }
 
-// ConvertFrom implements api.Convertible
-func (sink *PipelineRun) ConvertFrom(ctx context.Context, obj apis.Convertible) error {
+// ConvertDown implements api.Convertible
+func (sink *PipelineRun) ConvertDown(ctx context.Context, obj apis.Convertible) error {
 	switch source := obj.(type) {
-	case *v1beta1.PipelineRun:
+	case *v1alpha2.PipelineRun:
 		sink.ObjectMeta = source.ObjectMeta
-		if err := sink.Spec.ConvertFrom(ctx, &source.Spec); err != nil {
+		if err := sink.Spec.ConvertDown(ctx, &source.Spec); err != nil {
 			return err
 		}
 		sink.Status = source.Status
@@ -76,11 +77,11 @@ func (sink *PipelineRun) ConvertFrom(ctx context.Context, obj apis.Convertible) 
 	}
 }
 
-func (sink *PipelineRunSpec) ConvertFrom(ctx context.Context, source *v1beta1.PipelineRunSpec) error {
+func (sink *PipelineRunSpec) ConvertDown(ctx context.Context, source *v1alpha2.PipelineRunSpec) error {
 	sink.PipelineRef = source.PipelineRef
 	if source.PipelineSpec != nil {
 		sink.PipelineSpec = &PipelineSpec{}
-		if err := sink.PipelineSpec.ConvertFrom(ctx, *source.PipelineSpec); err != nil {
+		if err := sink.PipelineSpec.ConvertDown(ctx, *source.PipelineSpec); err != nil {
 			return err
 		}
 	}
@@ -92,5 +93,6 @@ func (sink *PipelineRunSpec) ConvertFrom(ctx context.Context, source *v1beta1.Pi
 	sink.Timeout = source.Timeout
 	sink.PodTemplate = source.PodTemplate
 	sink.Workspaces = source.Workspaces
+	sink.LimitRangeName = source.LimitRangeName
 	return nil
 }

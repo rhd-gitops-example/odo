@@ -59,31 +59,17 @@ func (ts *TaskRunSpec) Validate(ctx context.Context) *apis.FieldError {
 		}
 	}
 
-	// Deprecated
 	// check for input resources
-	if ts.Inputs != nil {
-		if err := ts.Inputs.Validate(ctx, "spec.Inputs"); err != nil {
-			return err
-		}
+	if err := ts.Inputs.Validate(ctx, "spec.Inputs"); err != nil {
+		return err
 	}
 
-	// Deprecated
 	// check for output resources
-	if ts.Outputs != nil {
-		if err := ts.Outputs.Validate(ctx, "spec.Outputs"); err != nil {
-			return err
-		}
-	}
-
-	// Validate Resources
-	if err := ts.Resources.Validate(ctx); err != nil {
+	if err := ts.Outputs.Validate(ctx, "spec.Outputs"); err != nil {
 		return err
 	}
 
 	if err := validateWorkspaceBindings(ctx, ts.Workspaces); err != nil {
-		return err
-	}
-	if err := validateParameters(ts.Params); err != nil {
 		return err
 	}
 

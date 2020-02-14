@@ -22,7 +22,7 @@ import (
 	// Injection stuff
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	mwhinformer "knative.dev/pkg/client/injection/kube/informers/admissionregistration/v1beta1/mutatingwebhookconfiguration"
-	secretinformer "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/secret"
+	secretinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
@@ -72,8 +72,7 @@ func NewAdmissionController(
 	ctx context.Context,
 	name, path string,
 	gla GetListAll,
-	withContext BindableContext,
-	reconcilerOptions ...ReconcilerOption,
+	WithContext BindableContext,
 ) *controller.Impl {
 
 	// Extract the assorted things from our context.
@@ -83,7 +82,19 @@ func NewAdmissionController(
 	options := webhook.GetOptions(ctx)
 
 	// Construct the reconciler for the mutating webhook configuration.
-	wh := NewReconciler(name, path, options.SecretName, client, mwhInformer.Lister(), secretInformer.Lister(), withContext, reconcilerOptions...)
+	wh := &Reconciler{
+		Name:        name,
+		HandlerPath: path,
+		SecretName:  options.SecretName,
+
+		// This is the user-provided context-decorator, which allows
+		// them to infuse the context passed to Do/Undo.
+		WithContext: WithContext,
+
+		Client:       client,
+		MWHLister:    mwhInformer.Lister(),
+		SecretLister: secretInformer.Lister(),
+	}
 	c := controller.NewImpl(wh, logging.FromContext(ctx), name)
 
 	// It doesn't matter what we enqueue because we will always Reconcile

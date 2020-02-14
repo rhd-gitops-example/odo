@@ -21,30 +21,23 @@ import (
 	"os"
 
 	defaultconfig "github.com/tektoncd/pipeline/pkg/apis/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/contexts"
-	"github.com/tektoncd/pipeline/pkg/system"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
-	"knative.dev/pkg/injection"
 	"knative.dev/pkg/injection/sharedmain"
-	pkgleaderelection "knative.dev/pkg/leaderelection"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/signals"
 	"knative.dev/pkg/webhook"
 	"knative.dev/pkg/webhook/certificates"
 	"knative.dev/pkg/webhook/configmaps"
 	"knative.dev/pkg/webhook/resourcesemantics"
-	"knative.dev/pkg/webhook/resourcesemantics/conversion"
 	"knative.dev/pkg/webhook/resourcesemantics/defaulting"
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 )
 
 var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
-	// v1alpha1
 	v1alpha1.SchemeGroupVersion.WithKind("Pipeline"):         &v1alpha1.Pipeline{},
 	v1alpha1.SchemeGroupVersion.WithKind("Task"):             &v1alpha1.Task{},
 	v1alpha1.SchemeGroupVersion.WithKind("ClusterTask"):      &v1alpha1.ClusterTask{},
@@ -52,15 +45,9 @@ var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 	v1alpha1.SchemeGroupVersion.WithKind("PipelineRun"):      &v1alpha1.PipelineRun{},
 	v1alpha1.SchemeGroupVersion.WithKind("Condition"):        &v1alpha1.Condition{},
 	v1alpha1.SchemeGroupVersion.WithKind("PipelineResource"): &v1alpha1.PipelineResource{},
-	// v1beta1
-	v1beta1.SchemeGroupVersion.WithKind("Pipeline"):    &v1beta1.Pipeline{},
-	v1beta1.SchemeGroupVersion.WithKind("Task"):        &v1beta1.Task{},
-	v1beta1.SchemeGroupVersion.WithKind("ClusterTask"): &v1beta1.ClusterTask{},
-	v1beta1.SchemeGroupVersion.WithKind("TaskRun"):     &v1beta1.TaskRun{},
-	v1beta1.SchemeGroupVersion.WithKind("PipelineRun"): &v1beta1.PipelineRun{},
 }
 
-func newDefaultingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+func NewDefaultingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	// Decorate contexts with the current state of the config.
 	store := defaultconfig.NewStore(logging.FromContext(ctx).Named("config-store"))
 	store.WatchConfigs(cmw)
@@ -78,7 +65,9 @@ func newDefaultingAdmissionController(ctx context.Context, cmw configmap.Watcher
 
 		// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
 		func(ctx context.Context) context.Context {
-			return contexts.WithUpgradeViaDefaulting(store.ToContext(ctx))
+			// FIXME(vdemeester) uncomment that for auto-conversion
+			// return v1alpha2.WithUpgradeViaDefaulting(store.ToContext(ctx))
+			return contexts.WithDefaultConfigurationName(store.ToContext(ctx))
 		},
 
 		// Whether to disallow unknown fields.
@@ -86,10 +75,7 @@ func newDefaultingAdmissionController(ctx context.Context, cmw configmap.Watcher
 	)
 }
 
-func newValidationAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-	// Decorate contexts with the current state of the config.
-	store := defaultconfig.NewStore(logging.FromContext(ctx).Named("config-store"))
-	store.WatchConfigs(cmw)
+func NewValidationAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	return validation.NewAdmissionController(ctx,
 
 		// Name of the resource webhook.
@@ -103,7 +89,7 @@ func newValidationAdmissionController(ctx context.Context, cmw configmap.Watcher
 
 		// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
 		func(ctx context.Context) context.Context {
-			return contexts.WithUpgradeViaDefaulting(store.ToContext(ctx))
+			return ctx
 		},
 
 		// Whether to disallow unknown fields.
@@ -111,7 +97,7 @@ func newValidationAdmissionController(ctx context.Context, cmw configmap.Watcher
 	)
 }
 
-func newConfigValidationController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+func NewConfigValidationController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	return configmaps.NewAdmissionController(ctx,
 
 		// Name of the configmap webhook.
@@ -122,71 +108,8 @@ func newConfigValidationController(ctx context.Context, cmw configmap.Watcher) *
 
 		// The configmaps to validate.
 		configmap.Constructors{
-			logging.ConfigMapName():               logging.NewConfigFromConfigMap,
-			defaultconfig.GetDefaultsConfigName(): defaultconfig.NewDefaultsFromConfigMap,
-			pkgleaderelection.ConfigMapName():     pkgleaderelection.NewConfigFromConfigMap,
-		},
-	)
-}
-
-func newConversionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-	// nolint: golint
-	var (
-		v1alpha1GroupVersion = v1alpha1.SchemeGroupVersion.Version
-		v1beta1GroupVersion  = v1beta1.SchemeGroupVersion.Version
-	)
-
-	return conversion.NewConversionController(ctx,
-		// The path on which to serve the webhook
-		"/resource-conversion",
-
-		// Specify the types of custom resource definitions that should be converted
-		map[schema.GroupKind]conversion.GroupKindConversion{
-			v1beta1.Kind("Task"): {
-				DefinitionName: pipeline.TaskResource.String(),
-				HubVersion:     v1alpha1GroupVersion,
-				Zygotes: map[string]conversion.ConvertibleObject{
-					v1alpha1GroupVersion: &v1alpha1.Task{},
-					v1beta1GroupVersion:  &v1beta1.Task{},
-				},
-			},
-			v1beta1.Kind("ClusterTask"): {
-				DefinitionName: pipeline.ClusterTaskResource.String(),
-				HubVersion:     v1alpha1GroupVersion,
-				Zygotes: map[string]conversion.ConvertibleObject{
-					v1alpha1GroupVersion: &v1alpha1.ClusterTask{},
-					v1beta1GroupVersion:  &v1beta1.ClusterTask{},
-				},
-			},
-			v1beta1.Kind("TaskRun"): {
-				DefinitionName: pipeline.TaskRunResource.String(),
-				HubVersion:     v1alpha1GroupVersion,
-				Zygotes: map[string]conversion.ConvertibleObject{
-					v1alpha1GroupVersion: &v1alpha1.TaskRun{},
-					v1beta1GroupVersion:  &v1beta1.TaskRun{},
-				},
-			},
-			v1beta1.Kind("Pipeline"): {
-				DefinitionName: pipeline.PipelineResource.String(),
-				HubVersion:     v1alpha1GroupVersion,
-				Zygotes: map[string]conversion.ConvertibleObject{
-					v1alpha1GroupVersion: &v1alpha1.Pipeline{},
-					v1beta1GroupVersion:  &v1beta1.Pipeline{},
-				},
-			},
-			v1beta1.Kind("PipelineRun"): {
-				DefinitionName: pipeline.PipelineRunResource.String(),
-				HubVersion:     v1alpha1GroupVersion,
-				Zygotes: map[string]conversion.ConvertibleObject{
-					v1alpha1GroupVersion: &v1alpha1.PipelineRun{},
-					v1beta1GroupVersion:  &v1beta1.PipelineRun{},
-				},
-			},
-		},
-
-		// A function that infuses the context passed to ConvertTo/ConvertFrom/SetDefaults with custom metadata
-		func(ctx context.Context) context.Context {
-			return ctx
+			logging.ConfigMapName():          logging.NewConfigFromConfigMap,
+			defaultconfig.DefaultsConfigName: defaultconfig.NewDefaultsFromConfigMap,
 		},
 	)
 }
@@ -197,27 +120,17 @@ func main() {
 		serviceName = "tekton-pipelines-webhook"
 	}
 
-	secretName := os.Getenv("WEBHOOK_SECRET_NAME")
-	if secretName == "" {
-		secretName = "webhook-certs" // #nosec
-	}
-
-	// Scope informers to the webhook's namespace instead of cluster-wide
-	ctx := injection.WithNamespaceScope(signals.NewContext(), system.GetNamespace())
-
 	// Set up a signal context with our webhook options
-	ctx = webhook.WithOptions(ctx, webhook.Options{
+	ctx := webhook.WithOptions(signals.NewContext(), webhook.Options{
 		ServiceName: serviceName,
 		Port:        8443,
-		SecretName:  secretName,
+		SecretName:  "webhook-certs",
 	})
 
-	sharedmain.WebhookMainWithConfig(ctx, "webhook",
-		sharedmain.ParseAndGetConfigOrDie(),
+	sharedmain.MainWithContext(ctx, "webhook",
 		certificates.NewController,
-		newDefaultingAdmissionController,
-		newValidationAdmissionController,
-		newConfigValidationController,
-		newConversionController,
+		NewDefaultingAdmissionController,
+		NewValidationAdmissionController,
+		NewConfigValidationController,
 	)
 }

@@ -32,7 +32,6 @@ import (
 	"knative.dev/pkg/metrics/metricstest"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // TODO UTs should move to eventing and serving, as appropriate.
@@ -71,7 +70,7 @@ var (
 			Domain:    servingDomain,
 			Component: testComponent,
 		},
-		expectedErr: `unsupported metrics backend value "unsupported"`,
+		expectedErr: "unsupported metrics backend value \"unsupported\"",
 	}, {
 		name: "emptyDomain",
 		ops: ExporterOptions{
@@ -102,7 +101,7 @@ var (
 			Domain:    servingDomain,
 			Component: testComponent,
 		},
-		expectedErr: `invalid metrics.reporting-period-seconds value "test"`,
+		expectedErr: "invalid metrics.reporting-period-seconds value \"test\"",
 	}, {
 		name: "invalidOpenCensusSecuritySetting",
 		ops: ExporterOptions{
@@ -113,7 +112,7 @@ var (
 			Domain:    servingDomain,
 			Component: testComponent,
 		},
-		expectedErr: `invalid metrics.opencensus-require-tls value "yep"`,
+		expectedErr: "invalid metrics.opencensus-require-tls value \"yep\"",
 	}, {
 		name: "invalidAllowStackdriverCustomMetrics",
 		ops: ExporterOptions{
@@ -124,7 +123,7 @@ var (
 			Domain:    servingDomain,
 			Component: testComponent,
 		},
-		expectedErr: `invalid metrics.allow-stackdriver-custom-metrics value "test"`,
+		expectedErr: "invalid metrics.allow-stackdriver-custom-metrics value \"test\"",
 	}, {
 		name: "tooSmallPrometheusPort",
 		ops: ExporterOptions{
@@ -202,12 +201,6 @@ var (
 				},
 				Domain:    servingDomain,
 				Component: testComponent,
-				Secrets: fakeSecretList(corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      StackdriverSecretNameDefault,
-						Namespace: StackdriverSecretNamespaceDefault,
-					},
-				}).Get,
 			},
 			expectedConfig: metricsConfig{
 				domain:                            servingDomain,
@@ -222,12 +215,6 @@ var (
 					GCPLocation: "us-west1",
 					ClusterName: "cluster",
 					UseSecret:   true,
-				},
-				secret: &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      StackdriverSecretNameDefault,
-						Namespace: StackdriverSecretNamespaceDefault,
-					},
 				},
 			},
 			expectedNewExporter: true,
@@ -266,15 +253,6 @@ var (
 				},
 				Domain:    servingDomain,
 				Component: testComponent,
-				Secrets: fakeSecretList(corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "opencensus",
-					},
-					Data: map[string][]byte{
-						"client-cert.pem": {},
-						"client-key.pem":  {},
-					},
-				}).Get,
 			},
 			expectedConfig: metricsConfig{
 				domain:             servingDomain,
@@ -282,15 +260,6 @@ var (
 				backendDestination: OpenCensus,
 				collectorAddress:   "external-svc:55678",
 				requireSecure:      true,
-				secret: &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "opencensus",
-					},
-					Data: map[string][]byte{
-						"client-cert.pem": {},
-						"client-key.pem":  {},
-					},
-				},
 			},
 			expectedNewExporter: true,
 		}, {
@@ -545,10 +514,6 @@ var (
 		}}
 )
 
-func successTestsInit() {
-	SetStackdriverSecretLocation(StackdriverSecretNameDefault, StackdriverSecretNamespaceDefault)
-}
-
 func TestGetMetricsConfig(t *testing.T) {
 	for _, test := range errorTests {
 		t.Run(test.name, func(t *testing.T) {
@@ -560,7 +525,6 @@ func TestGetMetricsConfig(t *testing.T) {
 		})
 	}
 
-	successTestsInit()
 	for _, test := range successTests {
 		t.Run(test.name, func(t *testing.T) {
 			defer ClearAll()
@@ -594,7 +558,6 @@ func TestGetMetricsConfig_fromEnv(t *testing.T) {
 
 func TestIsNewExporterRequiredFromNilConfig(t *testing.T) {
 	setCurMetricsConfig(nil)
-	successTestsInit()
 	for _, test := range successTests {
 		t.Run(test.name, func(t *testing.T) {
 			defer ClearAll()
@@ -722,7 +685,6 @@ func TestIsNewExporterRequired(t *testing.T) {
 func TestUpdateExporter(t *testing.T) {
 	setCurMetricsConfig(nil)
 	oldConfig := getCurMetricsConfig()
-	successTestsInit()
 	for _, test := range successTests[1:] {
 		t.Run(test.name, func(t *testing.T) {
 			defer ClearAll()
@@ -753,7 +715,6 @@ func TestUpdateExporter(t *testing.T) {
 func TestUpdateExporterFromConfigMapWithOpts(t *testing.T) {
 	setCurMetricsConfig(nil)
 	oldConfig := getCurMetricsConfig()
-	successTestsInit()
 	for _, test := range successTests[1:] {
 		t.Run(test.name, func(t *testing.T) {
 			defer ClearAll()
@@ -761,7 +722,6 @@ func TestUpdateExporterFromConfigMapWithOpts(t *testing.T) {
 				Component:      test.ops.Component,
 				Domain:         test.ops.Domain,
 				PrometheusPort: test.ops.PrometheusPort,
-				Secrets:        test.ops.Secrets,
 			}
 			updateFunc, err := UpdateExporterFromConfigMapWithOpts(opts, TestLogger(t))
 			if err != nil {

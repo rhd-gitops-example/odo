@@ -1,9 +1,3 @@
-<!--
----
-linkTitle: "Migration from KNative Build"
-weight: 13
----
--->
 # Migrating from [Knative Build](https://github.com/knative/build)
 
 This doc describes a process for users who are familiar with Knative `Build` and
@@ -86,19 +80,19 @@ spec:
 This is the equivalent Task:
 
 ```
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: go-test
 spec:
-  params:
-  - name: TARGET
-    description: The Go target to test
-    default: ./...
+  inputs:
+    params:
+    - name: TARGET
+      description: The Go target to test
+      default: ./...
 
-  # The Task must operate on some source, e.g., in a Git repo.
-  resources:
-    inputs:
+    # The Task must operate on some source, e.g., in a Git repo.
+    resources:
     - name: source
       type: git
 
@@ -106,7 +100,7 @@ spec:
   - name: go-test  # <-- the step must specify a name.
     image: golang
     workingDir: /workspace/source  # <-- set workingdir
-    command: ['go', 'test', '$(params.TARGET)']  # <-- specify params.TARGET
+    command: ['go', 'test', '$(inputs.params.TARGET)']  # <-- specify inputs.params.TARGET
 ```
 
 ### Build -> TaskRun
@@ -134,18 +128,18 @@ spec:
 This is the equivalent TaskRun:
 
 ```
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: TaskRun
 metadata:
   name: example-run
 spec:
   taskRef:
     name: go-test
-  params:
-  - name: TARGET
-    value: ./path/to/test/...
-  resources:
-    inputs:
+  inputs:
+    params:
+    - name: TARGET
+      value: ./path/to/test/...
+    resources:
     - name: source
       resourceSpec:
         type: git

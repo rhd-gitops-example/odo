@@ -1,33 +1,16 @@
-/*
-Copyright 2019 The Tekton Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package builder
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestTriggerTemplateBuilder(t *testing.T) {
-	defaultValue1 := "value1"
-	defaultValue2 := "value2"
 	tests := []struct {
 		name    string
 		normal  *v1alpha1.TriggerTemplate
@@ -56,11 +39,14 @@ func TestTriggerTemplateBuilder(t *testing.T) {
 					Namespace: "namespace",
 				},
 				Spec: v1alpha1.TriggerTemplateSpec{
-					Params: []v1alpha1.ParamSpec{
+					Params: []pipelinev1.ParamSpec{
 						{
 							Name:        "param1",
 							Description: "description",
-							Default:     &defaultValue1,
+							Default: &pipelinev1.ArrayOrString{
+								StringVal: "value1",
+								Type:      pipelinev1.ParamTypeString,
+							},
 						},
 					},
 				},
@@ -79,16 +65,22 @@ func TestTriggerTemplateBuilder(t *testing.T) {
 					Namespace: "namespace",
 				},
 				Spec: v1alpha1.TriggerTemplateSpec{
-					Params: []v1alpha1.ParamSpec{
+					Params: []pipelinev1.ParamSpec{
 						{
 							Name:        "param1",
 							Description: "description",
-							Default:     &defaultValue1,
+							Default: &pipelinev1.ArrayOrString{
+								StringVal: "value1",
+								Type:      pipelinev1.ParamTypeString,
+							},
 						},
 						{
 							Name:        "param2",
 							Description: "description",
-							Default:     &defaultValue2,
+							Default: &pipelinev1.ArrayOrString{
+								StringVal: "value2",
+								Type:      pipelinev1.ParamTypeString,
+							},
 						},
 					},
 				},
@@ -110,14 +102,14 @@ func TestTriggerTemplateBuilder(t *testing.T) {
 				Spec: v1alpha1.TriggerTemplateSpec{
 					ResourceTemplates: []v1alpha1.TriggerResourceTemplate{
 						{
-							RawExtension: runtime.RawExtension{Raw: []byte(`{"rt1": "value"}`)},
+							RawMessage: json.RawMessage(`{"rt1": "value"}`),
 						},
 					},
 				},
 			},
 			builder: TriggerTemplate("name", "namespace",
 				TriggerTemplateSpec(
-					TriggerResourceTemplate(runtime.RawExtension{Raw: []byte(`{"rt1": "value"}`)}),
+					TriggerResourceTemplate(json.RawMessage(`{"rt1": "value"}`)),
 				),
 			),
 		},
@@ -131,18 +123,18 @@ func TestTriggerTemplateBuilder(t *testing.T) {
 				Spec: v1alpha1.TriggerTemplateSpec{
 					ResourceTemplates: []v1alpha1.TriggerResourceTemplate{
 						{
-							RawExtension: runtime.RawExtension{Raw: []byte(`{"rt1": "value"}`)},
+							RawMessage: json.RawMessage(`{"rt1": "value"}`),
 						},
 						{
-							RawExtension: runtime.RawExtension{Raw: []byte(`{"rt2": "value"}`)},
+							RawMessage: json.RawMessage(`{"rt2": "value"}`),
 						},
 					},
 				},
 			},
 			builder: TriggerTemplate("name", "namespace",
 				TriggerTemplateSpec(
-					TriggerResourceTemplate(runtime.RawExtension{Raw: []byte(`{"rt1": "value"}`)}),
-					TriggerResourceTemplate(runtime.RawExtension{Raw: []byte(`{"rt2": "value"}`)}),
+					TriggerResourceTemplate(json.RawMessage(`{"rt1": "value"}`)),
+					TriggerResourceTemplate(json.RawMessage(`{"rt2": "value"}`)),
 				),
 			),
 		},
@@ -161,24 +153,30 @@ func TestTriggerTemplateBuilder(t *testing.T) {
 					APIVersion: "v1alpha1",
 				},
 				Spec: v1alpha1.TriggerTemplateSpec{
-					Params: []v1alpha1.ParamSpec{
+					Params: []pipelinev1.ParamSpec{
 						{
 							Name:        "param1",
 							Description: "description",
-							Default:     &defaultValue1,
+							Default: &pipelinev1.ArrayOrString{
+								StringVal: "value1",
+								Type:      pipelinev1.ParamTypeString,
+							},
 						},
 						{
 							Name:        "param2",
 							Description: "description",
-							Default:     &defaultValue2,
+							Default: &pipelinev1.ArrayOrString{
+								StringVal: "value2",
+								Type:      pipelinev1.ParamTypeString,
+							},
 						},
 					},
 					ResourceTemplates: []v1alpha1.TriggerResourceTemplate{
 						{
-							RawExtension: runtime.RawExtension{Raw: []byte(`{"rt1": "value"}`)},
+							RawMessage: json.RawMessage(`{"rt1": "value"}`),
 						},
 						{
-							RawExtension: runtime.RawExtension{Raw: []byte(`{"rt2": "value"}`)},
+							RawMessage: json.RawMessage(`{"rt2": "value"}`),
 						},
 					},
 				},
@@ -191,8 +189,8 @@ func TestTriggerTemplateBuilder(t *testing.T) {
 				TriggerTemplateSpec(
 					TriggerTemplateParam("param1", "description", "value1"),
 					TriggerTemplateParam("param2", "description", "value2"),
-					TriggerResourceTemplate(runtime.RawExtension{Raw: []byte(`{"rt1": "value"}`)}),
-					TriggerResourceTemplate(runtime.RawExtension{Raw: []byte(`{"rt2": "value"}`)}),
+					TriggerResourceTemplate(json.RawMessage(`{"rt1": "value"}`)),
+					TriggerResourceTemplate(json.RawMessage(`{"rt2": "value"}`)),
 				),
 			),
 		},

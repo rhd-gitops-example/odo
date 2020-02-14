@@ -17,9 +17,8 @@ package main
 
 import (
 	"flag"
-	"os"
 
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1alpha1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/git"
 	"github.com/tektoncd/pipeline/pkg/termination"
 	"go.uber.org/zap"
@@ -27,16 +26,16 @@ import (
 
 var (
 	fetchSpec              git.FetchSpec
+	submodules             bool
 	terminationMessagePath string
 )
 
 func init() {
 	flag.StringVar(&fetchSpec.URL, "url", "", "Git origin URL to fetch")
 	flag.StringVar(&fetchSpec.Revision, "revision", "", "The Git revision to make the repository HEAD")
-	flag.StringVar(&fetchSpec.Refspec, "refspec", "", "The Git refspec to fetch the revision from (optional)")
 	flag.StringVar(&fetchSpec.Path, "path", "", "Path of directory under which Git repository will be copied")
 	flag.BoolVar(&fetchSpec.SSLVerify, "sslVerify", true, "Enable/Disable SSL verification in the git config")
-	flag.BoolVar(&fetchSpec.Submodules, "submodules", true, "Initialize and fetch Git submodules")
+	flag.BoolVar(&submodules, "submodules", true, "Initialize and fetch Git submodules")
 	flag.UintVar(&fetchSpec.Depth, "depth", 1, "Perform a shallow clone to this depth")
 	flag.StringVar(&terminationMessagePath, "terminationMessagePath", "/tekton/termination", "Location of file containing termination message")
 }
@@ -52,19 +51,20 @@ func main() {
 	if err := git.Fetch(logger, fetchSpec); err != nil {
 		logger.Fatalf("Error fetching git repository: %s", err)
 	}
-
-	commit, err := git.ShowCommit(logger, "HEAD", fetchSpec.Path)
-	if err != nil {
-		logger.Fatalf("Error parsing revision %s of git repository: %s", fetchSpec.Revision, err)
+	if submodules {
+		if err := git.SubmoduleFetch(logger, fetchSpec.Path); err != nil {
+			logger.Fatalf("Error initializing or fetching the git submodules")
+		}
 	}
-	resourceName := os.Getenv("TEKTON_RESOURCE_NAME")
-	output := []v1beta1.PipelineResourceResult{
+
+	commit, err := git.Commit(logger, fetchSpec.Revision, fetchSpec.Path)
+	if err != nil {
+		logger.Fatalf("Error parsing commit of git repository: %s", err)
+	}
+	output := []v1alpha1.PipelineResourceResult{
 		{
 			Key:   "commit",
 			Value: commit,
-			ResourceRef: v1beta1.PipelineResourceRef{
-				Name: resourceName,
-			},
 		},
 	}
 

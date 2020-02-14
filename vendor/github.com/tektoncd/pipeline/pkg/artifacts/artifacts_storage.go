@@ -22,9 +22,7 @@ import (
 	"strings"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	resourcev1alpha1 "github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1/storage"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/system"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -86,23 +84,23 @@ func GetPVCConfigName() string {
 // ArtifactStorageInterface is an interface to define the steps to copy
 // an pipeline artifact to/from temporary storage
 type ArtifactStorageInterface interface {
-	GetCopyToStorageFromSteps(name, sourcePath, destinationPath string) []v1beta1.Step
-	GetCopyFromStorageToSteps(name, sourcePath, destinationPath string) []v1beta1.Step
+	GetCopyToStorageFromSteps(name, sourcePath, destinationPath string) []v1alpha1.Step
+	GetCopyFromStorageToSteps(name, sourcePath, destinationPath string) []v1alpha1.Step
 	GetSecretsVolumes() []corev1.Volume
 	GetType() string
-	StorageBasePath(pr *v1beta1.PipelineRun) string
+	StorageBasePath(pr *v1alpha1.PipelineRun) string
 }
 
 // ArtifactStorageNone is used when no storage is needed.
 type ArtifactStorageNone struct{}
 
 // GetCopyToStorageFromSteps returns no containers because none are needed.
-func (a *ArtifactStorageNone) GetCopyToStorageFromSteps(name, sourcePath, destinationPath string) []v1beta1.Step {
+func (a *ArtifactStorageNone) GetCopyToStorageFromSteps(name, sourcePath, destinationPath string) []v1alpha1.Step {
 	return nil
 }
 
 // GetCopyFromStorageToSteps returns no containers because none are needed.
-func (a *ArtifactStorageNone) GetCopyFromStorageToSteps(name, sourcePath, destinationPath string) []v1beta1.Step {
+func (a *ArtifactStorageNone) GetCopyFromStorageToSteps(name, sourcePath, destinationPath string) []v1alpha1.Step {
 	return nil
 }
 
@@ -118,13 +116,13 @@ func (a *ArtifactStorageNone) GetType() string {
 
 // StorageBasePath returns an empty string because no storage is being used and so
 // there is no path that resources should be copied from / to.
-func (a *ArtifactStorageNone) StorageBasePath(pr *v1beta1.PipelineRun) string {
+func (a *ArtifactStorageNone) StorageBasePath(pr *v1alpha1.PipelineRun) string {
 	return ""
 }
 
 // InitializeArtifactStorage will check if there is there is a
 // bucket configured, create a PVC or return nil if no storage is required.
-func InitializeArtifactStorage(images pipeline.Images, pr *v1beta1.PipelineRun, ps *v1beta1.PipelineSpec, c kubernetes.Interface, logger *zap.SugaredLogger) (ArtifactStorageInterface, error) {
+func InitializeArtifactStorage(images pipeline.Images, pr *v1alpha1.PipelineRun, ps *v1alpha1.PipelineSpec, c kubernetes.Interface, logger *zap.SugaredLogger) (ArtifactStorageInterface, error) {
 	// Artifact storage is needed under the following condition:
 	//  Any Task in the pipeline contains an Output resource
 	//  AND that Output resource is one of the AllowedOutputResource types.
@@ -133,7 +131,7 @@ func InitializeArtifactStorage(images pipeline.Images, pr *v1beta1.PipelineRun, 
 	// Build an index of resources used in the pipeline that are an AllowedOutputResource
 	possibleOutputs := map[string]struct{}{}
 	for _, r := range ps.Resources {
-		if _, ok := v1beta1.AllowedOutputResources[r.Type]; ok {
+		if _, ok := v1alpha1.AllowedOutputResources[r.Type]; ok {
 			possibleOutputs[r.Name] = struct{}{}
 		}
 	}
@@ -162,7 +160,7 @@ func InitializeArtifactStorage(images pipeline.Images, pr *v1beta1.PipelineRun, 
 		if err != nil {
 			return nil, err
 		}
-		return &storage.ArtifactPVC{Name: pr.Name, PersistentVolumeClaim: pvc, ShellImage: images.ShellImage}, nil
+		return &v1alpha1.ArtifactPVC{Name: pr.Name, PersistentVolumeClaim: pvc, ShellImage: images.ShellImage}, nil
 	}
 
 	return NewArtifactBucketConfigFromConfigMap(images)(configMap)
@@ -170,7 +168,7 @@ func InitializeArtifactStorage(images pipeline.Images, pr *v1beta1.PipelineRun, 
 
 // CleanupArtifactStorage will delete the PipelineRun's artifact storage PVC if it exists. The PVC is created for using
 // an output workspace or artifacts from one Task to another Task. No other PVCs will be impacted by this cleanup.
-func CleanupArtifactStorage(pr *v1beta1.PipelineRun, c kubernetes.Interface, logger *zap.SugaredLogger) error {
+func CleanupArtifactStorage(pr *v1alpha1.PipelineRun, c kubernetes.Interface, logger *zap.SugaredLogger) error {
 	configMap, err := c.CoreV1().ConfigMaps(system.GetNamespace()).Get(GetBucketConfigName(), metav1.GetOptions{})
 	shouldCreatePVC, err := ConfigMapNeedsPVC(configMap, err, logger)
 	if err != nil {
@@ -205,8 +203,8 @@ func ConfigMapNeedsPVC(configMap *corev1.ConfigMap, err error, logger *zap.Sugar
 	if !ok {
 		return true, nil
 	}
+	logger.Warnf("the configmap key %q is empty", BucketLocationKey)
 	if strings.TrimSpace(location) == "" {
-		logger.Warnf("the configmap key %q is empty", BucketLocationKey)
 		return true, nil
 	}
 	return false, nil
@@ -221,15 +219,15 @@ func GetArtifactStorage(images pipeline.Images, prName string, c kubernetes.Inte
 		return nil, fmt.Errorf("couldn't determine if PVC was needed from config map: %w", err)
 	}
 	if pvc {
-		return &storage.ArtifactPVC{Name: prName, ShellImage: images.ShellImage}, nil
+		return &v1alpha1.ArtifactPVC{Name: prName, ShellImage: images.ShellImage}, nil
 	}
 	return NewArtifactBucketConfigFromConfigMap(images)(configMap)
 }
 
 // NewArtifactBucketConfigFromConfigMap creates a Bucket from the supplied ConfigMap
-func NewArtifactBucketConfigFromConfigMap(images pipeline.Images) func(configMap *corev1.ConfigMap) (*storage.ArtifactBucket, error) {
-	return func(configMap *corev1.ConfigMap) (*storage.ArtifactBucket, error) {
-		c := &storage.ArtifactBucket{
+func NewArtifactBucketConfigFromConfigMap(images pipeline.Images) func(configMap *corev1.ConfigMap) (*v1alpha1.ArtifactBucket, error) {
+	return func(configMap *corev1.ConfigMap) (*v1alpha1.ArtifactBucket, error) {
+		c := &v1alpha1.ArtifactBucket{
 			ShellImage:  images.ShellImage,
 			GsutilImage: images.GsutilImage,
 		}
@@ -242,7 +240,7 @@ func NewArtifactBucketConfigFromConfigMap(images pipeline.Images) func(configMap
 		} else {
 			c.Location = location
 		}
-		sp := resourcev1alpha1.SecretParam{}
+		sp := v1alpha1.SecretParam{}
 		if secretName, ok := configMap.Data[BucketServiceAccountSecretName]; ok {
 			if secretKey, ok := configMap.Data[BucketServiceAccountSecretKey]; ok {
 				sp.FieldName = "GOOGLE_APPLICATION_CREDENTIALS"
@@ -258,7 +256,7 @@ func NewArtifactBucketConfigFromConfigMap(images pipeline.Images) func(configMap
 	}
 }
 
-func createPVC(pr *v1beta1.PipelineRun, c kubernetes.Interface) (*corev1.PersistentVolumeClaim, error) {
+func createPVC(pr *v1alpha1.PipelineRun, c kubernetes.Interface) (*corev1.PersistentVolumeClaim, error) {
 	if _, err := c.CoreV1().PersistentVolumeClaims(pr.Namespace).Get(GetPVCName(pr), metav1.GetOptions{}); err != nil {
 		if errors.IsNotFound(err) {
 
@@ -298,7 +296,7 @@ func createPVC(pr *v1beta1.PipelineRun, c kubernetes.Interface) (*corev1.Persist
 	return nil, nil
 }
 
-func deletePVC(pr *v1beta1.PipelineRun, c kubernetes.Interface) error {
+func deletePVC(pr *v1alpha1.PipelineRun, c kubernetes.Interface) error {
 	if _, err := c.CoreV1().PersistentVolumeClaims(pr.Namespace).Get(GetPVCName(pr), metav1.GetOptions{}); err != nil {
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("failed to get Persistent Volume %q due to error: %w", GetPVCName(pr), err)
@@ -310,12 +308,12 @@ func deletePVC(pr *v1beta1.PipelineRun, c kubernetes.Interface) error {
 }
 
 // GetPVCSpec returns the PVC to create for a given PipelineRun
-func GetPVCSpec(pr *v1beta1.PipelineRun, pvcSize resource.Quantity, storageClassName *string) *corev1.PersistentVolumeClaim {
+func GetPVCSpec(pr *v1alpha1.PipelineRun, pvcSize resource.Quantity, storageClassName *string) *corev1.PersistentVolumeClaim {
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       pr.Namespace,
 			Name:            GetPVCName(pr),
-			OwnerReferences: []metav1.OwnerReference{pr.GetOwnerReference()},
+			OwnerReferences: pr.GetOwnerReference(),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -330,10 +328,6 @@ func GetPVCSpec(pr *v1beta1.PipelineRun, pvcSize resource.Quantity, storageClass
 }
 
 // GetPVCName returns the name that should be used for the PVC for a PipelineRun
-func GetPVCName(n named) string {
-	return fmt.Sprintf("%s-pvc", n.GetName())
-}
-
-type named interface {
-	GetName() string
+func GetPVCName(pr *v1alpha1.PipelineRun) string {
+	return fmt.Sprintf("%s-pvc", pr.Name)
 }

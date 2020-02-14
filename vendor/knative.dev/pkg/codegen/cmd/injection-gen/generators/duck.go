@@ -90,10 +90,6 @@ func (g *duckGenerator) GenerateType(c *generator.Context, t *types.Type, w io.W
 			Package: "knative.dev/pkg/logging",
 			Name:    "FromContext",
 		}),
-		"contextContext": c.Universe.Type(types.Name{
-			Package: "context",
-			Name:    "Context",
-		}),
 	}
 
 	sw.Do(duckFactory, m)
@@ -109,7 +105,7 @@ func init() {
 // Key is used for associating the Informer inside the context.Context.
 type Key struct{}
 
-func WithDuck(ctx {{.contextContext|raw}}) {{.contextContext|raw}} {
+func WithDuck(ctx context.Context) context.Context {
 	dc := {{.dynamicGet|raw}}(ctx)
 	dif := &{{.duckCachedInformerFactory|raw}}{
 		Delegate: &{{.duckTypedInformerFactory|raw}}{
@@ -123,7 +119,7 @@ func WithDuck(ctx {{.contextContext|raw}}) {{.contextContext|raw}} {
 }
 
 // Get extracts the typed informer from the context.
-func Get(ctx {{.contextContext|raw}}) {{.duckInformerFactory|raw}} {
+func Get(ctx context.Context) {{.duckInformerFactory|raw}} {
 	untyped := ctx.Value(Key{})
 	if untyped == nil {
 		{{.loggingFromContext|raw}}(ctx).Panic(

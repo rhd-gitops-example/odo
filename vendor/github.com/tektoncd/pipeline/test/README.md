@@ -172,8 +172,6 @@ You can also use
   [the idiomatic way to disable test caching](https://golang.org/doc/go1.10#test).
 - The end to end tests take a long time to run so a value like `-timeout=20m`
   can be useful depending on what you're running
-- TestKanikoTaskRun requires containers to run with root user. Using
-  `-skipRootUserTests=true` skips it.
 
 You can [use test flags](#flags) to control the environment your tests run
 against, i.e. override
@@ -256,11 +254,11 @@ import tb "github.com/tektoncd/pipeline/test/builder"
 
 func MyTest(t *testing.T){
     // Pipeline
-    pipeline := tb.Pipeline("tomatoes",
+    pipeline := tb.Pipeline("tomatoes", "namespace",
         tb.PipelineSpec(tb.PipelineTask("foo", "banana")),
     )
     // … and PipelineRun
-    pipelineRun := tb.PipelineRun("pear",
+    pipelineRun := tb.PipelineRun("pear", "namespace",
         tb.PipelineRunSpec("tomatoes", tb.PipelineRunServiceAccount("inexistent")),
     )
     // And do something with them

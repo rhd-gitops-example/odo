@@ -21,68 +21,68 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	resourcev1alpha1 "github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestResolveTaskRun(t *testing.T) {
-	inputs := []v1beta1.TaskResourceBinding{{
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+	inputs := []v1alpha1.TaskResourceBinding{{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "repoToBuildFrom",
-			ResourceRef: &v1beta1.PipelineResourceRef{
+			ResourceRef: &v1alpha1.PipelineResourceRef{
 				Name: "git-repo",
 			},
 		},
 	}, {
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "clusterToUse",
-			ResourceRef: &v1beta1.PipelineResourceRef{
+			ResourceRef: &v1alpha1.PipelineResourceRef{
 				Name: "k8s-cluster",
 			},
 		},
 	}, {
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "clusterspecToUse",
-			ResourceSpec: &resourcev1alpha1.PipelineResourceSpec{
-				Type: resourcev1alpha1.PipelineResourceTypeCluster,
+			ResourceSpec: &v1alpha1.PipelineResourceSpec{
+				Type: v1alpha1.PipelineResourceTypeCluster,
 			},
 		},
 	}}
 
-	outputs := []v1beta1.TaskResourceBinding{{
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+	outputs := []v1alpha1.TaskResourceBinding{{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "imageToBuild",
-			ResourceRef: &v1beta1.PipelineResourceRef{
+			ResourceRef: &v1alpha1.PipelineResourceRef{
 				Name: "image",
 			},
 		},
 	}, {
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "gitRepoToUpdate",
-			ResourceRef: &v1beta1.PipelineResourceRef{
+			ResourceRef: &v1alpha1.PipelineResourceRef{
 				Name: "another-git-repo",
 			},
 		},
 	}, {
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "gitspecToUse",
-			ResourceSpec: &resourcev1alpha1.PipelineResourceSpec{
-				Type: resourcev1alpha1.PipelineResourceTypeGit,
+			ResourceSpec: &v1alpha1.PipelineResourceSpec{
+				Type: v1alpha1.PipelineResourceTypeGit,
 			},
 		},
 	}}
 
 	taskName := "orchestrate"
-	kind := v1beta1.NamespacedTaskKind
-	taskSpec := v1beta1.TaskSpec{
-		Steps: []v1beta1.Step{{Container: corev1.Container{
+	kind := v1alpha1.NamespacedTaskKind
+	taskSpec := v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+		Steps: []v1alpha1.Step{{Container: corev1.Container{
 			Name: "step1",
-		}},
-		}}
+		}}},
+	}}
 
-	resources := []*resourcev1alpha1.PipelineResource{{
+	resources := []*v1alpha1.PipelineResource{{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "git-repo",
 		},
@@ -100,7 +100,7 @@ func TestResolveTaskRun(t *testing.T) {
 		},
 	}}
 	resourceIndex := 0
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
+	gr := func(n string) (*v1alpha1.PipelineResource, error) {
 		r := resources[resourceIndex]
 		resourceIndex++
 		return r, nil
@@ -134,7 +134,7 @@ func TestResolveTaskRun(t *testing.T) {
 		r, ok = rtr.Inputs["clusterspecToUse"]
 		if !ok {
 			t.Errorf("Expected value present in map for `clusterspecToUse' but it was missing")
-		} else if r.Spec.Type != resourcev1alpha1.PipelineResourceTypeCluster {
+		} else if r.Spec.Type != v1alpha1.PipelineResourceTypeCluster {
 			t.Errorf("Expected to use resource to be of type `cluster` for `clusterspecToUse` but got %s", r.Spec.Type)
 		}
 	} else {
@@ -157,7 +157,7 @@ func TestResolveTaskRun(t *testing.T) {
 		r, ok = rtr.Outputs["gitspecToUse"]
 		if !ok {
 			t.Errorf("Expected value present in map for `gitspecToUse' but it was missing")
-		} else if r.Spec.Type != resourcev1alpha1.PipelineResourceTypeGit {
+		} else if r.Spec.Type != v1alpha1.PipelineResourceTypeGit {
 			t.Errorf("Expected to use resource type `git` for but got %s", r.Spec.Type)
 		}
 	} else {
@@ -166,49 +166,47 @@ func TestResolveTaskRun(t *testing.T) {
 }
 
 func TestResolveTaskRun_missingOutput(t *testing.T) {
-	outputs := []v1beta1.TaskResourceBinding{{
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+	outputs := []v1alpha1.TaskResourceBinding{{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "repoToUpdate",
-			ResourceRef: &v1beta1.PipelineResourceRef{
+			ResourceRef: &v1alpha1.PipelineResourceRef{
 				Name: "another-git-repo",
 			},
 		}}}
 
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) { return nil, errors.New("nope") }
-	_, err := ResolveTaskResources(&v1beta1.TaskSpec{}, "orchestrate", v1beta1.NamespacedTaskKind, []v1beta1.TaskResourceBinding{}, outputs, gr)
+	gr := func(n string) (*v1alpha1.PipelineResource, error) { return nil, errors.New("nope") }
+	_, err := ResolveTaskResources(&v1alpha1.TaskSpec{}, "orchestrate", v1alpha1.NamespacedTaskKind, []v1alpha1.TaskResourceBinding{}, outputs, gr)
 	if err == nil {
 		t.Fatalf("Expected to get error because output resource couldn't be resolved")
 	}
 }
 
 func TestResolveTaskRun_missingInput(t *testing.T) {
-	inputs := []v1beta1.TaskResourceBinding{{
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+	inputs := []v1alpha1.TaskResourceBinding{{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "repoToBuildFrom",
-			ResourceRef: &v1beta1.PipelineResourceRef{
+			ResourceRef: &v1alpha1.PipelineResourceRef{
 				Name: "git-repo",
 			},
 		}}}
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) { return nil, errors.New("nope") }
+	gr := func(n string) (*v1alpha1.PipelineResource, error) { return nil, errors.New("nope") }
 
-	_, err := ResolveTaskResources(&v1beta1.TaskSpec{}, "orchestrate", v1beta1.NamespacedTaskKind, inputs, []v1beta1.TaskResourceBinding{}, gr)
+	_, err := ResolveTaskResources(&v1alpha1.TaskSpec{}, "orchestrate", v1alpha1.NamespacedTaskKind, inputs, []v1alpha1.TaskResourceBinding{}, gr)
 	if err == nil {
 		t.Fatalf("Expected to get error because output resource couldn't be resolved")
 	}
 }
 
 func TestResolveTaskRun_noResources(t *testing.T) {
-	taskSpec := v1beta1.TaskSpec{
-		Steps: []v1beta1.Step{{Container: corev1.Container{
+	taskSpec := v1alpha1.TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+		Steps: []v1alpha1.Step{{Container: corev1.Container{
 			Name: "step1",
-		}},
-		}}
+		}}},
+	}}
 
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
-		return &resourcev1alpha1.PipelineResource{}, nil
-	}
+	gr := func(n string) (*v1alpha1.PipelineResource, error) { return &v1alpha1.PipelineResource{}, nil }
 
-	rtr, err := ResolveTaskResources(&taskSpec, "orchestrate", v1beta1.NamespacedTaskKind, []v1beta1.TaskResourceBinding{}, []v1beta1.TaskResourceBinding{}, gr)
+	rtr, err := ResolveTaskResources(&taskSpec, "orchestrate", v1alpha1.NamespacedTaskKind, []v1alpha1.TaskResourceBinding{}, []v1alpha1.TaskResourceBinding{}, gr)
 	if err != nil {
 		t.Fatalf("Did not expect error trying to resolve TaskRun: %s", err)
 	}
@@ -229,56 +227,52 @@ func TestResolveTaskRun_noResources(t *testing.T) {
 }
 
 func TestResolveTaskRun_InvalidBothSpecified(t *testing.T) {
-	inputs := []v1beta1.TaskResourceBinding{{
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+	inputs := []v1alpha1.TaskResourceBinding{{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "repoToBuildFrom",
 			// Can't specify both ResourceRef and ResourceSpec
-			ResourceRef: &v1beta1.PipelineResourceRef{
+			ResourceRef: &v1alpha1.PipelineResourceRef{
 				Name: "git-repo",
 			},
-			ResourceSpec: &resourcev1alpha1.PipelineResourceSpec{
-				Type: resourcev1alpha1.PipelineResourceTypeGit,
+			ResourceSpec: &v1alpha1.PipelineResourceSpec{
+				Type: v1alpha1.PipelineResourceTypeGit,
 			},
 		},
 	}}
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
-		return &resourcev1alpha1.PipelineResource{}, nil
-	}
+	gr := func(n string) (*v1alpha1.PipelineResource, error) { return &v1alpha1.PipelineResource{}, nil }
 
-	_, err := ResolveTaskResources(&v1beta1.TaskSpec{}, "orchestrate", v1beta1.NamespacedTaskKind, inputs, []v1beta1.TaskResourceBinding{}, gr)
+	_, err := ResolveTaskResources(&v1alpha1.TaskSpec{}, "orchestrate", v1alpha1.NamespacedTaskKind, inputs, []v1alpha1.TaskResourceBinding{}, gr)
 	if err == nil {
 		t.Fatalf("Expected to get error because both ref and spec were used")
 	}
 }
 
 func TestResolveTaskRun_InvalidNeitherSpecified(t *testing.T) {
-	inputs := []v1beta1.TaskResourceBinding{{
-		PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+	inputs := []v1alpha1.TaskResourceBinding{{
+		PipelineResourceBinding: v1alpha1.PipelineResourceBinding{
 			Name: "repoToBuildFrom",
 		},
 	}}
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
-		return &resourcev1alpha1.PipelineResource{}, nil
-	}
+	gr := func(n string) (*v1alpha1.PipelineResource, error) { return &v1alpha1.PipelineResource{}, nil }
 
-	_, err := ResolveTaskResources(&v1beta1.TaskSpec{}, "orchestrate", v1beta1.NamespacedTaskKind, inputs, []v1beta1.TaskResourceBinding{}, gr)
+	_, err := ResolveTaskResources(&v1alpha1.TaskSpec{}, "orchestrate", v1alpha1.NamespacedTaskKind, inputs, []v1alpha1.TaskResourceBinding{}, gr)
 	if err == nil {
 		t.Fatalf("Expected to get error because neither spec or ref were used")
 	}
 }
 
 func TestGetResourceFromBinding_Ref(t *testing.T) {
-	r := &resourcev1alpha1.PipelineResource{
+	r := &v1alpha1.PipelineResource{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "git-repo",
 		},
 	}
-	binding := &v1beta1.PipelineResourceBinding{
-		ResourceRef: &v1beta1.PipelineResourceRef{
+	binding := &v1alpha1.PipelineResourceBinding{
+		ResourceRef: &v1alpha1.PipelineResourceRef{
 			Name: "foo-resource",
 		},
 	}
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
+	gr := func(n string) (*v1alpha1.PipelineResource, error) {
 		return r, nil
 	}
 
@@ -292,16 +286,16 @@ func TestGetResourceFromBinding_Ref(t *testing.T) {
 }
 
 func TestGetResourceFromBinding_Spec(t *testing.T) {
-	binding := &v1beta1.PipelineResourceBinding{
-		ResourceSpec: &resourcev1alpha1.PipelineResourceSpec{
-			Type: resourcev1alpha1.PipelineResourceTypeGit,
-			Params: []resourcev1alpha1.ResourceParam{{
+	binding := &v1alpha1.PipelineResourceBinding{
+		ResourceSpec: &v1alpha1.PipelineResourceSpec{
+			Type: v1alpha1.PipelineResourceTypeGit,
+			Params: []v1alpha1.ResourceParam{{
 				Name:  "url",
 				Value: "github.com/mycoolorg/mycoolrepo",
 			}},
 		},
 	}
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
+	gr := func(n string) (*v1alpha1.PipelineResource, error) {
 		return nil, fmt.Errorf("shouldnt be called! but was for %s", n)
 	}
 
@@ -309,7 +303,7 @@ func TestGetResourceFromBinding_Spec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Did not expect error trying to get resource from binding: %s", err)
 	}
-	if rr.Spec.Type != resourcev1alpha1.PipelineResourceTypeGit {
+	if rr.Spec.Type != v1alpha1.PipelineResourceTypeGit {
 		t.Errorf("Got %s instead of expected resource type", rr.Spec.Type)
 	}
 	if len(rr.Spec.Params) != 1 || rr.Spec.Params[0].Name != "url" || rr.Spec.Params[0].Value != "github.com/mycoolorg/mycoolrepo" {
@@ -318,8 +312,8 @@ func TestGetResourceFromBinding_Spec(t *testing.T) {
 }
 
 func TestGetResourceFromBinding_NoNameOrSpec(t *testing.T) {
-	binding := &v1beta1.PipelineResourceBinding{}
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
+	binding := &v1alpha1.PipelineResourceBinding{}
+	gr := func(n string) (*v1alpha1.PipelineResource, error) {
 		return nil, nil
 	}
 
@@ -330,19 +324,19 @@ func TestGetResourceFromBinding_NoNameOrSpec(t *testing.T) {
 }
 
 func TestGetResourceFromBinding_NameAndSpec(t *testing.T) {
-	binding := &v1beta1.PipelineResourceBinding{
-		ResourceSpec: &resourcev1alpha1.PipelineResourceSpec{
-			Type: resourcev1alpha1.PipelineResourceTypeGit,
-			Params: []resourcev1alpha1.ResourceParam{{
+	binding := &v1alpha1.PipelineResourceBinding{
+		ResourceSpec: &v1alpha1.PipelineResourceSpec{
+			Type: v1alpha1.PipelineResourceTypeGit,
+			Params: []v1alpha1.ResourceParam{{
 				Name:  "url",
 				Value: "github.com/mycoolorg/mycoolrepo",
 			}},
 		},
-		ResourceRef: &v1beta1.PipelineResourceRef{
+		ResourceRef: &v1alpha1.PipelineResourceRef{
 			Name: "foo-resource",
 		},
 	}
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
+	gr := func(n string) (*v1alpha1.PipelineResource, error) {
 		return nil, nil
 	}
 
@@ -353,12 +347,12 @@ func TestGetResourceFromBinding_NameAndSpec(t *testing.T) {
 }
 
 func TestGetResourceFromBinding_ErrorGettingResource(t *testing.T) {
-	binding := &v1beta1.PipelineResourceBinding{
-		ResourceRef: &v1beta1.PipelineResourceRef{
+	binding := &v1alpha1.PipelineResourceBinding{
+		ResourceRef: &v1alpha1.PipelineResourceRef{
 			Name: "foo-resource",
 		},
 	}
-	gr := func(n string) (*resourcev1alpha1.PipelineResource, error) {
+	gr := func(n string) (*v1alpha1.PipelineResource, error) {
 		return nil, fmt.Errorf("it has all gone wrong")
 	}
 	_, err := GetResourceFromBinding(binding, gr)

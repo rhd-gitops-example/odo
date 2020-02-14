@@ -22,11 +22,11 @@ import (
 	"testing"
 	"time"
 
-	tb "github.com/tektoncd/pipeline/internal/builder/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	ttesting "github.com/tektoncd/pipeline/pkg/reconciler/testing"
-	test "github.com/tektoncd/pipeline/test"
+	"github.com/tektoncd/pipeline/test"
+	tb "github.com/tektoncd/pipeline/test/builder"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 	corev1 "k8s.io/api/core/v1"
@@ -36,14 +36,13 @@ import (
 )
 
 var (
-	allNs      = ""
 	testNs     = "foo"
 	simpleStep = tb.Step(testNs, tb.StepCommand("/mycmd"))
-	simpleTask = tb.Task("test-task", tb.TaskSpec(simpleStep))
+	simpleTask = tb.Task("test-task", testNs, tb.TaskSpec(simpleStep))
 )
 
 func TestTaskRunCheckTimeouts(t *testing.T) {
-	taskRunTimedout := tb.TaskRun("test-taskrun-run-timedout", tb.TaskRunNamespace(testNs), tb.TaskRunSpec(
+	taskRunTimedout := tb.TaskRun("test-taskrun-run-timedout", testNs, tb.TaskRunSpec(
 		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
 		tb.TaskRunTimeout(1*time.Second),
 	), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{
@@ -52,7 +51,7 @@ func TestTaskRunCheckTimeouts(t *testing.T) {
 		tb.TaskRunStartTime(time.Now().Add(-10*time.Second)),
 	))
 
-	taskRunRunning := tb.TaskRun("test-taskrun-running", tb.TaskRunNamespace(testNs), tb.TaskRunSpec(
+	taskRunRunning := tb.TaskRun("test-taskrun-running", testNs, tb.TaskRunSpec(
 		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
 		tb.TaskRunTimeout(config.DefaultTimeoutMinutes*time.Minute),
 	), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{
@@ -61,7 +60,7 @@ func TestTaskRunCheckTimeouts(t *testing.T) {
 		tb.TaskRunStartTime(time.Now()),
 	))
 
-	taskRunRunningNilTimeout := tb.TaskRun("test-taskrun-running-nil-timeout", tb.TaskRunNamespace(testNs), tb.TaskRunSpec(
+	taskRunRunningNilTimeout := tb.TaskRun("test-taskrun-running-nil-timeout", testNs, tb.TaskRunSpec(
 		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
 		tb.TaskRunNilTimeout,
 	), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{
@@ -70,7 +69,7 @@ func TestTaskRunCheckTimeouts(t *testing.T) {
 		tb.TaskRunStartTime(time.Now()),
 	))
 
-	taskRunDone := tb.TaskRun("test-taskrun-completed", tb.TaskRunNamespace(testNs), tb.TaskRunSpec(
+	taskRunDone := tb.TaskRun("test-taskrun-completed", testNs, tb.TaskRunSpec(
 		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
 		tb.TaskRunTimeout(config.DefaultTimeoutMinutes*time.Minute),
 	), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{
@@ -78,7 +77,7 @@ func TestTaskRunCheckTimeouts(t *testing.T) {
 		Status: corev1.ConditionTrue}),
 	))
 
-	taskRunCancelled := tb.TaskRun("test-taskrun-run-cancelled", tb.TaskRunNamespace(testNs), tb.TaskRunSpec(
+	taskRunCancelled := tb.TaskRun("test-taskrun-run-cancelled", testNs, tb.TaskRunSpec(
 		tb.TaskRunTaskRef(simpleTask.Name),
 		tb.TaskRunCancelled,
 		tb.TaskRunTimeout(1*time.Second),
@@ -88,8 +87,8 @@ func TestTaskRunCheckTimeouts(t *testing.T) {
 	))
 
 	d := test.Data{
-		TaskRuns: []*v1beta1.TaskRun{taskRunTimedout, taskRunRunning, taskRunDone, taskRunCancelled, taskRunRunningNilTimeout},
-		Tasks:    []*v1beta1.Task{simpleTask},
+		TaskRuns: []*v1alpha1.TaskRun{taskRunTimedout, taskRunRunning, taskRunDone, taskRunCancelled, taskRunRunningNilTimeout},
+		Tasks:    []*v1alpha1.Task{simpleTask},
 		Namespaces: []*corev1.Namespace{{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testNs,
@@ -105,16 +104,16 @@ func TestTaskRunCheckTimeouts(t *testing.T) {
 	th := NewTimeoutHandler(stopCh, zap.New(observer).Sugar())
 	gotCallback := sync.Map{}
 	f := func(tr interface{}) {
-		trNew := tr.(*v1beta1.TaskRun)
+		trNew := tr.(*v1alpha1.TaskRun)
 		gotCallback.Store(trNew.Name, struct{}{})
 	}
 
 	th.SetTaskRunCallbackFunc(f)
-	th.CheckTimeouts(allNs, c.Kube, c.Pipeline)
+	th.CheckTimeouts(c.Kube, c.Pipeline)
 
 	for _, tc := range []struct {
 		name           string
-		taskRun        *v1beta1.TaskRun
+		taskRun        *v1alpha1.TaskRun
 		expectCallback bool
 	}{{
 		name:           "timedout",
@@ -158,89 +157,11 @@ func TestTaskRunCheckTimeouts(t *testing.T) {
 
 }
 
-func TestTaskRunSingleNamespaceCheckTimeouts(t *testing.T) {
-	taskRunTimedout := tb.TaskRun("test-taskrun-run-timedout-foo", tb.TaskRunNamespace(testNs), tb.TaskRunSpec(
-		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
-		tb.TaskRunTimeout(1*time.Second),
-	), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{
-		Type:   apis.ConditionSucceeded,
-		Status: corev1.ConditionUnknown}),
-		tb.TaskRunStartTime(time.Now().Add(-10*time.Second)),
-	))
-
-	taskRunTimedoutOtherNS := tb.TaskRun("test-taskrun-run-timedout-bar", tb.TaskRunNamespace("otherNS"), tb.TaskRunSpec(
-		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
-		tb.TaskRunTimeout(1*time.Second),
-	), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{
-		Type:   apis.ConditionSucceeded,
-		Status: corev1.ConditionUnknown}),
-		tb.TaskRunStartTime(time.Now().Add(-10*time.Second)),
-	))
-
-	d := test.Data{
-		TaskRuns: []*v1beta1.TaskRun{taskRunTimedout, taskRunTimedoutOtherNS},
-		Tasks:    []*v1beta1.Task{simpleTask},
-		Namespaces: []*corev1.Namespace{{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: testNs,
-			},
-		}},
-	}
-	ctx, _ := ttesting.SetupFakeContext(t)
-	c, _ := test.SeedTestData(t, ctx, d)
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	observer, _ := observer.New(zap.InfoLevel)
-
-	th := NewTimeoutHandler(stopCh, zap.New(observer).Sugar())
-	gotCallback := sync.Map{}
-	f := func(tr interface{}) {
-		trNew := tr.(*v1beta1.TaskRun)
-		gotCallback.Store(trNew.Name, struct{}{})
-	}
-
-	th.SetTaskRunCallbackFunc(f)
-	th.CheckTimeouts(testNs, c.Kube, c.Pipeline)
-
-	for _, tc := range []struct {
-		name           string
-		taskRun        *v1beta1.TaskRun
-		expectCallback bool
-	}{{
-		name:           "timedout",
-		taskRun:        taskRunTimedout,
-		expectCallback: true,
-	}, {
-		name:           "timedout",
-		taskRun:        taskRunTimedoutOtherNS,
-		expectCallback: false,
-	}} {
-		t.Run(tc.name, func(t *testing.T) {
-			if err := wait.PollImmediate(100*time.Millisecond, 3*time.Second, func() (bool, error) {
-				if tc.expectCallback {
-					if _, ok := gotCallback.Load(tc.taskRun.Name); ok {
-						return true, nil
-					}
-					return false, nil
-				}
-				// not expecting callback
-				if _, ok := gotCallback.Load(tc.taskRun.Name); ok {
-					return false, fmt.Errorf("did not expect call back for %s why", tc.taskRun.Name)
-				}
-				return true, nil
-			}); err != nil {
-				t.Fatalf("Expected %s callback to be %t but got error: %s", tc.name, tc.expectCallback, err)
-			}
-		})
-	}
-
-}
-
 func TestPipelinRunCheckTimeouts(t *testing.T) {
-	simplePipeline := tb.Pipeline("test-pipeline", tb.PipelineNamespace(testNs), tb.PipelineSpec(
+	simplePipeline := tb.Pipeline("test-pipeline", testNs, tb.PipelineSpec(
 		tb.PipelineTask("hello-world-1", "hello-world"),
 	))
-	prTimeout := tb.PipelineRun("test-pipeline-run-with-timeout", tb.PipelineRunNamespace(testNs),
+	prTimeout := tb.PipelineRun("test-pipeline-run-with-timeout", testNs,
 		tb.PipelineRunSpec("test-pipeline",
 			tb.PipelineRunServiceAccountName("test-sa"),
 			tb.PipelineRunTimeout(1*time.Second),
@@ -248,9 +169,9 @@ func TestPipelinRunCheckTimeouts(t *testing.T) {
 		tb.PipelineRunStatus(
 			tb.PipelineRunStartTime(time.Now().AddDate(0, 0, -1))),
 	)
-	ts := tb.Task("hello-world")
+	ts := tb.Task("hello-world", testNs)
 
-	prRunning := tb.PipelineRun("test-pipeline-running", tb.PipelineRunNamespace(testNs),
+	prRunning := tb.PipelineRun("test-pipeline-running", testNs,
 		tb.PipelineRunSpec("test-pipeline",
 			tb.PipelineRunTimeout(config.DefaultTimeoutMinutes*time.Minute),
 		),
@@ -260,7 +181,7 @@ func TestPipelinRunCheckTimeouts(t *testing.T) {
 			tb.PipelineRunStartTime(time.Now()),
 		),
 	)
-	prRunningNilTimeout := tb.PipelineRun("test-pipeline-running-nil-timeout", tb.PipelineRunNamespace(testNs),
+	prRunningNilTimeout := tb.PipelineRun("test-pipeline-running-nil-timeout", testNs,
 		tb.PipelineRunSpec("test-pipeline",
 			tb.PipelineRunNilTimeout,
 		),
@@ -270,7 +191,7 @@ func TestPipelinRunCheckTimeouts(t *testing.T) {
 			tb.PipelineRunStartTime(time.Now()),
 		),
 	)
-	prDone := tb.PipelineRun("test-pipeline-done", tb.PipelineRunNamespace(testNs),
+	prDone := tb.PipelineRun("test-pipeline-done", testNs,
 		tb.PipelineRunSpec("test-pipeline",
 			tb.PipelineRunTimeout(config.DefaultTimeoutMinutes*time.Minute),
 		),
@@ -279,7 +200,7 @@ func TestPipelinRunCheckTimeouts(t *testing.T) {
 			Status: corev1.ConditionTrue}),
 		),
 	)
-	prCancelled := tb.PipelineRun("test-pipeline-cancel", tb.PipelineRunNamespace(testNs),
+	prCancelled := tb.PipelineRun("test-pipeline-cancel", testNs,
 		tb.PipelineRunSpec("test-pipeline", tb.PipelineRunServiceAccountName("test-sa"),
 			tb.PipelineRunCancelled,
 			tb.PipelineRunTimeout(config.DefaultTimeoutMinutes*time.Minute),
@@ -290,9 +211,9 @@ func TestPipelinRunCheckTimeouts(t *testing.T) {
 		),
 	)
 	d := test.Data{
-		PipelineRuns: []*v1beta1.PipelineRun{prTimeout, prRunning, prDone, prCancelled, prRunningNilTimeout},
-		Pipelines:    []*v1beta1.Pipeline{simplePipeline},
-		Tasks:        []*v1beta1.Task{ts},
+		PipelineRuns: []*v1alpha1.PipelineRun{prTimeout, prRunning, prDone, prCancelled, prRunningNilTimeout},
+		Pipelines:    []*v1alpha1.Pipeline{simplePipeline},
+		Tasks:        []*v1alpha1.Task{ts},
 		Namespaces: []*corev1.Namespace{{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testNs,
@@ -309,15 +230,15 @@ func TestPipelinRunCheckTimeouts(t *testing.T) {
 
 	gotCallback := sync.Map{}
 	f := func(pr interface{}) {
-		prNew := pr.(*v1beta1.PipelineRun)
+		prNew := pr.(*v1alpha1.PipelineRun)
 		gotCallback.Store(prNew.Name, struct{}{})
 	}
 
 	th.SetPipelineRunCallbackFunc(f)
-	th.CheckTimeouts(allNs, c.Kube, c.Pipeline)
+	th.CheckTimeouts(c.Kube, c.Pipeline)
 	for _, tc := range []struct {
 		name           string
-		pr             *v1beta1.PipelineRun
+		pr             *v1alpha1.PipelineRun
 		expectCallback bool
 	}{{
 		name:           "pr-running",
@@ -362,7 +283,7 @@ func TestPipelinRunCheckTimeouts(t *testing.T) {
 
 // TestWithNoFunc does not set taskrun/pipelinerun function and verifies that code does not panic
 func TestWithNoFunc(t *testing.T) {
-	taskRunRunning := tb.TaskRun("test-taskrun-running", tb.TaskRunNamespace(testNs), tb.TaskRunSpec(
+	taskRunRunning := tb.TaskRun("test-taskrun-running", testNs, tb.TaskRunSpec(
 		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
 		tb.TaskRunTimeout(2*time.Second),
 	), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{
@@ -372,8 +293,8 @@ func TestWithNoFunc(t *testing.T) {
 	))
 
 	d := test.Data{
-		TaskRuns: []*v1beta1.TaskRun{taskRunRunning},
-		Tasks:    []*v1beta1.Task{simpleTask},
+		TaskRuns: []*v1alpha1.TaskRun{taskRunRunning},
+		Tasks:    []*v1alpha1.Task{simpleTask},
 		Namespaces: []*corev1.Namespace{{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testNs,
@@ -393,14 +314,14 @@ func TestWithNoFunc(t *testing.T) {
 			t.Fatal("Expected CheckTimeouts function not to panic")
 		}
 	}()
-	testHandler.CheckTimeouts(allNs, c.Kube, c.Pipeline)
+	testHandler.CheckTimeouts(c.Kube, c.Pipeline)
 
 }
 
 // TestSetTaskRunTimer checks that the SetTaskRunTimer method correctly calls the TaskRun
 // callback after a set amount of time.
 func TestSetTaskRunTimer(t *testing.T) {
-	taskRun := tb.TaskRun("test-taskrun-arbitrary-timer", tb.TaskRunNamespace(testNs), tb.TaskRunSpec(
+	taskRun := tb.TaskRun("test-taskrun-arbitrary-timer", testNs, tb.TaskRunSpec(
 		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
 		tb.TaskRunTimeout(2*time.Second),
 	), tb.TaskRunStatus(tb.StatusCondition(apis.Condition{

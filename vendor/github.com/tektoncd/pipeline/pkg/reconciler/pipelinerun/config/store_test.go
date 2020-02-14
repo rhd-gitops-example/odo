@@ -24,7 +24,6 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	"github.com/tektoncd/pipeline/pkg/artifacts"
 	ttesting "github.com/tektoncd/pipeline/pkg/reconciler/testing"
-	"github.com/tektoncd/pipeline/test/diff"
 
 	test "github.com/tektoncd/pipeline/pkg/reconciler/testing"
 )
@@ -37,8 +36,8 @@ func TestStoreLoadWithContext(t *testing.T) {
 	config := FromContext(store.ToContext(context.Background()))
 
 	expected, _ := artifacts.NewArtifactBucketConfigFromConfigMap(pipeline.Images{})(bucketConfig)
-	if d := cmp.Diff(expected, config.ArtifactBucket); d != "" {
-		t.Errorf("Unexpected controller config %s", diff.PrintWantGot(d))
+	if diff := cmp.Diff(expected, config.ArtifactBucket); diff != "" {
+		t.Errorf("Unexpected controller config (-want, +got): %v", diff)
 	}
 }
 func TestStoreImmutableConfig(t *testing.T) {

@@ -29,7 +29,7 @@ type CachedInformerFactory struct {
 	Delegate InformerFactory
 
 	m     sync.Mutex
-	cache map[schema.GroupVersionResource]*informerCache
+	cache map[schema.GroupVersionResource]*result
 }
 
 // Check that CachedInformerFactory implements InformerFactory.
@@ -38,41 +38,27 @@ var _ InformerFactory = (*CachedInformerFactory)(nil)
 // Get implements InformerFactory.
 func (cif *CachedInformerFactory) Get(gvr schema.GroupVersionResource) (cache.SharedIndexInformer, cache.GenericLister, error) {
 	cif.m.Lock()
-
 	if cif.cache == nil {
-		cif.cache = make(map[schema.GroupVersionResource]*informerCache)
+		cif.cache = make(map[schema.GroupVersionResource]*result)
 	}
-
-	ic, ok := cif.cache[gvr]
+	elt, ok := cif.cache[gvr]
 	if !ok {
-		ic = &informerCache{}
-		ic.init = func() {
-			ic.Lock()
-			defer ic.Unlock()
-
-			// double-checked lock to ensure we call the Delegate
-			// only once even if multiple goroutines end up inside
-			// init() simultaneously
-			if ic.hasInformer() {
-				return
-			}
-
-			ic.inf, ic.lister, ic.err = cif.Delegate.Get(gvr)
+		elt = &result{}
+		elt.init = func() {
+			elt.inf, elt.lister, elt.err = cif.Delegate.Get(gvr)
 		}
-		cif.cache[gvr] = ic
+		cif.cache[gvr] = elt
 	}
-
 	// If this were done via "defer", then TestDifferentGVRs will fail.
 	cif.m.Unlock()
 
 	// The call to the delegate could be slow because it syncs informers, so do
 	// this outside of the main lock.
-	return ic.Get()
+	return elt.Get()
 }
 
-type informerCache struct {
-	sync.RWMutex
-
+type result struct {
+	sync.Once
 	init func()
 
 	inf    cache.SharedIndexInformer
@@ -80,21 +66,7 @@ type informerCache struct {
 	err    error
 }
 
-// Get returns the cached informer. If it does not yet exist, we first try to
-// acquire one by executing the cache's init function.
-func (ic *informerCache) Get() (cache.SharedIndexInformer, cache.GenericLister, error) {
-	if !ic.initialized() {
-		ic.init()
-	}
-	return ic.inf, ic.lister, ic.err
-}
-
-func (ic *informerCache) initialized() bool {
-	ic.RLock()
-	defer ic.RUnlock()
-	return ic.hasInformer()
-}
-
-func (ic *informerCache) hasInformer() bool {
-	return ic.inf != nil && ic.lister != nil
+func (t *result) Get() (cache.SharedIndexInformer, cache.GenericLister, error) {
+	t.Do(t.init)
+	return t.inf, t.lister, t.err
 }

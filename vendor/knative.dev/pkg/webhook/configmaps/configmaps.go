@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -44,8 +43,6 @@ import (
 
 // reconciler implements the AdmissionController for ConfigMaps
 type reconciler struct {
-	webhook.StatelessAdmissionImpl
-
 	name         string
 	path         string
 	constructors map[string]reflect.Value
@@ -59,7 +56,6 @@ type reconciler struct {
 
 var _ controller.Reconciler = (*reconciler)(nil)
 var _ webhook.AdmissionController = (*reconciler)(nil)
-var _ webhook.StatelessAdmissionController = (*reconciler)(nil)
 
 // Reconcile implements controller.Reconciler
 func (ac *reconciler) Reconcile(ctx context.Context, key string) error {
@@ -122,7 +118,7 @@ func (ac *reconciler) reconcileValidatingWebhook(ctx context.Context, caCert []b
 
 	configuredWebhook, err := ac.vwhlister.Get(ac.name)
 	if err != nil {
-		return fmt.Errorf("error retrieving webhook: %w", err)
+		return fmt.Errorf("error retrieving webhook: %v", err)
 	}
 
 	webhook := configuredWebhook.DeepCopy()
@@ -138,18 +134,18 @@ func (ac *reconciler) reconcileValidatingWebhook(ctx context.Context, caCert []b
 		webhook.Webhooks[i].Rules = rules
 		webhook.Webhooks[i].ClientConfig.CABundle = caCert
 		if webhook.Webhooks[i].ClientConfig.Service == nil {
-			return errors.New("missing service reference for webhook: " + wh.Name)
+			return fmt.Errorf("missing service reference for webhook: %s", wh.Name)
 		}
 		webhook.Webhooks[i].ClientConfig.Service.Path = ptr.String(ac.Path())
 	}
 
 	if ok, err := kmp.SafeEqual(configuredWebhook, webhook); err != nil {
-		return fmt.Errorf("error diffing webhooks: %w", err)
+		return fmt.Errorf("error diffing webhooks: %v", err)
 	} else if !ok {
 		logger.Info("Updating webhook")
 		vwhclient := ac.client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations()
 		if _, err := vwhclient.Update(webhook); err != nil {
-			return fmt.Errorf("failed to update webhook: %w", err)
+			return fmt.Errorf("failed to update webhook: %v", err)
 		}
 	} else {
 		logger.Info("Webhook is valid")
@@ -180,7 +176,7 @@ func (ac *reconciler) validate(ctx context.Context, req *admissionv1beta1.Admiss
 	if len(newBytes) != 0 {
 		newDecoder := json.NewDecoder(bytes.NewBuffer(newBytes))
 		if err := newDecoder.Decode(&newObj); err != nil {
-			return fmt.Errorf("cannot decode incoming new object: %w", err)
+			return fmt.Errorf("cannot decode incoming new object: %v", err)
 		}
 	}
 

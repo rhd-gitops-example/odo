@@ -19,12 +19,10 @@ package v1alpha1
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	resource "github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
-	"github.com/tektoncd/pipeline/test/diff"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
@@ -33,17 +31,17 @@ import (
 func TestPipelineConversionBadType(t *testing.T) {
 	good, bad := &Pipeline{}, &Task{}
 
-	if err := good.ConvertTo(context.Background(), bad); err == nil {
-		t.Errorf("ConvertTo() = %#v, wanted error", bad)
+	if err := good.ConvertUp(context.Background(), bad); err == nil {
+		t.Errorf("ConvertUp() = %#v, wanted error", bad)
 	}
 
-	if err := good.ConvertFrom(context.Background(), bad); err == nil {
-		t.Errorf("ConvertTo() = %#v, wanted error", bad)
+	if err := good.ConvertDown(context.Background(), bad); err == nil {
+		t.Errorf("ConvertUp() = %#v, wanted error", bad)
 	}
 }
 
 func TestPipelineConversion(t *testing.T) {
-	versions := []apis.Convertible{&v1beta1.Pipeline{}}
+	versions := []apis.Convertible{&v1alpha2.Pipeline{}}
 
 	tests := []struct {
 		name    string
@@ -58,7 +56,6 @@ func TestPipelineConversion(t *testing.T) {
 				Generation: 1,
 			},
 			Spec: PipelineSpec{
-				Description: "test",
 				Resources: []PipelineDeclaredResource{{
 					Name: "resource1",
 					Type: resource.PipelineResourceTypeGit,
@@ -68,7 +65,7 @@ func TestPipelineConversion(t *testing.T) {
 				}},
 				Params: []ParamSpec{{
 					Name:        "param-1",
-					Type:        v1beta1.ParamTypeString,
+					Type:        v1alpha2.ParamTypeString,
 					Description: "My first param",
 				}},
 				Workspaces: []WorkspacePipelineDeclaration{{
@@ -85,28 +82,27 @@ func TestPipelineConversion(t *testing.T) {
 					Retries:  10,
 					RunAfter: []string{"task1"},
 					Resources: &PipelineTaskResources{
-						Inputs: []v1beta1.PipelineTaskInputResource{{
+						Inputs: []v1alpha2.PipelineTaskInputResource{{
 							Name:     "input1",
 							Resource: "resource1",
 						}},
-						Outputs: []v1beta1.PipelineTaskOutputResource{{
+						Outputs: []v1alpha2.PipelineTaskOutputResource{{
 							Name:     "output1",
 							Resource: "resource2",
 						}},
 					},
 					Params: []Param{{
 						Name:  "param1",
-						Value: v1beta1.ArrayOrString{StringVal: "str", Type: v1beta1.ParamTypeString},
+						Value: v1alpha2.ArrayOrString{StringVal: "str", Type: v1alpha2.ParamTypeString},
 					}},
 					Workspaces: []WorkspacePipelineTaskBinding{{
 						Name:      "w1",
 						Workspace: "workspace1",
 					}},
-					Timeout: &metav1.Duration{Duration: 5 * time.Minute},
 				}, {
 					Name: "task2",
-					TaskSpec: &TaskSpec{TaskSpec: v1beta1.TaskSpec{
-						Steps: []v1beta1.Step{{Container: corev1.Container{
+					TaskSpec: &TaskSpec{TaskSpec: v1alpha2.TaskSpec{
+						Steps: []v1alpha2.Step{{Container: corev1.Container{
 							Image: "foo",
 						}}},
 					}},
@@ -125,18 +121,18 @@ func TestPipelineConversion(t *testing.T) {
 			Spec: PipelineSpec{
 				Params: []ParamSpec{{
 					Name:        "param-1",
-					Type:        v1beta1.ParamTypeString,
+					Type:        v1alpha2.ParamTypeString,
 					Description: "My first param",
 				}},
 				Tasks: []PipelineTask{{
 					Name: "task2",
 					TaskSpec: &TaskSpec{
-						TaskSpec: v1beta1.TaskSpec{
-							Steps: []v1beta1.Step{{Container: corev1.Container{
+						TaskSpec: v1alpha2.TaskSpec{
+							Steps: []v1alpha2.Step{{Container: corev1.Container{
 								Image: "foo",
 							}}},
-							Resources: &v1beta1.TaskResources{
-								Inputs: []v1beta1.TaskResource{{ResourceDeclaration: v1beta1.ResourceDeclaration{
+							Resources: &v1alpha2.TaskResources{
+								Inputs: []v1alpha2.TaskResource{{ResourceDeclaration: v1alpha2.ResourceDeclaration{
 									Name: "input-1",
 									Type: resource.PipelineResourceTypeGit,
 								}}},
@@ -159,20 +155,20 @@ func TestPipelineConversion(t *testing.T) {
 		for _, version := range versions {
 			t.Run(test.name, func(t *testing.T) {
 				ver := version
-				if err := test.in.ConvertTo(context.Background(), ver); err != nil {
+				if err := test.in.ConvertUp(context.Background(), ver); err != nil {
 					if !test.wantErr {
-						t.Errorf("ConvertTo() = %v", err)
+						t.Errorf("ConvertUp() = %v", err)
 					}
 					return
 				}
-				t.Logf("ConvertTo() = %#v", ver)
+				t.Logf("ConvertUp() = %#v", ver)
 				got := &Pipeline{}
-				if err := got.ConvertFrom(context.Background(), ver); err != nil {
-					t.Errorf("ConvertFrom() = %v", err)
+				if err := got.ConvertDown(context.Background(), ver); err != nil {
+					t.Errorf("ConvertDown() = %v", err)
 				}
-				t.Logf("ConvertFrom() = %#v", got)
-				if d := cmp.Diff(test.in, got); d != "" {
-					t.Errorf("roundtrip %s", diff.PrintWantGot(d))
+				t.Logf("ConvertDown() = %#v", got)
+				if diff := cmp.Diff(test.in, got); diff != "" {
+					t.Errorf("roundtrip (-want, +got) = %v", diff)
 				}
 			})
 		}

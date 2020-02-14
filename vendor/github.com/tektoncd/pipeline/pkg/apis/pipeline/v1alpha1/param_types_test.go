@@ -23,9 +23,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	tb "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/test/diff"
+	"github.com/tektoncd/pipeline/test/builder"
 )
 
 func TestParamSpec_SetDefaults(t *testing.T) {
@@ -46,12 +45,12 @@ func TestParamSpec_SetDefaults(t *testing.T) {
 		name: "inferred type from default value",
 		before: &v1alpha1.ParamSpec{
 			Name:    "parametername",
-			Default: tb.ArrayOrString("an", "array"),
+			Default: builder.ArrayOrString("an", "array"),
 		},
 		defaultsApplied: &v1alpha1.ParamSpec{
 			Name:    "parametername",
 			Type:    v1alpha1.ParamTypeArray,
-			Default: tb.ArrayOrString("an", "array"),
+			Default: builder.ArrayOrString("an", "array"),
 		},
 	}, {
 		name: "fully defined ParamSpec",
@@ -59,13 +58,13 @@ func TestParamSpec_SetDefaults(t *testing.T) {
 			Name:        "parametername",
 			Type:        v1alpha1.ParamTypeArray,
 			Description: "a description",
-			Default:     tb.ArrayOrString("an", "array"),
+			Default:     builder.ArrayOrString("an", "array"),
 		},
 		defaultsApplied: &v1alpha1.ParamSpec{
 			Name:        "parametername",
 			Type:        v1alpha1.ParamTypeArray,
 			Description: "a description",
-			Default:     tb.ArrayOrString("an", "array"),
+			Default:     builder.ArrayOrString("an", "array"),
 		},
 	}}
 	for _, tc := range tests {
@@ -73,7 +72,7 @@ func TestParamSpec_SetDefaults(t *testing.T) {
 			ctx := context.Background()
 			tc.before.SetDefaults(ctx)
 			if d := cmp.Diff(tc.before, tc.defaultsApplied); d != "" {
-				t.Errorf("ParamSpec.SetDefaults/%s %s", tc.name, diff.PrintWantGot(d))
+				t.Errorf("ParamSpec.SetDefaults/%s (-want, +got) = %v", tc.name, d)
 			}
 		})
 	}
@@ -92,49 +91,49 @@ func TestArrayOrString_ApplyReplacements(t *testing.T) {
 	}{{
 		name: "no replacements on array",
 		args: args{
-			input:              tb.ArrayOrString("an", "array"),
+			input:              builder.ArrayOrString("an", "array"),
 			stringReplacements: map[string]string{"some": "value", "anotherkey": "value"},
 			arrayReplacements:  map[string][]string{"arraykey": {"array", "value"}, "sdfdf": {"sdf", "sdfsd"}},
 		},
-		expectedOutput: tb.ArrayOrString("an", "array"),
+		expectedOutput: builder.ArrayOrString("an", "array"),
 	}, {
 		name: "string replacements on string",
 		args: args{
-			input:              tb.ArrayOrString("astring$(some) asdf $(anotherkey)"),
+			input:              builder.ArrayOrString("astring$(some) asdf $(anotherkey)"),
 			stringReplacements: map[string]string{"some": "value", "anotherkey": "value"},
 			arrayReplacements:  map[string][]string{"arraykey": {"array", "value"}, "sdfdf": {"asdf", "sdfsd"}},
 		},
-		expectedOutput: tb.ArrayOrString("astringvalue asdf value"),
+		expectedOutput: builder.ArrayOrString("astringvalue asdf value"),
 	}, {
 		name: "single array replacement",
 		args: args{
-			input:              tb.ArrayOrString("firstvalue", "$(arraykey)", "lastvalue"),
+			input:              builder.ArrayOrString("firstvalue", "$(arraykey)", "lastvalue"),
 			stringReplacements: map[string]string{"some": "value", "anotherkey": "value"},
 			arrayReplacements:  map[string][]string{"arraykey": {"array", "value"}, "sdfdf": {"asdf", "sdfsd"}},
 		},
-		expectedOutput: tb.ArrayOrString("firstvalue", "array", "value", "lastvalue"),
+		expectedOutput: builder.ArrayOrString("firstvalue", "array", "value", "lastvalue"),
 	}, {
 		name: "multiple array replacement",
 		args: args{
-			input:              tb.ArrayOrString("firstvalue", "$(arraykey)", "lastvalue", "$(sdfdf)"),
+			input:              builder.ArrayOrString("firstvalue", "$(arraykey)", "lastvalue", "$(sdfdf)"),
 			stringReplacements: map[string]string{"some": "value", "anotherkey": "value"},
 			arrayReplacements:  map[string][]string{"arraykey": {"array", "value"}, "sdfdf": {"asdf", "sdfsd"}},
 		},
-		expectedOutput: tb.ArrayOrString("firstvalue", "array", "value", "lastvalue", "asdf", "sdfsd"),
+		expectedOutput: builder.ArrayOrString("firstvalue", "array", "value", "lastvalue", "asdf", "sdfsd"),
 	}, {
 		name: "empty array replacement",
 		args: args{
-			input:              tb.ArrayOrString("firstvalue", "$(arraykey)", "lastvalue"),
+			input:              builder.ArrayOrString("firstvalue", "$(arraykey)", "lastvalue"),
 			stringReplacements: map[string]string{"some": "value", "anotherkey": "value"},
 			arrayReplacements:  map[string][]string{"arraykey": {}},
 		},
-		expectedOutput: tb.ArrayOrString("firstvalue", "lastvalue"),
+		expectedOutput: builder.ArrayOrString("firstvalue", "lastvalue"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.input.ApplyReplacements(tt.args.stringReplacements, tt.args.arrayReplacements)
 			if d := cmp.Diff(tt.expectedOutput, tt.args.input); d != "" {
-				t.Errorf("ApplyReplacements() output did not match expected value %s", diff.PrintWantGot(d))
+				t.Errorf("ApplyReplacements() output did not match expected value %s", d)
 			}
 		})
 	}
@@ -149,8 +148,8 @@ func TestArrayOrString_UnmarshalJSON(t *testing.T) {
 		input  string
 		result v1alpha1.ArrayOrString
 	}{
-		{"{\"val\": \"123\"}", *tb.ArrayOrString("123")},
-		{"{\"val\": \"\"}", *tb.ArrayOrString("")},
+		{"{\"val\": \"123\"}", *builder.ArrayOrString("123")},
+		{"{\"val\": \"\"}", *builder.ArrayOrString("")},
 		{"{\"val\":[]}", v1alpha1.ArrayOrString{Type: v1alpha1.ParamTypeArray, ArrayVal: []string{}}},
 		{"{\"val\":[\"oneelement\"]}", v1alpha1.ArrayOrString{Type: v1alpha1.ParamTypeArray, ArrayVal: []string{"oneelement"}}},
 		{"{\"val\":[\"multiple\", \"elements\"]}", v1alpha1.ArrayOrString{Type: v1alpha1.ParamTypeArray, ArrayVal: []string{"multiple", "elements"}}},
@@ -172,9 +171,9 @@ func TestArrayOrString_MarshalJSON(t *testing.T) {
 		input  v1alpha1.ArrayOrString
 		result string
 	}{
-		{*tb.ArrayOrString("123"), "{\"val\":\"123\"}"},
-		{*tb.ArrayOrString("123", "1234"), "{\"val\":[\"123\",\"1234\"]}"},
-		{*tb.ArrayOrString("a", "a", "a"), "{\"val\":[\"a\",\"a\",\"a\"]}"},
+		{*builder.ArrayOrString("123"), "{\"val\":\"123\"}"},
+		{*builder.ArrayOrString("123", "1234"), "{\"val\":[\"123\",\"1234\"]}"},
+		{*builder.ArrayOrString("a", "a", "a"), "{\"val\":[\"a\",\"a\",\"a\"]}"},
 	}
 
 	for _, c := range cases {

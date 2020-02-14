@@ -1,78 +1,70 @@
-<!--
----
-linkTitle: "PipelineRuns"
-weight: 4
----
--->
 # PipelineRuns
 
-- [Overview](#overview)
-- [Configuring a `PipelineRun`](#configuring-a-pipelinerun)
-  - [Specifying the target `Pipeline`](#specifying-the-target-pipeline)
-  - [Specifying `Resources`](#specifying-resources)
-  - [Speciying `Parameters`](#specifying-parameters)
-  - [Specifying custom `ServiceAccount` credentials](#specifying-custom-serviceaccount-credentials)
-  - [Mapping `ServiceAccount` credentials to `Tasks`](#mapping-serviceaccount-credentials-to-tasks)
-  - [Specifying `TaskRunSpecs`](#specifying-task-run-specs)
-  - [Specifying a `Pod` template](#specifying-a-pod-template)
-  - [Specifying `Workspaces`](#specifying-workspaces)
-  - [Specifying `LimitRange` values](#specifying-limitrange-values)
-  - [Configuring a failure timeout](#configuring-a-failure-timeout)
-- [Cancelling a `PipelineRun`](#cancelling-a-pipelinerun)
-- [Events](events.md#pipelineruns)
+This document defines `PipelineRuns` and their capabilities.
 
+On its own, a [`Pipeline`](pipelines.md) declares what [`Tasks`](tasks.md) to
+run, and [the order they run in](pipelines.md#ordering). To execute the `Tasks`
+in the `Pipeline`, you must create a `PipelineRun`.
 
+Creation of a `PipelineRun` will trigger the creation of
+[`TaskRuns`](taskruns.md) for each `Task` in your pipeline.
 
-## Overview
+---
 
-A `PipelineRun` allows you to instantiate and execute a [`Pipeline`](pipelines.md) on-cluster.
-A `Pipeline` specifies one or more `Tasks` in the desired order of execution. A `PipelineRun`
-executes the `Tasks` in the `Pipeline` in the order they are specified until all `Tasks` have
-executed successfully or a failure occurs.
+- [Syntax](#syntax)
+  - [Resources](#resources)
+  - [Service account](#service-account)
+  - [Service accounts](#service-accounts)
+  - [Pod Template](#pod-template)
+  - [Workspaces](#workspaces)
+- [Cancelling a PipelineRun](#cancelling-a-pipelinerun)
+- [Examples](https://github.com/tektoncd/pipeline/tree/master/examples/pipelineruns)
+- [Logs](logs.md)
+- [LimitRange Name](#limitrange-name)
 
-**Note:** A `PipelineRun` automatically creates corresponding `TaskRuns` for every
-`Task` in your `Pipeline`.
+## Syntax
 
-The `Status` field tracks the current state of a `PipelineRun`, and can be used to monitor
-progress.
-This field contains the status of every `TaskRun`, as well as the full `PipelineSpec` used
-to instantiate this `PipelineRun`, for full auditability.
-
-## Configuring a `PipelineRun`
-
-A `PipelineRun` definition supports the following fields:
+To define a configuration file for a `PipelineRun` resource, you can specify the
+following fields:
 
 - Required:
-  - [`apiVersion`][kubernetes-overview] - Specifies the API version. For example
-    `tekton.dev/v1beta1`.
-  - [`kind`][kubernetes-overview] - Indicates that this resource object is a `PipelineRun` object.
-  - [`metadata`][kubernetes-overview] - Specifies the metadata that uniquely identifies the
-    `PipelineRun` object. For example, a `name`.
+  - [`apiVersion`][kubernetes-overview] - Specifies the API version, for example
+    `tekton.dev/v1alpha1`
+  - [`kind`][kubernetes-overview] - Specify the `PipelineRun` resource object.
+  - [`metadata`][kubernetes-overview] - Specifies data to uniquely identify the
+    `PipelineRun` resource object, for example a `name`.
   - [`spec`][kubernetes-overview] - Specifies the configuration information for
-    this `PipelineRun` object.
-    - [`pipelineRef` or `pipelineSpec`](#specifying-the-target-pipeline) - Specifies the target [`Pipeline`](pipelines.md).
+    your `PipelineRun` resource object.
+    - [`pipelineRef` or `pipelineSpec`](#specifiying-a-pipeline) - Specifies the [`Pipeline`](pipelines.md) you want to run.
 - Optional:
-  - [`resources`](#specifying-resources) - Specifies the [`PipelineResources`](resources.md) to provision
-    for executing the target `Pipeline`.
-  - [`params`](#specifying-parameters) - Specifies the desired execution parameters for the `Pipeline`.
-  - [`serviceAccountName`](#specifying-serviceaccount-credentials) - Specifies a `ServiceAccount`
-    object that supplies specific execution credentials for the `Pipeline`.
-  - [`serviceAccountNames`](#mapping-serviceaccount-credentials-to-tasks) - Maps specific `serviceAccountName` values
-    to `Tasks` in the `Pipeline`. This overrides the credentials set for the entire `Pipeline`.
-  - [`taskRunSpec`](#specifying-task-run-specs) - Specifies a list of `PipelineRunTaskSpec` which allows for setting `ServiceAccountName` and [`Pod` template](./podtemplates.md) for each task. This overrides the `Pod` template set for the entire `Pipeline`. 
-  - [`timeout`](#configuring-a-failure-timeout) - Specifies the timeout before the `PipelineRun` fails.
-  - [`podTemplate`](#pod-template) - Specifies a [`Pod` template](./podtemplates.md) to use as the basis
-    for the configuration of the `Pod` that executes each `Task`.
+  - [`resources`](#resources) - Specifies which
+    [`PipelineResources`](resources.md) to use for this `PipelineRun`.
+  - [`serviceAccountName`](#service-account) - Specifies a `ServiceAccount` resource
+    object that enables your build to run with the defined authentication
+    information. When a `ServiceAccount` isn't specified, the `default-service-account`
+    specified in the configmap - config-defaults will be applied.
+  - [`serviceAccountNames`](#service-accounts) - Specifies a list of `serviceAccountName`
+    and `PipelineTask` pairs that enable you to overwrite a `ServiceAccount` for a concrete `PipelineTask`.
+  - `timeout` - Specifies timeout after which the `PipelineRun` will fail. If the value of
+    `timeout` is empty, the default timeout will be applied. If the value is set to 0,
+    there is no timeout. `PipelineRun` shares the same default timeout as `TaskRun`. You can
+    follow the instruction [here](taskruns.md#Configuring-default-timeout) to configure the
+    default timeout, the same way as `TaskRun`.
+  - [`podTemplate`](#pod-template) - Specifies a [pod template](./podtemplates.md) that will be used as the basis for the `Task` pod.
+  - [`limitRangeName`](#limitrange-name) - Specifies the name of a LimitRange that exists in the namespace of the `PipelineRun`. This LimitRange's minimum 
+    for container resource requests will be used as part of requesting the appropriate amount of CPU, memory, and ephemeral storage for containers that are 
+    part of the `TaskRuns` of a `PipelineRun`. This property only needs to be specified if the `PipelineRun` is happening in a namespace with a LimitRange 
+    minimum specified for container resource requests.
 
 [kubernetes-overview]:
   https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/#required-fields
 
-### Specifying the target `Pipeline`
+### Specifying a pipeline
 
-You must specify the target `Pipeline` that you want the `PipelineRun` to execute, either by referencing 
-an existing `Pipeline` definition, or embedding a `Pipeline` definition directly in the `PipelineRun`.
+Since a `PipelineRun` is an invocation of a [`Pipeline`](pipelines.md), you must sepcify
+what `Pipeline` to invoke.
 
-To specify the target `Pipeline` by reference, use the `pipelineRef` field:
+You can do this by providing a reference to an existing `Pipeline`:
 
 ```yaml
 spec:
@@ -81,7 +73,7 @@ spec:
 
 ```
 
-To embed a `Pipeline` definition in the `PiepelineRun`, use the `pipelineSpec` field:
+Or you can embed the spec of the `Pipeline` directly in the `PipelineRun`:
 
 ```yaml
 spec:
@@ -92,18 +84,24 @@ spec:
         name: mytask
 ```
 
-The `Pipeline` in the [`pipelineSpec` example](../examples/v1beta1/pipelineruns/pipelinerun-with-pipelinespec.yaml)
-example displays morning and evening greetings. Once you create and execute it, you can check the logs for its `Pods`:
+[Here](../examples/pipelineruns/pipelinerun-with-pipelinespec.yaml) is a sample `PipelineRun` to display different
+greetings while embedding the spec of the `Pipeline` directly in the `PipelineRun`.
+
+
+After creating such a `PipelineRun`, the logs from this pod are displaying morning greetings:
 
 ```bash
 kubectl logs $(kubectl get pods -o name | grep pipelinerun-echo-greetings-echo-good-morning)
 Good Morning, Bob!
+```
 
+And the logs from this pod are displaying evening greetings:
+```bash
 kubectl logs $(kubectl get pods -o name | grep pipelinerun-echo-greetings-echo-good-night)
 Good Night, Bob!
 ```
 
-You can also embed a `Task` definition the embedded `Pipeline` definition:
+Even further you can embed the spec of a `Task` directly in the `Pipeline`:
 
 ```yaml
 spec:
@@ -115,25 +113,25 @@ spec:
           ...
 ```
 
-In the [`taskSpec` in `pipelineSpec` example](../examples/v1beta1/pipelineruns/pipelinerun-with-pipelinespec-and-taskspec.yaml)
-it's `Tasks` all the way down!
+[Here](../examples/pipelineruns/pipelinerun-with-pipelinespec-and-taskspec.yaml) is a sample `PipelineRun` with embedded
+the spec of the `Pipeline` directly in the `PipelineRun` along with the spec of the `Task` under `PipelineSpec`.
 
-## Specifying `Resources`
 
-A `Pipeline` requires [`PipelineResources`](resources.md) to provide inputs and store outputs
-for the `Tasks` that comprise it. You must provision those resources in the `resources` field
-in the `spec` section of the `PipelineRun` definition.
+### Resources
 
-A `Pipeline` may require you to provision a number of different resources. For example:
+When running a [`Pipeline`](pipelines.md), you will need to specify the
+[`PipelineResources`](resources.md) to use with it. One `Pipeline` may need to
+be run with different `PipelineResources` in cases such as:
 
-- When executing a `Pipeline` against a pull request, the triggering
-  system must specify the commit-ish of a `git` resource.
-- When executing a `Pipeline` manually against your own environment, you
-  must provision your GitHub fork using the `git` resource; your image
-  registry using the `image` resource; and your Kubernetes cluster using the
-  `cluster` resource.
+- When triggering the run of a `Pipeline` against a pull request, the triggering
+  system must specify the commitish of a git `PipelineResource` to use
+- When invoking a `Pipeline` manually against one's own setup, one will need to
+  ensure one's own GitHub fork (via the git `PipelineResource`), image
+  registry (via the image `PipelineResource`) and Kubernetes cluster (via the
+  cluster `PipelineResource`).
 
-You can reference a `PipelineResources` using the `resourceRef` field:
+Specify the `PipelineResources` in the `PipelineRun` using the `resources` section
+in the PipelineRun's spec, for example:
 
 ```yaml
 spec:
@@ -149,7 +147,8 @@ spec:
         name: skaffold-image-leeroy-app
 ```
 
-You can also embed a `PipelineResource` definition in the `PipelineRun` using the `resourceSpec` field:
+Or you can embed the spec of the `Resource` directly in the `PipelineRun`:
+
 
 ```yaml
 spec:
@@ -176,44 +175,25 @@ spec:
             value: gcr.io/christiewilson-catfactory/leeroy-app
 ```
 
-**Note:** All `persistentVolumeClaims` specified within a `PipelineRun` are bound
-until their respective `Pods` or the entire `PipelineRun` are deleted. This also applies
-to all `persistentVolumeClaims` generated internally.
+### Service Account
 
-### Specifying `Parameters`
+Specifies the `name` of a `ServiceAccount` resource object. Use the
+`serviceAccountName` field to run your `Pipeline` with the privileges of the
+specified service account. If no `serviceAccountName` field is specified, your
+resulting `TaskRuns` run using the service account specified in the ConfigMap
+`configmap-defaults` which if absent will default to the
+[`default` service account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#use-the-default-service-account-to-access-the-api-server)
+that is in the [namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/)
+of the `TaskRun` resource object.
 
-You can specify `Parameters` that you want to pass to the `Pipeline` during execution,
-including different values of the same parameter for different `Tasks` in the `Pipeline`.
+For examples and more information about specifying service accounts, see the
+[`ServiceAccount`](./auth.md) reference topic.
 
-For example:
+### Service Accounts
 
-```yaml
-spec:
-  params:
-  - name: pl-param-x
-    value: "100"
-  - name: pl-param-y
-    value: "500"
-```
-
-### Specifying custom `ServiceAccount` credentials
-
-You can execute the `Pipeline` in your `PipelineRun` with a specific set of credentials by 
-specifying a `ServiceAccount` object name in the `serviceAccountName` field in your `PipelineRun`
-definition. If you do not explicitly specify this, the `TaskRuns` created by your `PipelineRun`
-will execute with the credentials specified in the `configmap-defaults` `ConfigMap`. If this
-default is not specified, the `TaskRuns` will execute with the [`default` service account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#use-the-default-service-account-to-access-the-api-server)
-set for the target [`namespace`](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/).
-
-For more information, see [`ServiceAccount`](auth.md).
-
-### Mapping `ServiceAccount` credentials to `Tasks`
-
-If you require more granularity in specifying execution credentials, use the `serviceAccounNames` field to
-map a specific `serviceAccountName` value to a specific `Task` in the `Pipeline`. This overrides the global
-`serviceAccountName` you may have set for the `Pipeline` as described in the previous section. 
-
-For example, if you specify these mappings:
+Specifies the list of `serviceAccountName` and `PipelineTask` pairs. A specified
+`PipelineTask` will be run with the configured `ServiceAccount`,
+overwriting the [`serviceAccountName`](#service-account) configuration, for example:
 
 ```yaml
 spec:
@@ -222,8 +202,7 @@ spec:
     - taskName: build-task
       serviceAccountName: sa-for-build
 ```
-
-for this `Pipeline`:
+If used with this `Pipeline`, `test-task` will use the `ServiceAccount` `sa-1`, while `build-task` will use `sa-for-build`.
 
 ```yaml
 kind: Pipeline
@@ -237,19 +216,17 @@ spec:
         name: test
 ```
 
-then `test-task` will execute using the `sa-1` account while `build-task` will execute with `sa-for-build`.
+### Pod Template
 
-### Specifying a `Pod` template
+Specifies a [pod template](./podtemplates.md) configuration that will be used as the basis for the `Task` pod. This
+allows to customize some Pod specific field per `Task` execution, aka `TaskRun`.
 
-You can specify a [`Pod` template](podtemplates.md) configuration that will serve as the configuration starting
-point for the `Pod` in which the container images specified in your `Tasks` will execute. This allows you to
-customize the `Pod` configuration specifically for each `TaskRun`.
-
-In the following example, the `Task` defines a `volumeMount` object named `my-cache`. The `PipelineRun`
-provisions this object for the `Task` using a `persistentVolumeClaim` and executes it as user 1001.
+In the following example, the `Task` is defined with a `volumeMount`
+(`my-cache`), that is provided by the `PipelineRun`, using a
+`persistentVolumeClaim`. The Pod will also run as a non-root user.
 
 ```yaml
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: mytask
@@ -263,7 +240,7 @@ spec:
         - name: my-cache
           mountPath: /my-cache
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
   name: mypipeline
@@ -273,78 +250,125 @@ spec:
       taskRef:
         name: mytask
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: PipelineRun
 metadata:
-  name: mypipelinerun
+  name: mypipelineRun
 spec:
   pipelineRef:
     name: mypipeline
   podTemplate:
     securityContext:
       runAsNonRoot: true
-      runAsUser: 1001
     volumes:
     - name: my-cache
       persistentVolumeClaim:
         claimName: my-volume-claim
 ```
 
-## Specifying `Workspaces`
+## PersistentVolumeClaims
 
-If your `Pipeline` specifies one or more `Workspaces`, you must map those `Workspaces` to
-the corresponding physical volumes in your `PipelineRun` definition. For example, you
-can map a `PersistentVolumeClaim` volume to a `Workspace` as follows:
+Any persistent volume claims within a `PipelineRun` are bound until the
+corresponding `PipelineRun` or pods are deleted. This also applies to any
+internally generated persistent volume claims.
+
+## Workspaces
+
+Workspaces allow PVC, emptyDir, configmap and secret volume sources to be
+easily wired into tasks and pipelines.
+
+For a `PipelineRun` to execute [a Pipeline that declares `workspaces`](pipelines.md#workspaces),
+at runtime you need to map the `workspace` names to actual physical volumes.
+This is managed through the `PipelineRun`'s `workspaces` field. Values in `workspaces` are
+[`Volumes`](https://kubernetes.io/docs/tasks/configure-pod-container/configure-volume-storage/),
+however currently we only support a subset of `VolumeSources`:
+
+_If you need support for a `VolumeSource` not listed here
+[please open an issue](https://github.com/tektoncd/pipeline/issues) or feel free to
+[contribute a PR](https://github.com/tektoncd/pipeline/blob/master/CONTRIBUTING.md)._
+
+* [`emptyDir`](https://kubernetes.io/docs/concepts/storage/volumes/#emptydir)
+* [`persistentVolumeClaim`](https://kubernetes.io/docs/concepts/storage/volumes/#persistentvolumeclaim)
+* [`configMap`](https://kubernetes.io/docs/concepts/storage/volumes/#configmap)
+* [`secret`](https://kubernetes.io/docs/concepts/storage/volumes/#secret)
+
+If the `workspaces` declared in the Pipeline are not provided at runtime, the `PipelineRun` will fail
+with an error.
+
+For example to provide an existing PVC called `mypvc` for a `workspace` called
+`myworkspace` declared by the `Pipeline`, using the `my-subdir` folder which already exists
+on the PVC (there will be an error if it does not exist):
 
 ```yaml
 workspaces:
-- name: myworkspace # must match workspace name in Task
+- name: myworkspace
   persistentVolumeClaim:
-    claimName: mypvc # this PVC must already exist
+    claimName: mypvc
   subPath: my-subdir
 ```
 
-For more information, see the following topics:
-- For information on mapping `Workspaces` to `Volumes`, see [Specifying `Workspaces` in `PipelineRuns`](workspaces.md#specifying-workspaces-in-pipelineruns).
-- For a list of supported `Volume` types, see [Specifying `VolumeSources` in `Workspaces`](workspaces.md#specifying-volumesources-in-workspaces).
-- For an end-to-end example, see [`Workspaces` in a `PipelineRun`](../examples/v1beta1/pipelineruns/workspaces.yaml).
+An [`emptyDir`](https://kubernetes.io/docs/concepts/storage/volumes/#emptydir) can also be used for
+this with the following caveats:
 
-### Specifying `LimitRange` values
-
-In order to only consume the bare minimum amount of resources needed to execute one `Step` at a
-time from the invoked `Task`, Tekton only requests the *maximum* values for CPU, memory, and ephemeral
-storage from within each `Step`. This is sufficient as `Steps` only execute one at a time in the `Pod`.
-Requests other than the maximum values are set to zero.
-
-When a [`LimitRange`](https://kubernetes.io/docs/concepts/policy/limit-range/) parameter is present in
-the namespace in which `PipelineRuns` are executing and *minimum* values are specified for container resource requests,
-Tekton searches through all `LimitRange` values present in the namespace and uses the *minimums* instead of 0.
-
-For more information, see the [`LimitRange` code example](../examples/v1beta1/pipelineruns/no-ci/limitrange.yaml).
-
-### Configuring a failure timeout
-
-You can use the `timeout` field to set the `PipelineRun's` desired timeout value in minutes.
-If you do not specify this value in the `PipelineRun`, the global default timeout value applies.
-If you set the timeout to 0, the `PipelineRun` fails immediately upon encountering an error.
-
-The global default timeout is set to 60 minutes when you first install Tekton. You can set
-a different global default timeout value using the `default-timeout-minutes` field in
-[`config/config-defaults.yaml`](./../config/config-defaults.yaml).
-
-The `timeout` value is a `duration` conforming to Go's
-[`ParseDuration`](https://golang.org/pkg/time/#ParseDuration) format. For example, valid
-values are `1h30m`, `1h`, `1m`, and `60s`. If you set the global timeout to 0, all `PipelineRuns`
-that do not have an idividual timeout set will fail immediately upon encountering an error.
-
-## Cancelling a `PipelineRun`
-
-To cancel a `PipelineRun` that's currently executing, update its definition
-to mark it as cancelled. When you do so, the spanwed `TaskRuns` are also marked
-as cancelled and all associated `Pods` are deleted. For example:
+1. An `emptyDir` volume type is not _shared_ amongst Tasks. Instead each Task will simply receive a
+new `emptyDir` of its own from its underlying Pod.
 
 ```yaml
-apiVersion: tekton.dev/v1beta1
+workspaces:
+- name: myworkspace
+  emptyDir: {}
+```
+
+A [`configMap`](https://kubernetes.io/docs/concepts/storage/volumes/#configmap) can also be used
+as a workspace with the following caveats:
+
+1. ConfigMap volume sources are always mounted as read-only inside a task's
+containers - tasks cannot write content to them and a step may error out
+and fail the task if a write is attempted.
+2. The ConfigMap you want to use as a workspace must already exist prior
+to the TaskRun being submitted.
+3. ConfigMaps have a [size limit of 1MB](https://github.com/kubernetes/kubernetes/blob/f16bfb069a22241a5501f6fe530f5d4e2a82cf0e/pkg/apis/core/validation/validation.go#L5042)
+
+To use a [`configMap`](https://kubernetes.io/docs/concepts/storage/volumes/#configmap)
+as a `workspace`:
+
+```yaml
+workspaces:
+- name: myworkspace
+  configmap:
+    name: my-configmap
+```
+
+A [`secret`](https://kubernetes.io/docs/concepts/storage/volumes/#secret) can also be used as a
+workspace with the following caveats:
+
+1. Secret volume sources are always mounted as read-only inside a task's
+containers - tasks cannot write content to them and a step may error out
+and fail the task if a write is attempted.
+2. The Secret you want to use as a workspace must already exist prior
+to the TaskRun being submitted.
+3. Secrets have a [size limit of 1MB](https://github.com/kubernetes/kubernetes/blob/f16bfb069a22241a5501f6fe530f5d4e2a82cf0e/pkg/apis/core/validation/validation.go#L4933)
+
+To use a [`secret`](https://kubernetes.io/docs/concepts/storage/volumes/#secret)
+as a `workspace`:
+
+```yaml
+workspaces:
+- name: myworkspace
+  secret:
+    secretName: my-secret
+```
+
+_For a complete example see [workspace.yaml](../examples/pipelineruns/workspace.yaml)._
+
+## Cancelling a PipelineRun
+
+In order to cancel a running pipeline (`PipelineRun`), you need to update its
+spec to mark it as cancelled. Related `TaskRun` instances will be marked as
+cancelled and running Pods will be deleted.
+
+```yaml
+apiVersion: tekton.dev/v1alpha1
 kind: PipelineRun
 metadata:
   name: go-example-git
@@ -353,26 +377,38 @@ spec:
   status: "PipelineRunCancelled"
 ```
 
-## Specifying task run specs
+## LimitRange Name
 
-Specifies a list of  `PipelineRunTaskSpec` which contains `TaskServiceAccountName`,`TaskPodTemplate` and `TaskName`. Mapping the specs to the corresponding `Task` based upon the `TaskName` a PipelineTask will run with the configured  `TaskServiceAccountName` and `TaskPodTemplate` overwriting the pipeline wide [`ServiceAccountName`](#service-account)  and [`podTemplate`](#pod-template) configuration, for example:
+In order to request the minimum amount of resources needed to support the containers 
+for `steps` that are part of a `TaskRun`, Tekton only requests the maximum values for CPU, 
+memory, and ephemeral storage from the `steps` that are part of a TaskRun. Only the max 
+resource request values are needed since `steps` only execute one at a time in `TaskRun` pod. 
+All requests that are not the max values are set to zero as a result. 
+
+When a [LimitRange](https://kubernetes.io/docs/concepts/policy/limit-range/) is present in a namespace 
+with a minimum set for container resource requests (i.e. CPU, memory, and ephemeral storage) where `PipelineRuns` 
+are attempting to run, the `limitRangeName` property must be specified to appropriately apply the LimitRange's 
+minimum values to containers that are part of a `TaskRun` associated with a `PipelineRun`. This property helps 
+prevent failures of `TaskRuns` not meeting the minimum requirements specified by a LimitRange for containers.
+
+In the example below, the LimitRange `limit-mem-cpu-per-container` will be applied to all `TaskRuns` associated 
+with the `PipelineRun`:
 
 ```yaml
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  creationTimestamp: null
+  generateName: deploy-pipeline-run-
+  namespace: default
 spec:
-   podTemplate:
-    securityContext:
-      runAsUser: 1000
-      runAsGroup: 2000
-      fsGroup: 3000
-  taskRunSpecs:
-    - taskName: build-task
-      taskServiceAccountName: sa-for-build
-      taskPodTemplate:
-        nodeSelector:
-          disktype: ssd
+  pipelineRef:
+    name: deploy-pipeline-hello
+  limitRangeName: "limit-mem-cpu-per-container"
+status: {}
 ```
 
-If used with this `Pipeline`,  `build-task` will use the task specific pod template (where `nodeSelector` has `disktype` equal to `ssd`). 
+An example `PipelineRun` using `limitRangeName` is available [here](../examples/pipelineruns/no-ci/limitrange.yaml).
 
 ---
 

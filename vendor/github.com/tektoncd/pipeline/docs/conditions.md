@@ -1,18 +1,14 @@
-<!--
----
-linkTitle: "Conditions"
-weight: 11
----
--->
 # Conditions
 
 This document defines `Conditions` and their capabilities.
+
+---
 
 - [Syntax](#syntax)
   - [Check](#check)
   - [Parameters](#parameters)
   - [Resources](#resources)
-- [Labels and Annotations](#labels-and-annotations)
+- [Labels](#labels)
 - [Examples](#examples)
 
 ## Syntax
@@ -29,8 +25,7 @@ following fields:
   - [`spec`][kubernetes-overview] - Specifies the configuration information for
     your `Condition` resource object. In order for a `Condition` to do anything,
     the spec must include:
-    - [`check`](#check) - Specifies a container that you want to run for evaluating the condition
-    - [`description`](#description) - Description of the Condition.
+    - [`check`](#check) - Specifies a container that you want to run for evaluating the condition 
 
 [kubernetes-overview]:
   https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/#required-fields
@@ -41,10 +36,6 @@ The `check` field is required. You define a single check to define the body of a
 check must specify a [`Step`](./tasks.md#steps). The container image runs till completion. The container 
 must exit successfully i.e. with an exit code 0 for the condition evaluation to be successful. All other 
 exit codes are considered to be a condition check failure.
-
-### Description
-
-The `description` field is an optional field and can be used to provide description of the Condition.
 
 ### Parameters
 
@@ -78,9 +69,9 @@ Resources in Conditions work similar to the way they work in `Tasks` i.e. they c
 [variable substitution](./resources.md#variable-substitution) and the `targetPath` field can be used
 to [control where the resource is mounted](./resources.md#controlling-where-resources-are-mounted)
 
-## Labels and Annotations
+## Labels
 
-[Labels](labels.md) and annotations defined as part of the `Condition` metadata will be automatically propagated to the `Pod`.
+[Labels](labels.md) defined as part of the `Condition` metadata will be automatically propagated to the `Pod`.
 
 ## Examples
 

@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	resourcev1 "github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	dynamicclientset "github.com/tektoncd/triggers/pkg/client/dynamic/clientset"
 	"github.com/tektoncd/triggers/pkg/client/dynamic/clientset/tekton"
@@ -142,11 +142,11 @@ func TestCreateResource(t *testing.T) {
 	tests := []struct {
 		name string
 		json []byte
-		want resourcev1.PipelineResource
+		want pipelinev1.PipelineResource
 	}{{
 		name: "PipelineResource without namespace",
 		json: json.RawMessage(`{"kind":"PipelineResource","apiVersion":"tekton.dev/v1alpha1","metadata":{"name":"my-pipelineresource","creationTimestamp":null,"labels":{"woriginal-label-1":"label-1"}},"spec":{"type":"","params":[{"name":"foo","value":"bar\r\nbaz"}]},"status":{}}`),
-		want: resourcev1.PipelineResource{
+		want: pipelinev1.PipelineResource{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "tekton.dev/v1alpha1",
 				Kind:       "PipelineResource",
@@ -160,18 +160,17 @@ func TestCreateResource(t *testing.T) {
 					eventIDLabel:        eventID,
 				},
 			},
-			Spec: resourcev1.PipelineResourceSpec{
-				Params: []resourcev1.ResourceParam{{
+			Spec: pipelinev1.PipelineResourceSpec{
+				Params: []pipelinev1.ResourceParam{{
 					Name:  "foo",
 					Value: "bar\r\nbaz",
 				}},
 			},
-			Status: &resourcev1.PipelineResourceStatus{},
 		},
 	}, {
 		name: "PipelineResource with namespace",
 		json: json.RawMessage(`{"kind":"PipelineResource","apiVersion":"tekton.dev/v1alpha1","metadata":{"name":"my-pipelineresource","namespace":"foo","creationTimestamp":null,"labels":{"woriginal-label-1":"label-1"}},"spec":{"type":"","params":null},"status":{}}`),
-		want: resourcev1.PipelineResource{
+		want: pipelinev1.PipelineResource{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "tekton.dev/v1alpha1",
 				Kind:       "PipelineResource",
@@ -186,8 +185,7 @@ func TestCreateResource(t *testing.T) {
 					eventIDLabel:        eventID,
 				},
 			},
-			Spec:   resourcev1.PipelineResourceSpec{},
-			Status: &resourcev1.PipelineResourceStatus{},
+			Spec: pipelinev1.PipelineResourceSpec{},
 		},
 	}}
 	for _, tt := range tests {
@@ -232,7 +230,7 @@ func Test_AddLabels(t *testing.T) {
 				Object: map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"labels": map[string]interface{}{
-							"triggers.tekton.dev/foo": "bar",
+							"tekton.dev/foo": "bar",
 						},
 					},
 				},
@@ -244,7 +242,7 @@ func Test_AddLabels(t *testing.T) {
 				Object: map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"labels": map[string]interface{}{
-							"triggers.tekton.dev/foo": "bar",
+							"tekton.dev/foo": "bar",
 						},
 					},
 				}},
@@ -253,7 +251,7 @@ func Test_AddLabels(t *testing.T) {
 				Object: map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"labels": map[string]interface{}{
-							"triggers.tekton.dev/foo": "foo",
+							"tekton.dev/foo": "foo",
 						},
 					},
 				},
@@ -266,11 +264,11 @@ func Test_AddLabels(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"labels": map[string]interface{}{
 							// should be overwritten
-							"triggers.tekton.dev/foo":   "bar",
-							"triggers.tekton.dev/hello": "world",
+							"tekton.dev/foo":   "bar",
+							"tekton.dev/hello": "world",
 							// should be preserved
-							"triggers.tekton.dev/z": "0",
-							"best-palindrome":       "tacocat",
+							"tekton.dev/z":    "0",
+							"best-palindrome": "tacocat",
 						},
 					},
 				}},
@@ -284,12 +282,12 @@ func Test_AddLabels(t *testing.T) {
 				Object: map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"labels": map[string]interface{}{
-							"triggers.tekton.dev/foo":   "foo",
-							"triggers.tekton.dev/hello": "there",
-							"triggers.tekton.dev/z":     "0",
-							"best-palindrome":           "tacocat",
-							"triggers.tekton.dev/a":     "a",
-							"triggers.tekton.dev/b":     "b",
+							"tekton.dev/foo":   "foo",
+							"tekton.dev/hello": "there",
+							"tekton.dev/z":     "0",
+							"best-palindrome":  "tacocat",
+							"tekton.dev/a":     "a",
+							"tekton.dev/b":     "b",
 						},
 					},
 				},

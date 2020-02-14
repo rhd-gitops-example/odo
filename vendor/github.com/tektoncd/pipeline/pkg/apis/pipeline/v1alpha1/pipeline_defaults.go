@@ -35,9 +35,6 @@ func (ps *PipelineSpec) SetDefaults(ctx context.Context) {
 				pt.TaskRef.Kind = NamespacedTaskKind
 			}
 		}
-		if pt.TaskSpec != nil {
-			pt.TaskSpec.SetDefaults(ctx)
-		}
 	}
 	for i := range ps.Params {
 		ps.Params[i].SetDefaults(ctx)

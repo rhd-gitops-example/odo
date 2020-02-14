@@ -18,13 +18,11 @@ package pod
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/names"
-	"github.com/tektoncd/pipeline/pkg/system"
 	"github.com/tektoncd/pipeline/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,21 +30,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// GetFeatureFlagsConfigName returns the name of the configmap containing all
-// customizations for the feature flags.
-func GetFeatureFlagsConfigName() string {
-	if e := os.Getenv("CONFIG_FEATURE_FLAGS_NAME"); e != "" {
-		return e
-	}
-	return "feature-flags"
-}
-
 const (
-	// ResultsDir is the folder used by default to create the results file
-	ResultsDir = "/tekton/results"
-
-	featureFlagDisableHomeEnvKey    = "disable-home-env-overwrite"
-	featureFlagDisableWorkingDirKey = "disable-working-directory-overwrite"
+	homeDir = "/tekton/home"
 
 	taskRunLabelKey = pipeline.GroupName + pipeline.TaskRunLabelKey
 )
@@ -57,20 +42,21 @@ var (
 	ReleaseAnnotationValue = version.PipelineVersion
 
 	groupVersionKind = schema.GroupVersionKind{
-		Group:   v1beta1.SchemeGroupVersion.Group,
-		Version: v1beta1.SchemeGroupVersion.Version,
+		Group:   v1alpha1.SchemeGroupVersion.Group,
+		Version: v1alpha1.SchemeGroupVersion.Version,
 		Kind:    "TaskRun",
 	}
 	// These are injected into all of the source/step containers.
+	implicitEnvVars = []corev1.EnvVar{{
+		Name:  "HOME",
+		Value: homeDir,
+	}}
 	implicitVolumeMounts = []corev1.VolumeMount{{
 		Name:      "tekton-internal-workspace",
 		MountPath: pipeline.WorkspaceDir,
 	}, {
 		Name:      "tekton-internal-home",
-		MountPath: pipeline.HomeDir,
-	}, {
-		Name:      "tekton-internal-results",
-		MountPath: ResultsDir,
+		MountPath: homeDir,
 	}}
 	implicitVolumes = []corev1.Volume{{
 		Name:         "tekton-internal-workspace",
@@ -78,39 +64,20 @@ var (
 	}, {
 		Name:         "tekton-internal-home",
 		VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
-	}, {
-		Name:         "tekton-internal-results",
-		VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 	}}
 )
 
 // MakePod converts TaskRun and TaskSpec objects to a Pod which implements the taskrun specified
 // by the supplied CRD.
-func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.TaskSpec, kubeclient kubernetes.Interface, entrypointCache EntrypointCache, overrideHomeEnv bool) (*corev1.Pod, error) {
+func MakePod(images pipeline.Images, taskRun *v1alpha1.TaskRun, taskSpec v1alpha1.TaskSpec, kubeclient kubernetes.Interface, entrypointCache EntrypointCache) (*corev1.Pod, error) {
 	var initContainers []corev1.Container
 	var volumes []corev1.Volume
-	var volumeMounts []corev1.VolumeMount
-	implicitEnvVars := []corev1.EnvVar{}
 
 	// Add our implicit volumes first, so they can be overridden by the user if they prefer.
 	volumes = append(volumes, implicitVolumes...)
-	volumeMounts = append(volumeMounts, implicitVolumeMounts...)
-
-	if overrideHomeEnv {
-		implicitEnvVars = append(implicitEnvVars, corev1.EnvVar{
-			Name:  "HOME",
-			Value: pipeline.HomeDir,
-		})
-	} else {
-		// Add the volume that creds-init will write to when
-		// there's no consistent $HOME for Steps.
-		v, vm := getCredsInitVolume(volumes)
-		volumes = append(volumes, v)
-		volumeMounts = append(volumeMounts, vm)
-	}
 
 	// Inititalize any credentials found in annotated Secrets.
-	if credsInitContainer, secretsVolumes, err := credsInit(images.CredsImage, taskRun.Spec.ServiceAccountName, taskRun.Namespace, kubeclient, volumeMounts, implicitEnvVars); err != nil {
+	if credsInitContainer, secretsVolumes, err := credsInit(images.CredsImage, taskRun.Spec.ServiceAccountName, taskRun.Namespace, kubeclient, implicitVolumeMounts, implicitEnvVars); err != nil {
 		return nil, err
 	} else if credsInitContainer != nil {
 		initContainers = append(initContainers, *credsInitContainer)
@@ -119,7 +86,7 @@ func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.
 
 	// Merge step template with steps.
 	// TODO(#1605): Move MergeSteps to pkg/pod
-	steps, err := v1beta1.MergeStepsWithStepTemplate(taskSpec.StepTemplate, taskSpec.Steps)
+	steps, err := v1alpha1.MergeStepsWithStepTemplate(taskSpec.StepTemplate, taskSpec.Steps)
 	if err != nil {
 		return nil, err
 	}
@@ -152,13 +119,18 @@ func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.
 	initContainers = append(initContainers, entrypointInit)
 	volumes = append(volumes, toolsVolume, downwardVolume)
 
-	limitRangeMin, err := getLimitRangeMinimum(taskRun.Namespace, kubeclient)
-	if err != nil {
-		return nil, err
+	// If present on TaskRunSpec, use LimitRangeName to get LimitRange
+	// so it can be used in resolveResourceRequests
+	var limitRange *corev1.LimitRange
+	if taskRun.Spec.LimitRangeName != "" {
+		limitRange, err = kubeclient.CoreV1().LimitRanges(taskRun.Namespace).Get(taskRun.Spec.LimitRangeName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Zero out non-max resource requests.
-	stepContainers = resolveResourceRequests(stepContainers, limitRangeMin)
+	stepContainers = resolveResourceRequests(stepContainers, limitRange)
 
 	// Add implicit env vars.
 	// They're prepended to the list, so that if the user specified any
@@ -176,7 +148,7 @@ func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.
 			requestedVolumeMounts[filepath.Clean(vm.MountPath)] = true
 		}
 		var toAdd []corev1.VolumeMount
-		for _, imp := range volumeMounts {
+		for _, imp := range implicitVolumeMounts {
 			if !requestedVolumeMounts[filepath.Clean(imp.MountPath)] {
 				toAdd = append(toAdd, imp)
 			}
@@ -190,9 +162,8 @@ func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.
 	// - sets container name to add "step-" prefix or "step-unnamed-#" if not specified.
 	// TODO(#1605): Remove this loop and make each transformation in
 	// isolation.
-	shouldOverrideWorkingDir := shouldOverrideWorkingDir(kubeclient)
 	for i, s := range stepContainers {
-		if s.WorkingDir == "" && shouldOverrideWorkingDir {
+		if s.WorkingDir == "" {
 			stepContainers[i].WorkingDir = pipeline.WorkspaceDir
 		}
 		if s.Name == "" {
@@ -203,7 +174,7 @@ func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.
 	}
 
 	// By default, use an empty pod template and take the one defined in the task run spec if any
-	podTemplate := v1beta1.PodTemplate{}
+	podTemplate := v1alpha1.PodTemplate{}
 
 	if taskRun.Spec.PodTemplate != nil {
 		podTemplate = *taskRun.Spec.PodTemplate
@@ -213,7 +184,7 @@ func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.
 	volumes = append(volumes, taskSpec.Volumes...)
 	volumes = append(volumes, podTemplate.Volumes...)
 
-	if err := v1beta1.ValidateVolumes(volumes); err != nil {
+	if err := v1alpha1.ValidateVolumes(volumes); err != nil {
 		return nil, err
 	}
 
@@ -267,8 +238,6 @@ func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.
 			SecurityContext:              podTemplate.SecurityContext,
 			RuntimeClassName:             podTemplate.RuntimeClassName,
 			AutomountServiceAccountToken: podTemplate.AutomountServiceAccountToken,
-			SchedulerName:                podTemplate.SchedulerName,
-			HostNetwork:                  podTemplate.HostNetwork,
 			DNSPolicy:                    dnsPolicy,
 			DNSConfig:                    podTemplate.DNSConfig,
 			EnableServiceLinks:           podTemplate.EnableServiceLinks,
@@ -277,8 +246,8 @@ func MakePod(images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.
 	}, nil
 }
 
-// MakeLabels constructs the labels we will propagate from TaskRuns to Pods.
-func MakeLabels(s *v1beta1.TaskRun) map[string]string {
+// makeLabels constructs the labels we will propagate from TaskRuns to Pods.
+func MakeLabels(s *v1alpha1.TaskRun) map[string]string {
 	labels := make(map[string]string, len(s.ObjectMeta.Labels)+1)
 	// NB: Set this *before* passing through TaskRun labels. If the TaskRun
 	// has a managed-by label, it should override this default.
@@ -292,62 +261,4 @@ func MakeLabels(s *v1beta1.TaskRun) map[string]string {
 	// specifies this label, it should be overridden by this value.
 	labels[taskRunLabelKey] = s.Name
 	return labels
-}
-
-// getLimitRangeMinimum gets all LimitRanges in a namespace and
-// searches for if a container minimum is specified. Due to
-// https://github.com/kubernetes/kubernetes/issues/79496, the
-// max LimitRange minimum must be found in the event of conflicting
-// container minimums specified.
-func getLimitRangeMinimum(namespace string, kubeclient kubernetes.Interface) (corev1.ResourceList, error) {
-	limitRanges, err := kubeclient.CoreV1().LimitRanges(namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	min := allZeroQty()
-	for _, lr := range limitRanges.Items {
-		lrItems := lr.Spec.Limits
-		for _, lrItem := range lrItems {
-			if lrItem.Type == corev1.LimitTypeContainer {
-				if lrItem.Min != nil {
-					for k, v := range lrItem.Min {
-						if v.Cmp(min[k]) > 0 {
-							min[k] = v
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return min, nil
-}
-
-// ShouldOverrideHomeEnv returns a bool indicating whether a Pod should have its
-// $HOME environment variable overwritten with /tekton/home or if it should be
-// left unmodified. The default behaviour is to overwrite the $HOME variable
-// but this is planned to change in an upcoming release.
-//
-// For further reference see https://github.com/tektoncd/pipeline/issues/2013
-func ShouldOverrideHomeEnv(kubeclient kubernetes.Interface) bool {
-	configMap, err := kubeclient.CoreV1().ConfigMaps(system.GetNamespace()).Get(GetFeatureFlagsConfigName(), metav1.GetOptions{})
-	if err == nil && configMap != nil && configMap.Data != nil && configMap.Data[featureFlagDisableHomeEnvKey] == "true" {
-		return false
-	}
-	return true
-}
-
-// shouldOverrideWorkingDir returns a bool indicating whether a Pod should have its
-// working directory overwritten with /workspace or if it should be
-// left unmodified. The default behaviour is to overwrite the working directory with '/workspace'
-// if not specified by the user,  but this is planned to change in an upcoming release.
-//
-// For further reference see https://github.com/tektoncd/pipeline/issues/1836
-func shouldOverrideWorkingDir(kubeclient kubernetes.Interface) bool {
-	configMap, err := kubeclient.CoreV1().ConfigMaps(system.GetNamespace()).Get(GetFeatureFlagsConfigName(), metav1.GetOptions{})
-	if err == nil && configMap != nil && configMap.Data != nil && configMap.Data[featureFlagDisableWorkingDirKey] == "true" {
-		return false
-	}
-	return true
 }

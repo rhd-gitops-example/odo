@@ -4,5 +4,3 @@
 
 **/zz_generated.*.go linguist-generated=true
 /pkg/client/** linguist-generated=true
-/third_party/** linguist-generated=true
-/vendor/** linguist-generated=true

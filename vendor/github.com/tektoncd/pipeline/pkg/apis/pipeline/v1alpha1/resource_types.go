@@ -20,7 +20,8 @@ import (
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 )
 
 // PipelineResourceInterface interface to be implemented by different PipelineResource types
@@ -41,10 +42,10 @@ type PipelineResourceInterface interface {
 }
 
 // TaskModifier is an interface to be implemented by different PipelineResources
-type TaskModifier = v1beta1.TaskModifier
+type TaskModifier = v1alpha2.TaskModifier
 
 // InternalTaskModifier implements TaskModifier for resources that are built-in to Tekton Pipelines.
-type InternalTaskModifier = v1beta1.InternalTaskModifier
+type InternalTaskModifier = v1alpha2.InternalTaskModifier
 
 func checkStepNotAlreadyAdded(s Step, steps []Step) error {
 	for _, step := range steps {
@@ -100,10 +101,31 @@ func ApplyTaskModifier(ts *TaskSpec, tm TaskModifier) error {
 
 // PipelineResourceBinding connects a reference to an instance of a PipelineResource
 // with a PipelineResource dependency that the Pipeline has declared
-type PipelineResourceBinding = v1beta1.PipelineResourceBinding
+type PipelineResourceBinding = v1alpha2.PipelineResourceBinding
 
 // PipelineResourceResult used to export the image name and digest as json
-type PipelineResourceResult = v1beta1.PipelineResourceResult
+type PipelineResourceResult = v1alpha2.PipelineResourceResult
 
 // ResultType used to find out whether a PipelineResourceResult is from a task result or not
-type ResultType = v1beta1.ResultType
+type ResultType = v1alpha2.ResultType
+
+// ResourceFromType returns an instance of the correct PipelineResource object type which can be
+// used to add input and output containers as well as volumes to a TaskRun's pod in order to realize
+// a PipelineResource in a pod.
+func ResourceFromType(r *PipelineResource, images pipeline.Images) (PipelineResourceInterface, error) {
+	switch r.Spec.Type {
+	case PipelineResourceTypeGit:
+		return NewGitResource(images.GitImage, r)
+	case PipelineResourceTypeImage:
+		return NewImageResource(r)
+	case PipelineResourceTypeCluster:
+		return NewClusterResource(images.KubeconfigWriterImage, r)
+	case PipelineResourceTypeStorage:
+		return NewStorageResource(images, r)
+	case PipelineResourceTypePullRequest:
+		return NewPullRequestResource(images.PRImage, r)
+	case PipelineResourceTypeCloudEvent:
+		return NewCloudEventResource(r)
+	}
+	return nil, fmt.Errorf("%s is an invalid or unimplemented PipelineResource", r.Spec.Type)
+}

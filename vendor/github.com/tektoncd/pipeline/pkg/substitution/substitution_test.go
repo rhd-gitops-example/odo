@@ -22,17 +22,17 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/substitution"
-	"github.com/tektoncd/pipeline/test/diff"
 	"knative.dev/pkg/apis"
 )
 
 func TestValidateVariables(t *testing.T) {
 	type args struct {
-		input        string
-		prefix       string
-		locationName string
-		path         string
-		vars         map[string]struct{}
+		input         string
+		prefix        string
+		contextPrefix string
+		locationName  string
+		path          string
+		vars          map[string]struct{}
 	}
 	for _, tc := range []struct {
 		name          string
@@ -41,10 +41,11 @@ func TestValidateVariables(t *testing.T) {
 	}{{
 		name: "valid variable",
 		args: args{
-			input:        "--flag=$(inputs.params.baz)",
-			prefix:       "inputs.params",
-			locationName: "step",
-			path:         "taskspec.steps",
+			input:         "--flag=$(inputs.params.baz)",
+			prefix:        "params",
+			contextPrefix: "inputs.",
+			locationName:  "step",
+			path:          "taskspec.steps",
 			vars: map[string]struct{}{
 				"baz": {},
 			},
@@ -53,10 +54,11 @@ func TestValidateVariables(t *testing.T) {
 	}, {
 		name: "multiple variables",
 		args: args{
-			input:        "--flag=$(inputs.params.baz) $(input.params.foo)",
-			prefix:       "inputs.params",
-			locationName: "step",
-			path:         "taskspec.steps",
+			input:         "--flag=$(inputs.params.baz) $(input.params.foo)",
+			prefix:        "params",
+			contextPrefix: "inputs.",
+			locationName:  "step",
+			path:          "taskspec.steps",
 			vars: map[string]struct{}{
 				"baz": {},
 				"foo": {},
@@ -78,10 +80,11 @@ func TestValidateVariables(t *testing.T) {
 	}, {
 		name: "undefined variable",
 		args: args{
-			input:        "--flag=$(inputs.params.baz)",
-			prefix:       "inputs.params",
-			locationName: "step",
-			path:         "taskspec.steps",
+			input:         "--flag=$(inputs.params.baz)",
+			prefix:        "params",
+			contextPrefix: "inputs.",
+			locationName:  "step",
+			path:          "taskspec.steps",
 			vars: map[string]struct{}{
 				"foo": {},
 			},
@@ -93,10 +96,11 @@ func TestValidateVariables(t *testing.T) {
 	}, {
 		name: "undefined variable and defined variable",
 		args: args{
-			input:        "--flag=$(inputs.params.baz) $(input.params.foo)",
-			prefix:       "inputs.params",
-			locationName: "step",
-			path:         "taskspec.steps",
+			input:         "--flag=$(inputs.params.baz) $(input.params.foo)",
+			prefix:        "params",
+			contextPrefix: "inputs.",
+			locationName:  "step",
+			path:          "taskspec.steps",
 			vars: map[string]struct{}{
 				"foo": {},
 			},
@@ -107,10 +111,10 @@ func TestValidateVariables(t *testing.T) {
 		},
 	}} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := substitution.ValidateVariable("somefield", tc.args.input, tc.args.prefix, tc.args.locationName, tc.args.path, tc.args.vars)
+			got := substitution.ValidateVariable("somefield", tc.args.input, tc.args.prefix, tc.args.contextPrefix, tc.args.locationName, tc.args.path, tc.args.vars)
 
 			if d := cmp.Diff(got, tc.expectedError, cmp.AllowUnexported(apis.FieldError{})); d != "" {
-				t.Errorf("ValidateVariable() error did not match expected error %s", diff.PrintWantGot(d))
+				t.Errorf("ValidateVariable() error did not match expected error %s", d)
 			}
 		})
 	}
@@ -171,7 +175,7 @@ func TestApplyReplacements(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			actualOutput := substitution.ApplyReplacements(tt.args.input, tt.args.replacements)
 			if d := cmp.Diff(actualOutput, tt.expectedOutput); d != "" {
-				t.Errorf("ApplyReplacements() output did not match expected value %s", diff.PrintWantGot(d))
+				t.Errorf("ApplyReplacements() output did not match expected value %s", d)
 			}
 		})
 	}
@@ -219,19 +223,11 @@ func TestApplyArrayReplacements(t *testing.T) {
 			arrayReplacements:  map[string][]string{"ace": {"replacement", "a"}, "match": {"1", "2"}},
 		},
 		expectedOutput: []string{"1", "2"},
-	}, {
-		name: "array star replacement",
-		args: args{
-			input:              "$(match[*])",
-			stringReplacements: map[string]string{"string": "word", "lacement": "lacements"},
-			arrayReplacements:  map[string][]string{"ace": {"replacement", "a"}, "match": {"1", "2"}},
-		},
-		expectedOutput: []string{"1", "2"},
 	}} {
 		t.Run(tc.name, func(t *testing.T) {
 			actualOutput := substitution.ApplyArrayReplacements(tc.args.input, tc.args.stringReplacements, tc.args.arrayReplacements)
 			if d := cmp.Diff(actualOutput, tc.expectedOutput); d != "" {
-				t.Errorf("ApplyArrayReplacements() output did not match expected value %s", diff.PrintWantGot(d))
+				t.Errorf("ApplyArrayReplacements() output did not match expected value %s", d)
 			}
 		})
 	}

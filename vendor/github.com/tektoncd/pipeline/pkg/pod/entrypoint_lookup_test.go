@@ -25,7 +25,6 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/random"
-	"github.com/tektoncd/pipeline/test/diff"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -100,7 +99,7 @@ func TestResolveEntrypoints(t *testing.T) {
 		Command: []string{"my", "entrypoint"},
 	}}
 	if d := cmp.Diff(want, got); d != "" {
-		t.Fatalf("Diff %s", diff.PrintWantGot(d))
+		t.Fatalf("Diff (-want, +got): %s", d)
 	}
 }
 

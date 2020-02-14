@@ -24,43 +24,17 @@ import (
 func TestRunCommand(t *testing.T) {
 	testCases := []struct {
 		command             string
-		options             []Option
 		expectedOutput      string
 		expectedErrorOutput string
 		expectedErrorCode   int
-	}{{
-		"",
-		[]Option{},
-		"",
-		invalidInputErrorPrefix + "",
-		1,
-	}, {
-		" ",
-		[]Option{},
-		"",
-		invalidInputErrorPrefix + " ",
-		1,
-	}, {
-		"echo hello, world",
-		[]Option{},
-		"hello, world\n",
-		"",
-		0,
-	}, {
-		"bash -c 'echo foo > /dev/stderr; exit 4'",
-		[]Option{},
-		"",
-		"foo\n",
-		4,
-	}, {
-		"bash -c 'echo ${HELLO} > /dev/stdout; exit 0'",
-		[]Option{WithEnvs([]string{"HELLO=hello, world"})},
-		"hello, world\n",
-		"",
-		0,
-	}}
+	}{
+		{"", "", invalidInputErrorPrefix + "", 1},
+		{" ", "", invalidInputErrorPrefix + " ", 1},
+		{"echo hello, world", "hello, world\n", "", 0},
+		{"bash -c 'echo foo > /dev/stderr; exit 4'", "", "foo\n", 4},
+	}
 	for _, c := range testCases {
-		out, err := RunCommand(c.command, c.options...)
+		out, err := RunCommand(c.command)
 		if c.expectedOutput != out {
 			t.Fatalf("Expect %q but actual is %q", c.expectedOutput, out)
 		}
@@ -112,7 +86,7 @@ func TestRunCommands(t *testing.T) {
 			1,
 		},
 		{
-			[]string{`bash -c "echo foo > /dev/stderr; exit 4"`},
+			[]string{"bash -c \"echo foo > /dev/stderr; exit 4\""},
 			"",
 			"foo\n",
 			4,

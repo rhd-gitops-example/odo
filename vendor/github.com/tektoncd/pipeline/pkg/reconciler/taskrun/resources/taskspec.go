@@ -17,27 +17,25 @@ limitations under the License.
 package resources
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/contexts"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // GetTask is a function used to retrieve Tasks.
-type GetTask func(string) (v1beta1.TaskInterface, error)
-type GetTaskRun func(string) (*v1beta1.TaskRun, error)
+type GetTask func(string) (v1alpha1.TaskInterface, error)
+type GetTaskRun func(string) (*v1alpha1.TaskRun, error)
 
 // GetClusterTask is a function that will retrieve the Task from name and namespace.
-type GetClusterTask func(name string) (v1beta1.TaskInterface, error)
+type GetClusterTask func(name string) (v1alpha1.TaskInterface, error)
 
 // GetTaskData will retrieve the Task metadata and Spec associated with the
 // provided TaskRun. This can come from a reference Task or from the TaskRun's
 // metadata and embedded TaskSpec.
-func GetTaskData(ctx context.Context, taskRun *v1beta1.TaskRun, getTask GetTask) (*metav1.ObjectMeta, *v1beta1.TaskSpec, error) {
+func GetTaskData(taskRun *v1alpha1.TaskRun, getTask GetTask) (*metav1.ObjectMeta, *v1alpha1.TaskSpec, error) {
 	taskMeta := metav1.ObjectMeta{}
-	taskSpec := v1beta1.TaskSpec{}
+	taskSpec := v1alpha1.TaskSpec{}
 	switch {
 	case taskRun.Spec.TaskRef != nil && taskRun.Spec.TaskRef.Name != "":
 		// Get related task for taskrun
@@ -47,7 +45,6 @@ func GetTaskData(ctx context.Context, taskRun *v1beta1.TaskRun, getTask GetTask)
 		}
 		taskMeta = t.TaskMetadata()
 		taskSpec = t.TaskSpec()
-		taskSpec.SetDefaults(contexts.WithUpgradeViaDefaulting(ctx))
 	case taskRun.Spec.TaskSpec != nil:
 		taskMeta = taskRun.ObjectMeta
 		taskSpec = *taskRun.Spec.TaskSpec
