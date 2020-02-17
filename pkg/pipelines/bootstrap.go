@@ -12,9 +12,19 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// DefaultTokenFileName is the default token file name
+const DefaultTokenFileName string = "~/Downloads/token"
+
+// BootstrapOptions is a struct that provides the optional flags
+type BootstrapOptions struct {
+	Prefix             string
+	TokenFileName      string
+	QuayIOAuthFileName string
+}
+
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
-func Bootstrap(quayUsername, baseRepo, prefix string) error {
+func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
@@ -27,11 +37,7 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 
 	outputs := make([]interface{}, 0)
 
-	tokenPath, err := pathToDownloadedFile("token")
-	if err != nil {
-		return fmt.Errorf("failed to generate path to file: %w", err)
-	}
-	f, err := os.Open(tokenPath)
+	f, err := os.Open(o.TokenFileName)
 	if err != nil {
 		return err
 	}
