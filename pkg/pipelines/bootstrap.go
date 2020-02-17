@@ -67,49 +67,60 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 	if err != nil {
 		return err
 	}
-
-	githubAuth, err := createOpaqueSecret("github-auth", f)
-	if err != nil {
-		return err
-	}
 	outputs = append(outputs, githubAuth)
 
 	// Create Docker Secret
 	dockerSecret, err := createDockerSecret(quayUsername)
 	if err != nil {
 		return err
-	}
-	outputs = append(outputs, dockerSecret)
+		if o.QuayIOAuthFileName == "~/Downloads/<username>-auth.json" {
+			authJSONPath, err := pathToDownloadedFile(quayUsername + "-auth.json")
+			if err != nil {
+				return fmt.Errorf("failed to generate path to file: %w", err)
+			}
 
-	tasks := tasks.Generate(githubAuth.GetName())
-	for _, task := range tasks {
-		outputs = append(outputs, task)
-	}
-
-	eventListener := eventlisteners.Generate(baseRepo)
-	outputs = append(outputs, eventListener)
-
-	route := routes.Generate()
-	outputs = append(outputs, route)
-
-	//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
-	sa := createServiceAccount(saName, dockerSecretName)
-	outputs = append(outputs, sa)
-	role := createRole(roleName, rules)
-	outputs = append(outputs, role)
-	outputs = append(outputs, createRoleBinding(roleBindingName, &sa, role.Kind, role.Name))
-	outputs = append(outputs, createRoleBinding("edit-clusterrole-binding", &sa, "ClusterRole", "edit"))
-
-	// Marshall
-	for _, r := range outputs {
-		data, err := yaml.Marshal(r)
-		if err != nil {
-			return err
+			f, err = os.Open(authJSONPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			f, err = os.Open(o.QuayIOAuthFileName)
+			if err != nil {
+				return err
+			}
 		}
-		fmt.Printf("%s---\n", data)
-	}
+		outputs = append(outputs, dockerSecret)
 
-	return nil
+		tasks := tasks.Generate(githubAuth.GetName())
+		for _, task := range tasks {
+			outputs = append(outputs, task)
+		}
+
+		eventListener := eventlisteners.Generate(baseRepo)
+		outputs = append(outputs, eventListener)
+
+		route := routes.Generate()
+		outputs = append(outputs, route)
+
+		//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
+		sa := createServiceAccount(saName, dockerSecretName)
+		outputs = append(outputs, sa)
+		role := createRole(roleName, rules)
+		outputs = append(outputs, role)
+		outputs = append(outputs, createRoleBinding(roleBindingName, &sa, role.Kind, role.Name))
+		outputs = append(outputs, createRoleBinding("edit-clusterrole-binding", &sa, "ClusterRole", "edit"))
+
+		// Marshall
+		for _, r := range outputs {
+			data, err := yaml.Marshal(r)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%s---\n", data)
+		}
+
+		return nil
+	}
 }
 
 // createGithubSecret creates Github secret
@@ -151,8 +162,8 @@ func createDockerSecret(quayUsername string) (*corev1.Secret, error) {
 	}
 
 	return dockerSecret, nil
-
 }
+
 func pathToDownloadedFile(fname string) (string, error) {
 	return homedir.Expand(path.Join("~/Downloads/", fname))
 }

@@ -90,7 +90,7 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	}
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	bootstrapCmd.Flags().StringVarP(&o.tokenPath, "github-token", "", bootstrap.DefaultTokenFileName, "path to GitHub auth token")
-	bootstrapCmd.Flags().StringVarP(&o.quayIOAuthFileName, "quay-io-auth-json", "", "~/Downloads/<quay.io username>-auth.json", "filename for quay IO auth json")
+	bootstrapCmd.Flags().StringVarP(&o.tokenPath, "github-token", "", bootstrap.DefaultTokenFileName, "filename for GitHub auth token")
+	bootstrapCmd.Flags().StringVarP(&o.quayIOAuthFileName, "quay-io-auth-json", "", "~/Downloads/<username>-auth.json", "filename for quay IO auth json")
 	return bootstrapCmd
 }
