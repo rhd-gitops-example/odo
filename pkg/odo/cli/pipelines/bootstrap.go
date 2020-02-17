@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/spf13/cobra"
 
-	bootstrap "github.com/openshift/odo/pkg/pipelines"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
@@ -32,8 +31,8 @@ type BootstrapOptions struct {
 	quayUsername       string
 	baseRepo           string // e.g. tekton/triggers
 	prefix             string // used to generate the environments in a shared cluster
-	tokenPath          string // path to GitHub auth token
-	quayIOAuthFileName string //filename for quay IO auth json
+	githubToken        string
+	quayIOAuthFilename string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -48,9 +47,6 @@ func NewBootstrapOptions() *BootstrapOptions {
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (bo *BootstrapOptions) Complete(name string, cmd *cobra.Command, args []string) error {
-	bo.quayUsername = args[0]
-	bo.baseRepo = args[1]
-
 	if bo.prefix != "" && !strings.HasSuffix(bo.prefix, "-") {
 		bo.prefix = bo.prefix + "-"
 	}
@@ -71,7 +67,7 @@ func (bo *BootstrapOptions) Run() error {
 	options := pipelines.BootstrapOptions{
 		Prefix: bo.prefix,
 	}
-	return pipelines.Bootstrap(bo.quayUsername, bo.baseRepo, &options)
+	return pipelines.Bootstrap(bo.quayUsername, bo.baseRepo, bo.githubToken, bo.quayIOAuthFilename, &options)
 }
 
 // NewCmdBootstrap creates the project bootstrap command.
@@ -83,14 +79,19 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 		Short:   bootstrapShortDesc,
 		Long:    bootstrapLongDesc,
 		Example: fmt.Sprintf(bootstrapExample, fullName),
-		Args:    cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			genericclioptions.GenericRun(o, cmd, args)
 		},
 	}
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	bootstrapCmd.Flags().StringVarP(&o.tokenPath, "github-token", "", bootstrap.DefaultTokenFileName, "filename for GitHub auth token")
-	bootstrapCmd.Flags().StringVarP(&o.quayIOAuthFileName, "quay-io-auth-json", "", "~/Downloads/<username>-auth.json", "filename for quay IO auth json")
+	bootstrapCmd.Flags().StringVar(&o.quayUsername, "quay-username", "", "provide the quay username")
+	bootstrapCmd.MarkFlagRequired("quay-username")
+	bootstrapCmd.Flags().StringVar(&o.githubToken, "github-token", "", "provide the github token")
+	bootstrapCmd.MarkFlagRequired("github-token")
+	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "filename for quay IO auth json")
+	bootstrapCmd.MarkFlagRequired("dockerconfigjson")
+	bootstrapCmd.Flags().StringVar(&o.baseRepo, "base-repository", "", "provide the base repository")
+	bootstrapCmd.MarkFlagRequired("base-repository")
 	return bootstrapCmd
 }
