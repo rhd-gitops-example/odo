@@ -1,5 +1,5 @@
-hash: 2890ebafdfa82906e890bf6bda8d4a002eef006050c0e383442f344fe45a1e78
-updated: 2020-02-14T14:48:04.844370863+05:30
+hash: 9c4bbc892d9fb869e6f12585b22f43f5a8e6fd038ce8fc991397232e6e92ed64
+updated: 2020-02-15T18:07:26.139236624+05:30
 imports:
 - name: cloud.google.com/go
   version: 8c41231e01b2085512d98153bcffb847ff9b4b9f
@@ -651,6 +651,18 @@ imports:
   - storage/v1
   - storage/v1alpha1
   - storage/v1beta1
+- name: k8s.io/apiextensions-apiserver
+  version: 1495f70252dcec3e2289bcabc488290dc1cf1258
+  repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
+  subpackages:
+  - pkg/apis/apiextensions
+  - pkg/apis/apiextensions/v1beta1
+  - pkg/client/clientset/clientset
+  - pkg/client/clientset/clientset/fake
+  - pkg/client/clientset/clientset/scheme
+  - pkg/client/clientset/clientset/typed/apiextensions/v1beta1
+  - pkg/client/clientset/clientset/typed/apiextensions/v1beta1/fake
+  - pkg/features
 - name: k8s.io/apimachinery
   version: 79c2a76c473a20cdc4ce59cae4b72529b5d9d16b
   repo: https://github.com/openshift/kubernetes-apimachinery.git
