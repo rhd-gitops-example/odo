@@ -27,10 +27,10 @@ func TestCreateNamespace(t *testing.T) {
 
 func TestNamespaceNames(t *testing.T) {
 	ns := namespaceNames("test-")
-	want := []string{
-		"test-dev-environment",
-		"test-stage-environment",
-		"test-cicd-environment",
+	want := map[string]string{
+		"dev":   "test-dev-environment",
+		"stage": "test-stage-environment",
+		"cicd":  "test-cicd-environment",
 	}
 	if diff := cmp.Diff(want, ns); diff != "" {
 		t.Fatalf("namespaceNames() failed got\n%s", diff)

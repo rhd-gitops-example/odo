@@ -6,10 +6,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var baseNames = []string{
-	"dev-environment",
-	"stage-environment",
-	"cicd-environment",
+var baseNames = map[string]string{
+	"dev":   "dev-environment",
+	"stage": "stage-environment",
+	"cicd":  "cicd-environment",
 }
 
 func createNamespaces(prefix string) []*corev1.Namespace {
@@ -20,10 +20,10 @@ func createNamespaces(prefix string) []*corev1.Namespace {
 	return ns
 }
 
-func namespaceNames(prefix string) []string {
-	prefixedNames := make([]string, len(baseNames))
-	for i, n := range baseNames {
-		prefixedNames[i] = fmt.Sprintf("%s%s", prefix, n)
+func namespaceNames(prefix string) map[string]string {
+	prefixedNames := make(map[string]string)
+	for k, v := range baseNames {
+		prefixedNames[k] = fmt.Sprintf("%s%s", prefix, v)
 	}
 	return prefixedNames
 }
