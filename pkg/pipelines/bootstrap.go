@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
@@ -13,7 +14,10 @@ import (
 )
 
 // DefaultTokenFileName is the default token file name
-const DefaultTokenFileName string = "~/Downloads/token"
+var DefaultTokenFileName string = "~/Downloads/token/token.txt"
+
+// DefaultQuayIOAuthFileName is the default auth file name
+var DefaultQuayIOAuthFileName string = "~/Downloads/<username>-auth.json"
 
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
@@ -37,9 +41,13 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 
 	outputs := make([]interface{}, 0)
 
-	f, err := os.Open(o.TokenFileName)
+	tokenPath, err := getTokenFileName(o)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate token path to file: %w", err)
+	}
+	f, err := os.Open(tokenPath)
+	if err != nil {
+		return fmt.Errorf("failed to open path to TokenFileName: %w", err)
 	}
 	defer f.Close()
 
@@ -49,21 +57,14 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 	}
 	outputs = append(outputs, githubAuth)
 
-	if o.QuayIOAuthFileName == "~/Downloads/<username>-auth.json" {
-		authJSONPath, err := pathToDownloadedFile(quayUsername + "-auth.json")
-		if err != nil {
-			return fmt.Errorf("failed to generate path to file: %w", err)
-		}
+	authJSONPath, err := getQuayIOAuthFileName(quayUsername, o)
+	if err != nil {
+		return fmt.Errorf("failed to generate path to file: %w", err)
+	}
 
-		f, err = os.Open(authJSONPath)
-		if err != nil {
-			return err
-		}
-	} else {
-		f, err = os.Open(o.QuayIOAuthFileName)
-		if err != nil {
-			return err
-		}
+	f, err = os.Open(authJSONPath)
+	if err != nil {
+		return fmt.Errorf("failed to open path authJSON : %w", err)
 	}
 	defer f.Close()
 
@@ -86,12 +87,35 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 		}
 		fmt.Printf("%s---\n", data)
 	}
-
 	return nil
 }
 
 func pathToDownloadedFile(fname string) (string, error) {
-	return homedir.Expand(path.Join("~/Downloads/", fname))
+	return homedir.Expand(path.Join("~", fname))
+}
+
+//to get the github token file name
+func getTokenFileName(o *BootstrapOptions) (string, error) {
+	if o.TokenFileName == DefaultTokenFileName {
+		return pathToDownloadedFile("/Downloads/token")
+	}
+	if strings.HasPrefix(o.TokenFileName, "~") {
+		return pathToDownloadedFile(string(o.TokenFileName[1:]))
+	}
+	return o.TokenFileName, nil
+}
+
+// to get the quay file name
+func getQuayIOAuthFileName(quayUsername string, o *BootstrapOptions) (string, error) {
+
+	if o.QuayIOAuthFileName == DefaultQuayIOAuthFileName {
+		return pathToDownloadedFile("/Downloads/" + quayUsername + "-auth.json")
+	}
+	if strings.HasPrefix(o.QuayIOAuthFileName, "~") {
+		return pathToDownloadedFile(string(o.QuayIOAuthFileName[1:]))
+	}
+	return o.QuayIOAuthFileName, nil
+
 }
 
 // create and invoke a Tekton Checker
