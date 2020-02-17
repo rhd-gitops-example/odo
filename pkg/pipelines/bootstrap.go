@@ -49,14 +49,21 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 	}
 	outputs = append(outputs, githubAuth)
 
-	authJSONPath, err := pathToDownloadedFile(quayUsername + "-auth.json")
-	if err != nil {
-		return fmt.Errorf("failed to generate path to file: %w", err)
-	}
+	if o.QuayIOAuthFileName == "~/Downloads/<username>-auth.json" {
+		authJSONPath, err := pathToDownloadedFile(quayUsername + "-auth.json")
+		if err != nil {
+			return fmt.Errorf("failed to generate path to file: %w", err)
+		}
 
-	f, err = os.Open(authJSONPath)
-	if err != nil {
-		return err
+		f, err = os.Open(authJSONPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		f, err = os.Open(o.QuayIOAuthFileName)
+		if err != nil {
+			return err
+		}
 	}
 	defer f.Close()
 
