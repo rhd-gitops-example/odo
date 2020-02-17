@@ -15,7 +15,6 @@ import (
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
 func Bootstrap(quayUsername, baseRepo, prefix string) error {
-
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
 	if err != nil {
@@ -24,8 +23,8 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	if !installed {
 		return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
 	}
-
 	outputs := make([]interface{}, 0)
+	outputs = append(outputs, createNamespaces(prefix))
 
 	tokenPath, err := pathToDownloadedFile("token")
 	if err != nil {
