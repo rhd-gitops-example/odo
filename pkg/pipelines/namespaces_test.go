@@ -38,8 +38,11 @@ func TestNamespaceNames(t *testing.T) {
 }
 
 func TestCreateNamespaces(t *testing.T) {
-	ns := createNamespaces("test-")
-
+	ns := createNamespaces([]string{
+		"test-dev-environment",
+		"test-stage-environment",
+		"test-cicd-environment",
+	})
 	want := []*corev1.Namespace{
 		createNamespace("test-dev-environment"),
 		createNamespace("test-stage-environment"),

@@ -24,7 +24,10 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 		return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
 	}
 	outputs := make([]interface{}, 0)
-	outputs = append(outputs, createNamespaces(prefix))
+	names := namespaceNames(prefix)
+	for _, n := range createNamespaces(values(names)) {
+		outputs = append(outputs, n)
+	}
 
 	tokenPath, err := pathToDownloadedFile("token")
 	if err != nil {
@@ -36,7 +39,7 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	}
 	defer f.Close()
 
-	githubAuth, err := createOpaqueSecret("github-auth", f)
+	githubAuth, err := createOpaqueSecret(namespacedName("github-auth", names["cicd"]), f)
 	if err != nil {
 		return err
 	}
@@ -53,13 +56,13 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	}
 	defer f.Close()
 
-	dockerSecret, err := createDockerConfigSecret("regcred", f)
+	dockerSecret, err := createDockerConfigSecret(namespacedName("regcred", names["cicd"]), f)
 	if err != nil {
 		return err
 	}
 	outputs = append(outputs, dockerSecret)
 
-	eventListener := eventlisteners.GenerateEventListener(baseRepo)
+	eventListener := eventlisteners.GenerateEventListener(baseRepo, names["cicd"])
 	outputs = append(outputs, eventListener)
 
 	route := routes.GenerateRoute()
@@ -87,4 +90,13 @@ func checkTektonInstall() (bool, error) {
 		return false, err
 	}
 	return tektonChecker.checkInstall()
+}
+
+func values(m map[string]string) []string {
+	values := []string{}
+	for _, v := range m {
+		values = append(values, v)
+
+	}
+	return values
 }
