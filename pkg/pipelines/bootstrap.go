@@ -37,9 +37,19 @@ var (
 	}
 )
 
+// DefaultTokenFileName is the default token file name
+const DefaultTokenFileName string = "~/Downloads/token"
+
+// BootstrapOptions is a struct that provides the optional flags
+type BootstrapOptions struct {
+	Prefix             string
+	TokenFileName      string
+	QuayIOAuthFileName string
+}
+
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
-func Bootstrap(quayUsername, baseRepo, prefix string) error {
+func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
@@ -54,6 +64,11 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 
 	//  Create GitHub Secret
 	githubAuth, err := createGithubSecret()
+	if err != nil {
+		return err
+	}
+
+	githubAuth, err := createOpaqueSecret("github-auth", f)
 	if err != nil {
 		return err
 	}

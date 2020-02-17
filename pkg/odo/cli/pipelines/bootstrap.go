@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
+	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/odo/pkg/pipelines"
+	bootstrap "github.com/openshift/odo/pkg/pipelines"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
@@ -28,10 +29,11 @@ var (
 // BootstrapOptions encapsulates the options for the odo pipelines bootstrap
 // command.
 type BootstrapOptions struct {
-	quayUsername string
-	baseRepo     string // e.g. tekton/triggers
-	prefix       string // used to generate the environments in a shared cluster
-
+	quayUsername       string
+	baseRepo           string // e.g. tekton/triggers
+	prefix             string // used to generate the environments in a shared cluster
+	tokenPath          string // path to GitHub auth token
+	quayIOAuthFileName string //filename for quay IO auth json
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -66,7 +68,10 @@ func (bo *BootstrapOptions) Validate() error {
 
 // Run runs the project bootstrap command.
 func (bo *BootstrapOptions) Run() error {
-	return pipelines.Bootstrap(bo.quayUsername, bo.baseRepo, bo.prefix)
+	options := pipelines.BootstrapOptions{
+		Prefix: bo.prefix,
+	}
+	return pipelines.Bootstrap(bo.quayUsername, bo.baseRepo, &options)
 }
 
 // NewCmdBootstrap creates the project bootstrap command.
@@ -85,5 +90,7 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	}
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
+	bootstrapCmd.Flags().StringVarP(&o.tokenPath, "github-token", "", bootstrap.DefaultTokenFileName, "path to GitHub auth token")
+	bootstrapCmd.Flags().StringVarP(&o.quayIOAuthFileName, "quay-io-auth-json", "", "~/Downloads/<quay.io username>-auth.json", "filename for quay IO auth json")
 	return bootstrapCmd
 }
