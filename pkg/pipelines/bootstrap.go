@@ -40,7 +40,6 @@ var (
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
 func Bootstrap(quayUsername, baseRepo, prefix string) error {
-
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
 	if err != nil {
@@ -49,29 +48,30 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	if !installed {
 		return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
 	}
-
 	outputs := make([]interface{}, 0)
+	names := namespaceNames(prefix)
+	for _, n := range createNamespaces(values(names)) {
+		outputs = append(outputs, n)
+	}
 
-	//  Create GitHub Secret
-	githubAuth, err := createGithubSecret()
+	githubAuth, err := createGithubSecret(names["cicd"])
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate path to file: %w", err)
 	}
 	outputs = append(outputs, githubAuth)
 
-	// Create Docker Secret
-	dockerSecret, err := createDockerSecret(quayUsername)
+	dockerSecret, err := createDockerSecret(quayUsername, names["cicd"])
 	if err != nil {
 		return err
 	}
 	outputs = append(outputs, dockerSecret)
 
-	tasks := tasks.Generate(githubAuth.GetName())
+	tasks := tasks.Generate(githubAuth.GetName(), names["cicd"])
 	for _, task := range tasks {
 		outputs = append(outputs, task)
 	}
 
-	eventListener := eventlisteners.Generate(baseRepo)
+	eventListener := eventlisteners.Generate(baseRepo, names["cicd"])
 	outputs = append(outputs, eventListener)
 
 	route := routes.Generate()
@@ -82,8 +82,8 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	outputs = append(outputs, sa)
 	role := createRole(roleName, rules)
 	outputs = append(outputs, role)
-	outputs = append(outputs, createRoleBinding(roleBindingName, &sa, role.Kind, role.Name))
-	outputs = append(outputs, createRoleBinding("edit-clusterrole-binding", &sa, "ClusterRole", "edit"))
+	outputs = append(outputs, createRoleBinding(namespacedName(roleBindingName, names["ci-cd"]), sa, role.Kind, role.Name))
+	outputs = append(outputs, createRoleBinding(namespacedName("edit-clusterrole-binding", ""), sa, "ClusterRole", "edit"))
 
 	// Marshall
 	for _, r := range outputs {
@@ -98,7 +98,7 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 }
 
 // createGithubSecret creates Github secret
-func createGithubSecret() (*corev1.Secret, error) {
+func createGithubSecret(ns string) (*corev1.Secret, error) {
 	tokenPath, err := pathToDownloadedFile("token")
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate path to file: %w", err)
@@ -109,7 +109,7 @@ func createGithubSecret() (*corev1.Secret, error) {
 	}
 	defer f.Close()
 
-	githubAuth, err := createOpaqueSecret("github-auth", f)
+	githubAuth, err := createOpaqueSecret(namespacedName("github-auth", ns), f)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func createGithubSecret() (*corev1.Secret, error) {
 }
 
 // createDockerSecret creates Docker secret
-func createDockerSecret(quayUsername string) (*corev1.Secret, error) {
+func createDockerSecret(quayUsername, ns string) (*corev1.Secret, error) {
 	authJSONPath, err := pathToDownloadedFile(quayUsername + "-auth.json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate path to file: %w", err)
@@ -130,7 +130,7 @@ func createDockerSecret(quayUsername string) (*corev1.Secret, error) {
 	}
 	defer f.Close()
 
-	dockerSecret, err := createDockerConfigSecret(dockerSecretName, f)
+	dockerSecret, err := createDockerConfigSecret(namespacedName(dockerSecretName, ns), f)
 	if err != nil {
 		return nil, err
 	}
@@ -149,4 +149,13 @@ func checkTektonInstall() (bool, error) {
 		return false, err
 	}
 	return tektonChecker.checkInstall()
+}
+
+func values(m map[string]string) []string {
+	values := []string{}
+	for _, v := range m {
+		values = append(values, v)
+
+	}
+	return values
 }
