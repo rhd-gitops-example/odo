@@ -37,7 +37,7 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 
 	outputs := make([]interface{}, 0)
 
-	tokenPath, err := getTokenFileName(o)
+	tokenPath, err := homedir.Expand(o.TokenFilename)
 	if err != nil {
 		return fmt.Errorf("failed to generate token path to file: %w", err)
 	}
@@ -90,15 +90,6 @@ func pathToDownloadedFile(fname string) (string, error) {
 	return homedir.Expand(path.Join("~/Downloads/", fname))
 }
 
-//to get the github token file name
-func getTokenFileName(o *BootstrapOptions) (string, error) {
-	if o.TokenFilename == DefaultTokenFilename {
-		return pathToDownloadedFile("token")
-	}
-	return homedir.Expand(o.TokenFilename)
-}
-
-// to get the quay file name
 func getQuayIOAuthFileName(quayUsername string, o *BootstrapOptions) (string, error) {
 
 	if o.QuayIOAuthFilename == DefaultQuayIOAuthFilename {
