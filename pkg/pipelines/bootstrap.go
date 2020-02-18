@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
@@ -13,17 +12,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// DefaultTokenFileName is the default token file name
-var DefaultTokenFileName string = "~/Downloads/token/token.txt"
-
-// DefaultQuayIOAuthFileName is the default auth file name
-var DefaultQuayIOAuthFileName string = "~/Downloads/<username>-auth.json"
+var DefaultTokenFilename string = "~/Downloads/token"
+var DefaultQuayIOAuthFilename string = "~/Downloads/<username>-auth.json"
 
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
 	Prefix             string
-	TokenFileName      string
-	QuayIOAuthFileName string
+	TokenFilename      string
+	QuayIOAuthFilename string
 }
 
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
@@ -91,30 +87,24 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 }
 
 func pathToDownloadedFile(fname string) (string, error) {
-	return homedir.Expand(path.Join("~", fname))
+	return homedir.Expand(path.Join("~/Downloads/", fname))
 }
 
 //to get the github token file name
 func getTokenFileName(o *BootstrapOptions) (string, error) {
-	if o.TokenFileName == DefaultTokenFileName {
-		return pathToDownloadedFile("/Downloads/token")
+	if o.TokenFilename == DefaultTokenFilename {
+		return pathToDownloadedFile("token")
 	}
-	if strings.HasPrefix(o.TokenFileName, "~") {
-		return pathToDownloadedFile(string(o.TokenFileName[1:]))
-	}
-	return o.TokenFileName, nil
+	return homedir.Expand(o.TokenFilename)
 }
 
 // to get the quay file name
 func getQuayIOAuthFileName(quayUsername string, o *BootstrapOptions) (string, error) {
 
-	if o.QuayIOAuthFileName == DefaultQuayIOAuthFileName {
-		return pathToDownloadedFile("/Downloads/" + quayUsername + "-auth.json")
+	if o.QuayIOAuthFilename == DefaultQuayIOAuthFilename {
+		return pathToDownloadedFile(quayUsername + "-auth.json")
 	}
-	if strings.HasPrefix(o.QuayIOAuthFileName, "~") {
-		return pathToDownloadedFile(string(o.QuayIOAuthFileName[1:]))
-	}
-	return o.QuayIOAuthFileName, nil
+	return homedir.Expand(o.QuayIOAuthFilename)
 
 }
 

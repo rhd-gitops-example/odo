@@ -32,8 +32,8 @@ type BootstrapOptions struct {
 	quayUsername       string
 	baseRepo           string // e.g. tekton/triggers
 	prefix             string // used to generate the environments in a shared cluster
-	tokenFileName      string // filename to GitHub auth token
-	quayIOAuthFileName string //filename for quay IO auth json
+	tokenFilename      string
+	quayIOAuthFilename string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -70,8 +70,8 @@ func (bo *BootstrapOptions) Validate() error {
 func (bo *BootstrapOptions) Run() error {
 	options := pipelines.BootstrapOptions{
 		Prefix:             bo.prefix,
-		QuayIOAuthFileName: bo.quayIOAuthFileName,
-		TokenFileName:      bo.tokenFileName,
+		QuayIOAuthFilename: bo.quayIOAuthFilename,
+		TokenFilename:      bo.tokenFilename,
 	}
 	return pipelines.Bootstrap(bo.quayUsername, bo.baseRepo, &options)
 }
@@ -92,7 +92,7 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	}
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	bootstrapCmd.Flags().StringVarP(&o.tokenFileName, "github-token", "", bootstrap.DefaultTokenFileName, "filename for GitHub auth token")
-	bootstrapCmd.Flags().StringVarP(&o.quayIOAuthFileName, "quay-io-auth-json", "", bootstrap.DefaultQuayIOAuthFileName, "filename for quay IO auth json")
+	bootstrapCmd.Flags().StringVarP(&o.tokenFilename, "github-token", "", bootstrap.DefaultTokenFilename, "filename for GitHub auth token")
+	bootstrapCmd.Flags().StringVarP(&o.quayIOAuthFilename, "quay-io-auth-json", "", bootstrap.DefaultQuayIOAuthFilename, "filename for quay IO auth json")
 	return bootstrapCmd
 }
