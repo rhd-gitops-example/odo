@@ -12,19 +12,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var DefaultTokenFilename string = "~/Downloads/token"
-var DefaultQuayIOAuthFilename string = "~/Downloads/<username>-auth.json"
-
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
-	Prefix             string
-	TokenFilename      string
-	QuayIOAuthFilename string
+	Prefix string
 }
 
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
-func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
+func Bootstrap(quayUsername, baseRepo, githubToken, quayIOAuthFilename string, o *BootstrapOptions) error {
 
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
@@ -37,28 +32,18 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 
 	outputs := make([]interface{}, 0)
 
-	tokenPath, err := homedir.Expand(o.TokenFilename)
-	if err != nil {
-		return fmt.Errorf("failed to generate token path to file: %w", err)
-	}
-	f, err := os.Open(tokenPath)
-	if err != nil {
-		return fmt.Errorf("failed to open path to TokenFileName: %w", err)
-	}
-	defer f.Close()
-
-	githubAuth, err := createOpaqueSecret("github-auth", f)
+	githubAuth, err := createOpaqueSecret("github-auth", githubToken)
 	if err != nil {
 		return err
 	}
 	outputs = append(outputs, githubAuth)
 
-	authJSONPath, err := getQuayIOAuthFileName(quayUsername, o)
+	authJSONPath, err := homedir.Expand(quayIOAuthFilename)
 	if err != nil {
 		return fmt.Errorf("failed to generate path to file: %w", err)
 	}
 
-	f, err = os.Open(authJSONPath)
+	f, err := os.Open(authJSONPath)
 	if err != nil {
 		return fmt.Errorf("failed to open path authJSON : %w", err)
 	}
@@ -88,15 +73,6 @@ func Bootstrap(quayUsername, baseRepo string, o *BootstrapOptions) error {
 
 func pathToDownloadedFile(fname string) (string, error) {
 	return homedir.Expand(path.Join("~/Downloads/", fname))
-}
-
-func getQuayIOAuthFileName(quayUsername string, o *BootstrapOptions) (string, error) {
-
-	if o.QuayIOAuthFilename == DefaultQuayIOAuthFilename {
-		return pathToDownloadedFile(quayUsername + "-auth.json")
-	}
-	return homedir.Expand(o.QuayIOAuthFilename)
-
 }
 
 // create and invoke a Tekton Checker
