@@ -1,18 +1,17 @@
 package triggers
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestCreateDevCDDeployTemplate(t *testing.T) {
 	validDevCDTemplate := triggersv1.TriggerTemplate{
-
 		TypeMeta: v1.TypeMeta{
 			Kind:       "TriggerTemplate",
 			APIVersion: "tekton.dev/v1alpha1",
@@ -37,7 +36,7 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
 				triggersv1.TriggerResourceTemplate{
-					RawExtension: createResourcetemplate(),
+					RawMessage: createResourcetemplate(),
 				},
 			},
 		},
@@ -49,9 +48,9 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 	}
 }
 
-func createResourcetemplate() runtime.RawExtension {
-	return runtime.RawExtension{
-		Raw: byte(`{
+func createResourcetemplate() json.RawMessage {
+	return json.RawMessage(
+		[]byte(`{
 			"apiVersion": "tekton.dev/v1alpha1"
 			"kind": "PipelineRun",
 			"metadata":
@@ -77,6 +76,5 @@ func createResourcetemplate() runtime.RawExtension {
 						value: REPLACE_IMAGE:$(params.gitref)}}
 		
 		
-		}`),
-	}
+		}`))
 }
