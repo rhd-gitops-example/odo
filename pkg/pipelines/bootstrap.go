@@ -9,6 +9,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/openshift/odo/pkg/pipelines/routes"
+	"github.com/openshift/odo/pkg/pipelines/tasks"
 	"sigs.k8s.io/yaml"
 )
 
@@ -55,10 +56,15 @@ func Bootstrap(quayUsername, baseRepo, githubToken, quayIOAuthFilename string, o
 	}
 	outputs = append(outputs, dockerSecret)
 
-	eventListener := eventlisteners.GenerateEventListener(baseRepo)
+	tasks := tasks.Generate(githubAuth.GetName())
+	for _, task := range tasks {
+		outputs = append(outputs, task)
+	}
+
+	eventListener := eventlisteners.Generate(baseRepo)
 	outputs = append(outputs, eventListener)
 
-	route := routes.GenerateRoute()
+	route := routes.Generate()
 	outputs = append(outputs, route)
 
 	for _, r := range outputs {
