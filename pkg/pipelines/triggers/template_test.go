@@ -78,3 +78,123 @@ func createResourcetemplate() json.RawMessage {
 		
 		}`))
 }
+
+func TestCreatedevCIBuildPRTemplate(t *testing.T) {
+	validdevCIPRTemplate := triggersv1.TriggerTemplate{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "TriggerBinding",
+			APIVersion: "tekton.dev/v1alpha1",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: "dev-ci-build-from-pr-Template",
+		},
+
+		Spec: triggersv1.TriggerTemplateSpec{
+			Params: []pipelinev1.ParamSpec{
+				pipelinev1.ParamSpec{
+					name:        "gitref",
+					description: "The git branch for this PR",
+				},
+				pipelinev1.ParamSpec{
+					name:        "gitsha",
+					description: "the specific commit SHA.",
+				},
+				pipelinev1.ParamSpec{
+					name:        "gitrepositoryurl",
+					description: "The git repository url",
+				},
+
+				pipelinev1.ParamSpec{
+					name:        "fullname",
+					description: "The GitHub repository for this PullRequest.",
+				},
+			},
+			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createResourcetemplate(),
+				},
+			},
+		},
+	}
+	template := CreatedevCIBuildPRTemplate()
+	if diff := cmp.Diff(validDevCDTemplate, template); diff != "" {
+		t.Fatalf("CreatedevCIBuildPRTemplate failed:\n%s", diff)
+	}
+}
+
+func TestCreateCDPushTemplate(t *testing.T) {
+	ValidDevCDPushTemplate := triggersv1.TriggerTemplate{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "TriggerBinding",
+			APIVersion: "tekton.dev/v1alpha1",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: "stage-cd-deploy-from-push-template",
+		},
+		Spec: triggersv1.TriggerTemplateSpec{
+			Params: []pipelinev1.ParamSpec{
+				pipelinev1.ParamSpec{
+					Name:        "gitref",
+					Description: "The git revision",
+					Default: &pipelinev1.ArrayOrString{
+						StringVal: "master",
+					},
+				},
+				pipelinev1.ParamSpec{
+					Name:        "gitrepositoryurl",
+					Description: "The git repository url",
+				},
+			},
+			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createResourcetemplate(),
+				},
+			},
+		},
+	}
+}
+
+func TestcreateCIdryrunptemplate(t *testing.T) {
+	validdevCIdryrunTemplate := triggersv1.TriggerTemplate{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "TriggerBinding",
+			APIVersion: "tekton.dev/v1alpha1",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: "stage-ci-dryrun-from-pr-templatee",
+		},
+
+		Spec: triggersv1.TriggerTemplateSpec{
+			Params: []pipelinev1.ParamSpec{
+				Params: []pipelinev1.ParamSpec{
+					pipelinev1.ParamSpec{
+						Name:        "gitref",
+						Description: "The git revision",
+						Default: &pipelinev1.ArrayOrString{
+							StringVal: "master",
+						},
+					},
+					pipelinev1.ParamSpec{
+						Name:        "gitrepositoryurl",
+						Description: "The git repository url",
+					},
+				},
+			},
+			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createResourcetemplate(),
+				},
+			},
+		},
+	}
+	template := createCIdryrunptemplate()
+	if diff := cmp.Diff(validDevCDTemplate, template); diff != "" {
+		t.Fatalf("createCIdryrunptemplate failed:\n%s", diff)
+	}
+
+}
+
+func CreatePipelineRun() pipelinev1.PipelineRun {
+	return pipelinev1.PipelineRun{}
+
+}
