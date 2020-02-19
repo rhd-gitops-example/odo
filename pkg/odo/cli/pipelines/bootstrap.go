@@ -85,14 +85,13 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	}
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	bootstrapCmd.Flags().StringVarP(&o.quayUsername, "quay-username", "", "", "provide the quay username")
+	bootstrapCmd.Flags().StringVar(&o.quayUsername, "quay-username", "", "provide the quay username")
 	bootstrapCmd.MarkFlagRequired("quay-username")
-	bootstrapCmd.Flags().StringVarP(&o.githubToken, "github-token", "", "", "provide the github token")
+	bootstrapCmd.Flags().StringVar(&o.githubToken, "github-token", "", "provide the github token")
 	bootstrapCmd.MarkFlagRequired("github-token")
-	bootstrapCmd.Flags().StringVarP(&o.quayIOAuthFilename, "dockerconfigjson", "", "", "filename for quay IO auth json")
+	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "filename for quay IO auth json")
 	bootstrapCmd.MarkFlagRequired("dockerconfigjson")
-	bootstrapCmd.Flags().StringVarP(&o.baseRepo, "base-repository", "", "", "provide the base repository")
+	bootstrapCmd.Flags().StringVar(&o.baseRepo, "base-repository", "", "provide the base repository")
 	bootstrapCmd.MarkFlagRequired("base-repository")
-
 	return bootstrapCmd
 }

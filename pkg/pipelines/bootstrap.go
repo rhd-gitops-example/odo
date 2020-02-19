@@ -40,12 +40,12 @@ func Bootstrap(quayUsername, baseRepo, githubToken, quayIOAuthFilename string, o
 
 	authJSONPath, err := homedir.Expand(quayIOAuthFilename)
 	if err != nil {
-		return fmt.Errorf("failed to generate path to file: %w", err)
+		return fmt.Errorf("failed to expand the path %s: %w", authJSONPath, err)
 	}
 
 	f, err := os.Open(authJSONPath)
 	if err != nil {
-		return fmt.Errorf("failed to open path authJSON : %w", err)
+		return fmt.Errorf("failed to expand the path %s: %w", authJSONPath, err)
 	}
 	defer f.Close()
 
