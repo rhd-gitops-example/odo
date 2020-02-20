@@ -7,7 +7,7 @@ import (
 const devCIPipelineName = "dev-ci-pipeline"
 
 // createCIPipeline creates the dev-ci-pipeline.
-func createCIPipeline() *pipelinev1.Pipeline {
+func createDevCIPipeline() *pipelinev1.Pipeline {
 	typeMeta := createTypeMeta("Pipeline", "tekton.dev/v1alpha1")
 	objectMeta := createObjectMeta(devCIPipelineName)
 	return &pipelinev1.Pipeline{
@@ -28,6 +28,23 @@ func createCIPipeline() *pipelinev1.Pipeline {
 				createGitHubStatusTask("create-pending-status", "", "pending", "Starting dev-ci-pipeline"),
 				createBuildImageTask("build-image"),
 				createGitHubStatusTask("create-success-status", "build-image", "success", "Completed dev-ci-pipeline"),
+			},
+		},
+	}
+}
+
+func createStageCIPipeline() *pipelinev1.Pipeline {
+	return &pipelinev1.Pipeline{
+		TypeMeta:   createTypeMeta("Pipeline", "tekton.dev/v1alpha1"),
+		ObjectMeta: createObjectMeta("stage-ci-pipeline"),
+		Spec: pipelinev1.PipelineSpec{
+
+			Resources: []pipelinev1.PipelineDeclaredResource{
+				createPipelineDeclaredResource("source-repo", "git"),
+			},
+
+			Tasks: []pipelinev1.PipelineTask{
+				createStageCIPipelineTask("apply-source"),
 			},
 		},
 	}
@@ -59,6 +76,34 @@ func createGitHubStatusTask(name, runAfter, state, description string) pipelinev
 	return t
 }
 
+func createBuildImageTask(name string) pipelinev1.PipelineTask {
+	return pipelinev1.PipelineTask{
+		Name:     name,
+		TaskRef:  createTaskRef("buildah-task"),
+		RunAfter: []string{"create-pending-status"},
+		Resources: &pipelinev1.PipelineTaskResources{
+			Inputs:  []pipelinev1.PipelineTaskInputResource{createInputTaskResource("source", "source-repo")},
+			Outputs: []pipelinev1.PipelineTaskOutputResource{createOutputTaskResource("image", "runtime-image")},
+		},
+	}
+
+}
+
+func createStageCIPipelineTask(name string) pipelinev1.PipelineTask {
+	return pipelinev1.PipelineTask{
+		Name:    name,
+		TaskRef: createTaskRef("deploy-from-source-task"),
+		Resources: &pipelinev1.PipelineTaskResources{
+			Inputs: []pipelinev1.PipelineTaskInputResource{createInputTaskResource("source", "source-repo")},
+		},
+		Params: []pipelinev1.Param{
+			createTaskParam("NAMESPACE", "ENV_PREFIX-stage-environment"),
+			createTaskParam("DRYRUN", "true"),
+		},
+	}
+
+}
+
 func createTaskParam(name, value string) pipelinev1.Param {
 	return pipelinev1.Param{
 		Name: name,
@@ -74,19 +119,6 @@ func createTaskRef(name string) *pipelinev1.TaskRef {
 	return &pipelinev1.TaskRef{
 		Name: name,
 	}
-}
-
-func createBuildImageTask(name string) pipelinev1.PipelineTask {
-	return pipelinev1.PipelineTask{
-		Name:     name,
-		TaskRef:  createTaskRef("buildah-task"),
-		RunAfter: []string{"create-pending-status"},
-		Resources: &pipelinev1.PipelineTaskResources{
-			Inputs:  []pipelinev1.PipelineTaskInputResource{createInputTaskResource("source", "source-repo")},
-			Outputs: []pipelinev1.PipelineTaskOutputResource{createOutputTaskResource("image", "runtime-image")},
-		},
-	}
-
 }
 
 func createInputTaskResource(name string, resource string) pipelinev1.PipelineTaskInputResource {

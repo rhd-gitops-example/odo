@@ -9,8 +9,8 @@ import (
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 )
 
-func TestCreateCIPipeline(t *testing.T) {
-	pipeline := createCIPipeline()
+func TestCreateDevCIPipeline(t *testing.T) {
+	DevCIpipeline := createDevCIPipeline()
 
 	want := &pipelinev1.Pipeline{
 		TypeMeta: metav1.TypeMeta{
@@ -92,7 +92,52 @@ func TestCreateCIPipeline(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(want, pipeline); diff != "" {
-		t.Fatalf("createCIPipeline() failed got\n%s", diff)
+	if diff := cmp.Diff(want, DevCIpipeline); diff != "" {
+		t.Fatalf("TestCreateDevCIPipeline() failed got\n%s", diff)
 	}
+}
+
+func TestCreateStageCIPipeline(t *testing.T) {
+	stageCIpipeline := createStageCIPipeline()
+	want := &pipelinev1.Pipeline{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pipeline",
+			APIVersion: "tekton.dev/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "stage-ci-pipeline",
+		},
+		Spec: pipelinev1.PipelineSpec{
+			Resources: []pipelinev1.PipelineDeclaredResource{
+				pipelinev1.PipelineDeclaredResource{
+					Name: "source-repo",
+					Type: "git",
+				},
+			},
+
+			Tasks: []pipelinev1.PipelineTask{
+				pipelinev1.PipelineTask{
+					Name: "apply-source",
+					TaskRef: &pipelinev1.TaskRef{
+						Name: "deploy-from-source-task",
+					},
+					Resources: &pipelinev1.PipelineTaskResources{
+						Inputs: []pipelinev1.PipelineTaskInputResource{
+							{Name: "source",
+								Resource: "source-repo"},
+						},
+					},
+					Params: []pipelinev1.Param{
+						{Name: "NAMESPACE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "ENV_PREFIX-stage-environment"}},
+						{Name: "DRYRUN", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "true"}},
+					},
+				},
+			},
+		},
+	}
+
+	if diff := cmp.Diff(want, stageCIpipeline); diff != "" {
+		t.Fatalf("TestcreateStageCIPipeline() failed got\n%s", diff)
+	}
+
 }
