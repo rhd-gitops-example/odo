@@ -8,20 +8,79 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateDevCDDeployTemplate() *triggersv1.TriggerTemplate {
-	return &triggersv1.TriggerTemplate{
+func createDevCDDeployTemplate() triggersv1.TriggerTemplate {
+	return triggersv1.TriggerTemplate{
 		TypeMeta:   createTriggerTemplateMeta(),
 		ObjectMeta: createObjectMeta("dev-cd-deploy-from-master-Template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
-				pipelinev1.ParamSpec{
-					createTemplateParamSpec("gitref", "The git revision", "master"),
-					createTemplateParamSpec("gitrepositoryurl", "the git repository url"),
-				},
+
+				createTemplateParamSpecDefault("gitref", "The git revision", "master"),
+				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
 				triggersv1.TriggerResourceTemplate{
-					RawMessage: createTemplateResource(),
+					RawMessage: createDevCDResourcetemplate(),
+				},
+			},
+		},
+	}
+}
+
+func createdevCIBuildPRTemplate() triggersv1.TriggerTemplate {
+	return triggersv1.TriggerTemplate{
+		TypeMeta:   createTriggerTemplateMeta(),
+		ObjectMeta: createObjectMeta("dev-ci-build-from-pr-template"),
+		Spec: triggersv1.TriggerTemplateSpec{
+			Params: []pipelinev1.ParamSpec{
+
+				createTemplateParamSpec("gitref", "The git branch for this PR"),
+				createTemplateParamSpec("gitsha", "the specific commit SHA."),
+				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
+				createTemplateParamSpec("fullname", "The GitHub repository for this PullRequest."),
+			},
+			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createDevCIResourceTemplate(),
+				},
+			},
+		},
+	}
+
+}
+
+func createStageCDPushTemplate() triggersv1.TriggerTemplate {
+	return triggersv1.TriggerTemplate{
+		TypeMeta:   createTriggerTemplateMeta(),
+		ObjectMeta: createObjectMeta("stage-cd-deploy-from-push-template"),
+		Spec: triggersv1.TriggerTemplateSpec{
+			Params: []pipelinev1.ParamSpec{
+
+				createTemplateParamSpecDefault("gitref", "The git revision", "master"),
+				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
+			},
+			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createStageCDResourceTemplate(),
+				},
+			},
+		},
+	}
+}
+
+func createStageCIdryrunptemplate() triggersv1.TriggerTemplate {
+	return triggersv1.TriggerTemplate{
+		TypeMeta:   createTriggerTemplateMeta(),
+		ObjectMeta: createObjectMeta("stage-ci-dryrun-from-pr-template"),
+		Spec: triggersv1.TriggerTemplateSpec{
+			Params: []pipelinev1.ParamSpec{
+
+				createTemplateParamSpecDefault("gitref", "The git revision", "master"),
+				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
+			},
+			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createStageCIResourceTemplate(),
 				},
 			},
 		},
@@ -35,7 +94,7 @@ func createTriggerTemplateMeta() v1.TypeMeta {
 	}
 }
 
-func createTemplateParamSpec(name string, description string, value string) triggersv1.ParamSpec {
+func createTemplateParamSpecDefault(name string, description string, value string) pipelinev1.ParamSpec {
 	return pipelinev1.ParamSpec{
 		Name:        name,
 		Description: description,
@@ -45,58 +104,29 @@ func createTemplateParamSpec(name string, description string, value string) trig
 	}
 }
 
-func createTemplateResource() json.RawMessage {
-	return json.RawMessage(
-		[]byte(`{
-			"apiVersion": "tekton.dev/v1alpha1"
-			"kind": "PipelineRun",
-			"metadata":
-			 { "name": "dev-cd-pipeline-run-$(uid)"},
-			"spec":
-			  {{"serviceAccountName": "demo-sa"}
-			  "pipelineRef":
-				{"name": "dev-cd-pipeline"}
-			  "resources":
-				{"name": "source-repo"}
-				  "resourceSpec":
-					{"type": "git"}
-					"params":
-						{"name": "revision"
-						"value": "$(params.gitref)"
-						"name": "url"
-					  	"value": "$(params.gitrepositoryurl)"}
-				"name": "runtime-image"
-				  "resourceSpec":
-					{"type": "image"}
-					"params":
-						{"name": url
-						value: REPLACE_IMAGE:$(params.gitref)}}
-		
-		
-		}`))
-}
-
-func CreatedevCIBuildPRTemplate() triggersv1.TriggerTemplate {
-	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
-		ObjectMeta: createObjectMeta("dev-cd-deploy-from-master-Template"),
-		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []pipelinev1.ParamSpec{
-				pipelinev1.ParamSpec{
-					createTemplateParamSpec("gitref", "The git revision", "master"),
-					createTemplateParamSpec("gitrepositoryurl", "the git repository url"),
-				},
-			},
-			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				triggersv1.TriggerResourceTemplate{
-					RawMessage: createTemplateResource(),
-				},
-			},
-		},
+func createTemplateParamSpec(name string, description string) pipelinev1.ParamSpec {
+	return pipelinev1.ParamSpec{
+		Name:        name,
+		Description: description,
 	}
 
 }
 
-func validdevCIdryrunTemplate() triggersv1.TriggerTemplate {
-	return triggersv1.TriggerTemplate{}
+func createDevCDResourcetemplate() []byte {
+	byteTemplate, _ := json.Marshal(createDevCDPipelineRun())
+	return []byte(string(byteTemplate))
+
+}
+func createDevCIResourceTemplate() []byte {
+	byteTemplateCI, _ := json.Marshal(createDevCIPipelineRun())
+	return []byte(string(byteTemplateCI))
+
+}
+func createStageCDResourceTemplate() []byte {
+	byteStageCD, _ := json.Marshal(createStageCDPipelineRun())
+	return []byte(string(byteStageCD))
+}
+func createStageCIResourceTemplate() []byte {
+	byteStageCI, _ := json.Marshal(createStageCIPipelineRun())
+	return []byte(string(byteStageCI))
 }
