@@ -1,11 +1,9 @@
 package pipelines
 
 import (
-	"bytes"
 	"regexp"
 	"testing"
 
-	util "github.com/openshift/odo/pkg/odo/util"
 	"github.com/spf13/cobra"
 )
 
@@ -75,32 +73,4 @@ func matchError(t *testing.T, s string, e error) bool {
 		t.Fatal(err)
 	}
 	return match
-}
-
-func TestBootstrapCommandWithMissingParams(t *testing.T) {
-	cmdTests := []struct {
-		args    []string
-		wantErr string
-	}{
-		{[]string{}, `Required flag(s) "base-repository", "dockerconfigjson", "github-token", "quay-username" have/has not been set`},
-
-		{[]string{"--base-repository testing/testing --dockerconfigjson testing/test.json --github-token sdfghdfghj --quay-username"}, `Required flag(s) , "quay-username" have/has not been set`},
-	}
-
-	for _, tt := range cmdTests {
-		cmd := NewCmdBootstrap(BootstrapRecommendedCommandName, util.GetFullName("odo", BootstrapRecommendedCommandName))
-		cmd, _, err := executeCommand(cmd)
-
-		if err.Error() != tt.wantErr {
-			t.Errorf("got %s, want %s", err, tt.wantErr)
-		}
-	}
-}
-
-func executeCommand(cmd *cobra.Command, args ...string) (c *cobra.Command, output string, err error) {
-	buf := new(bytes.Buffer)
-	cmd.SetOutput(buf)
-	cmd.SetArgs(args)
-	c, err = cmd.ExecuteC()
-	return c, buf.String(), err
 }
