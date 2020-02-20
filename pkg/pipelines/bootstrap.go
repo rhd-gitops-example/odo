@@ -64,7 +64,7 @@ func Bootstrap(quayUsername, baseRepo, githubToken, quayIOAuthFilename string, o
 	outputs = append(outputs, githubAuth)
 
 	// Create Docker Secret
-	dockerSecret, err := createDockerSecret(quayUsername)
+	dockerSecret, err := createDockerSecret(quayIOAuthFilename)
 	if err != nil {
 		return err
 	}
@@ -92,29 +92,9 @@ func Bootstrap(quayUsername, baseRepo, githubToken, quayIOAuthFilename string, o
 	return marshalOutputs(os.Stdout, outputs)
 }
 
-// createGithubSecret creates Github secret
-func createGithubSecret() (*corev1.Secret, error) {
-	tokenPath, err := pathToDownloadedFile("token")
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate path to file: %w", err)
-	}
-	f, err := os.Open(tokenPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read token file %s due to %w", tokenPath, err)
-	}
-	defer f.Close()
-
-	githubAuth, err := createOpaqueSecret("github-auth", f)
-	if err != nil {
-		return nil, err
-	}
-
-	return githubAuth, nil
-}
-
 // createDockerSecret creates Docker secret
-func createDockerSecret(quayUsername string) (*corev1.Secret, error) {
-	authJSONPath, err := pathToDownloadedFile(quayUsername + "-auth.json")
+func createDockerSecret(quayIOAuthFilename string) (*corev1.Secret, error) {
+	authJSONPath, err := homedir.Expand(quayIOAuthFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate path to file: %w", err)
 	}
