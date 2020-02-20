@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 
 	corev1 "k8s.io/api/core/v1"
 	v1rbac "k8s.io/api/rbac/v1"
@@ -70,14 +69,17 @@ func Bootstrap(quayUsername, baseRepo, githubToken, quayIOAuthFilename string, o
 	}
 	outputs = append(outputs, dockerSecret)
 
+	// Create Tasks
 	tasks := tasks.Generate(githubAuth.GetName())
 	for _, task := range tasks {
 		outputs = append(outputs, task)
 	}
 
+	// Create Event Listener
 	eventListener := eventlisteners.Generate(baseRepo)
 	outputs = append(outputs, eventListener)
 
+	// Create route
 	route := routes.Generate()
 	outputs = append(outputs, route)
 
@@ -94,6 +96,7 @@ func Bootstrap(quayUsername, baseRepo, githubToken, quayIOAuthFilename string, o
 
 // createDockerSecret creates Docker secret
 func createDockerSecret(quayIOAuthFilename string) (*corev1.Secret, error) {
+
 	authJSONPath, err := homedir.Expand(quayIOAuthFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate path to file: %w", err)
@@ -101,7 +104,7 @@ func createDockerSecret(quayIOAuthFilename string) (*corev1.Secret, error) {
 
 	f, err := os.Open(authJSONPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read docker file '%s' due to %w", authJSONPath, err)
+		return nil, fmt.Errorf("failed to read docker file '%s' : %w", authJSONPath, err)
 	}
 	defer f.Close()
 
@@ -113,9 +116,6 @@ func createDockerSecret(quayIOAuthFilename string) (*corev1.Secret, error) {
 	return dockerSecret, nil
 
 }
-func pathToDownloadedFile(fname string) (string, error) {
-	return homedir.Expand(path.Join("~/Downloads/", fname))
-}
 
 // create and invoke a Tekton Checker
 func checkTektonInstall() (bool, error) {
@@ -126,6 +126,7 @@ func checkTektonInstall() (bool, error) {
 	return tektonChecker.checkInstall()
 }
 
+// marshalOutputs marshal outputs to given writer
 func marshalOutputs(out io.Writer, outputs []interface{}) error {
 	for _, r := range outputs {
 		data, err := yaml.Marshal(r)
