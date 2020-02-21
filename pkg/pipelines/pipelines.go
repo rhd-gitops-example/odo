@@ -49,7 +49,7 @@ func createStageCIPipeline(prefix string) *pipelinev1.Pipeline {
 		},
 	}
 }
-func createDevCDPipeline(prefix string, path string) *pipelinev1.Pipeline {
+func createDevCDPipeline(prefix, deploymentPath string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
 		TypeMeta:   createTypeMeta("Pipeline", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("dev-cd-pipeline"),
@@ -65,7 +65,7 @@ func createDevCDPipeline(prefix string, path string) *pipelinev1.Pipeline {
 
 			Tasks: []pipelinev1.PipelineTask{
 				createDevCDBuildImageTask("build-image"),
-				createDevCDDeployImageTask("deploy-image", prefix, path),
+				createDevCDDeployImageTask("deploy-image", prefix, deploymentPath),
 			},
 		},
 	}
@@ -138,7 +138,7 @@ func createDevCDBuildImageTask(name string) pipelinev1.PipelineTask {
 	}
 }
 
-func createDevCDDeployImageTask(name, prefix, path string) pipelinev1.PipelineTask {
+func createDevCDDeployImageTask(name, prefix, deploymentPath string) pipelinev1.PipelineTask {
 	return pipelinev1.PipelineTask{
 		Name:     name,
 		TaskRef:  createTaskRef("deploy-using-kubectl-task"),
@@ -150,7 +150,7 @@ func createDevCDDeployImageTask(name, prefix, path string) pipelinev1.PipelineTa
 			},
 		},
 		Params: []pipelinev1.Param{
-			createTaskParam("PATHTODEPLOYMENT", path+"DEPLOYMENT_PATH"),
+			createTaskParam("PATHTODEPLOYMENT", deploymentPath),
 			createTaskParam("YAMLPATHTOIMAGE", "spec.template.spec.containers[0].image"),
 			createTaskParam("NAMESPACE", prefix+"-dev-environment"),
 		},

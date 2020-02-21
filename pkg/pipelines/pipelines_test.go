@@ -195,7 +195,7 @@ func TestCreateDevCDPipeline(t *testing.T) {
 						},
 					},
 					Params: []pipelinev1.Param{
-						{Name: "PATHTODEPLOYMENT", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "usr/path/DEPLOYMENT_PATH"}},
+						{Name: "PATHTODEPLOYMENT", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "usr/path/"}},
 						{Name: "YAMLPATHTOIMAGE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "spec.template.spec.containers[0].image"}},
 						{Name: "NAMESPACE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "Testprefix-dev-environment"}},
 					},

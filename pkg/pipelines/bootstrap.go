@@ -39,7 +39,7 @@ var (
 
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
-func Bootstrap(quayUsername, baseRepo, prefix string) error {
+func Bootstrap(quayUsername, baseRepo, prefix, deploymentPath string) error {
 
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
@@ -86,6 +86,8 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	outputs = append(outputs, createRoleBinding("edit-clusterrole-binding", &sa, "ClusterRole", "edit"))
 	outputs = append(outputs, createDevCIPipeline())
 	outputs = append(outputs, createStageCIPipeline(prefix))
+	outputs = append(outputs, createDevCDPipeline(prefix, deploymentPath))
+	outputs = append(outputs, createStageCDPipeline(prefix))
 
 	// Marshall
 	for _, r := range outputs {
