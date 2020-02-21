@@ -39,12 +39,16 @@ var (
 
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
-	Prefix string
+	GithubToken      string
+	GitRepo          string
+	Prefix           string
+	QuayAuthFileName string
+	QuayUserName     string
 }
 
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
-func Bootstrap(quayUsername, gitRepo, githubToken, quayIOAuthFilename string, o *BootstrapOptions) error {
+func Bootstrap(o *BootstrapOptions) error {
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
 	if err != nil {
@@ -56,14 +60,14 @@ func Bootstrap(quayUsername, gitRepo, githubToken, quayIOAuthFilename string, o 
 
 	outputs := make([]interface{}, 0)
 
-	githubAuth, err := createOpaqueSecret("github-auth", githubToken)
+	githubAuth, err := createOpaqueSecret("github-auth", o.GithubToken)
 	if err != nil {
 		return err
 	}
 	outputs = append(outputs, githubAuth)
 
 	// Create Docker Secret
-	dockerSecret, err := createDockerSecret(quayIOAuthFilename)
+	dockerSecret, err := createDockerSecret(o.QuayAuthFileName)
 	if err != nil {
 		return err
 	}
@@ -76,7 +80,7 @@ func Bootstrap(quayUsername, gitRepo, githubToken, quayIOAuthFilename string, o 
 	}
 
 	// Create Event Listener
-	eventListener := eventlisteners.Generate(gitRepo)
+	eventListener := eventlisteners.Generate(o.GitRepo)
 	outputs = append(outputs, eventListener)
 
 	// Create route

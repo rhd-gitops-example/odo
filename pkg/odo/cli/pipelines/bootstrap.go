@@ -65,9 +65,13 @@ func (bo *BootstrapOptions) Validate() error {
 // Run runs the project bootstrap command.
 func (bo *BootstrapOptions) Run() error {
 	options := pipelines.BootstrapOptions{
-		Prefix: bo.prefix,
+		GithubToken:      bo.githubToken,
+		GitRepo:          bo.gitRepo,
+		Prefix:           bo.prefix,
+		QuayAuthFileName: bo.quayIOAuthFilename,
+		QuayUserName:     bo.quayUsername,
 	}
-	return pipelines.Bootstrap(bo.quayUsername, bo.gitRepo, bo.githubToken, bo.quayIOAuthFilename, &options)
+	return pipelines.Bootstrap(&options)
 }
 
 // NewCmdBootstrap creates the project bootstrap command.
