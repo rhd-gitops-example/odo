@@ -33,7 +33,7 @@ func createDevCIPipeline() *pipelinev1.Pipeline {
 	}
 }
 
-func createStageCIPipeline() *pipelinev1.Pipeline {
+func createStageCIPipeline(prefix string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
 		TypeMeta:   createTypeMeta("Pipeline", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("stage-ci-pipeline"),
@@ -44,7 +44,45 @@ func createStageCIPipeline() *pipelinev1.Pipeline {
 			},
 
 			Tasks: []pipelinev1.PipelineTask{
-				createStageCIPipelineTask("apply-source"),
+				createStageCIPipelineTask("apply-source", prefix),
+			},
+		},
+	}
+}
+func createDevCDPipeline(prefix string, path string) *pipelinev1.Pipeline {
+	return &pipelinev1.Pipeline{
+		TypeMeta:   createTypeMeta("Pipeline", "tekton.dev/v1alpha1"),
+		ObjectMeta: createObjectMeta("dev-cd-pipeline"),
+		Spec: pipelinev1.PipelineSpec{
+			Resources: []pipelinev1.PipelineDeclaredResource{
+				createPipelineDeclaredResource("source-repo", "git"),
+				createPipelineDeclaredResource("runtime-image", "image"),
+			},
+			Params: []pipelinev1.ParamSpec{
+				createParamSpec("REPO", "string"),
+				createParamSpec("COMMIT_SHA", "string"),
+			},
+
+			Tasks: []pipelinev1.PipelineTask{
+				createDevCDBuildImageTask("build-image"),
+				createDevCDDeployImageTask("deploy-image", prefix, path),
+			},
+		},
+	}
+}
+
+func createStageCDPipeline(prefix string) *pipelinev1.Pipeline {
+	return &pipelinev1.Pipeline{
+		TypeMeta:   createTypeMeta("Pipeline", "tekton.dev/v1alpha1"),
+		ObjectMeta: createObjectMeta("stage-cd-pipeline"),
+		Spec: pipelinev1.PipelineSpec{
+
+			Resources: []pipelinev1.PipelineDeclaredResource{
+				createPipelineDeclaredResource("source-repo", "git"),
+			},
+
+			Tasks: []pipelinev1.PipelineTask{
+				createStageCDPipelineTask("apply-source", prefix),
 			},
 		},
 	}
@@ -89,7 +127,37 @@ func createBuildImageTask(name string) pipelinev1.PipelineTask {
 
 }
 
-func createStageCIPipelineTask(name string) pipelinev1.PipelineTask {
+func createDevCDBuildImageTask(name string) pipelinev1.PipelineTask {
+	return pipelinev1.PipelineTask{
+		Name:    name,
+		TaskRef: createTaskRef("buildah-task"),
+		Resources: &pipelinev1.PipelineTaskResources{
+			Inputs:  []pipelinev1.PipelineTaskInputResource{createInputTaskResource("source", "source-repo")},
+			Outputs: []pipelinev1.PipelineTaskOutputResource{createOutputTaskResource("image", "runtime-image")},
+		},
+	}
+}
+
+func createDevCDDeployImageTask(name, prefix, path string) pipelinev1.PipelineTask {
+	return pipelinev1.PipelineTask{
+		Name:     name,
+		TaskRef:  createTaskRef("deploy-using-kubectl-task"),
+		RunAfter: []string{"build-image"},
+		Resources: &pipelinev1.PipelineTaskResources{
+			Inputs: []pipelinev1.PipelineTaskInputResource{
+				createInputTaskResource("source", "source-repo"),
+				createInputTaskResource("image", "runtime-image"),
+			},
+		},
+		Params: []pipelinev1.Param{
+			createTaskParam("PATHTODEPLOYMENT", path+"DEPLOYMENT_PATH"),
+			createTaskParam("YAMLPATHTOIMAGE", "spec.template.spec.containers[0].image"),
+			createTaskParam("NAMESPACE", prefix+"-dev-environment"),
+		},
+	}
+}
+
+func createStageCIPipelineTask(name, prefix string) pipelinev1.PipelineTask {
 	return pipelinev1.PipelineTask{
 		Name:    name,
 		TaskRef: createTaskRef("deploy-from-source-task"),
@@ -97,8 +165,22 @@ func createStageCIPipelineTask(name string) pipelinev1.PipelineTask {
 			Inputs: []pipelinev1.PipelineTaskInputResource{createInputTaskResource("source", "source-repo")},
 		},
 		Params: []pipelinev1.Param{
-			createTaskParam("NAMESPACE", "ENV_PREFIX-stage-environment"),
+			createTaskParam("NAMESPACE", prefix+"-stage-environment"),
 			createTaskParam("DRYRUN", "true"),
+		},
+	}
+
+}
+
+func createStageCDPipelineTask(name, prefix string) pipelinev1.PipelineTask {
+	return pipelinev1.PipelineTask{
+		Name:    name,
+		TaskRef: createTaskRef("deploy-from-source-task"),
+		Resources: &pipelinev1.PipelineTaskResources{
+			Inputs: []pipelinev1.PipelineTaskInputResource{createInputTaskResource("source", "source-repo")},
+		},
+		Params: []pipelinev1.Param{
+			createTaskParam("NAMESPACE", prefix+"-stage-environment"),
 		},
 	}
 

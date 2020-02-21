@@ -84,6 +84,8 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 	outputs = append(outputs, role)
 	outputs = append(outputs, createRoleBinding(roleBindingName, &sa, role.Kind, role.Name))
 	outputs = append(outputs, createRoleBinding("edit-clusterrole-binding", &sa, "ClusterRole", "edit"))
+	outputs = append(outputs, createDevCIPipeline())
+	outputs = append(outputs, createStageCIPipeline(prefix))
 
 	// Marshall
 	for _, r := range outputs {
