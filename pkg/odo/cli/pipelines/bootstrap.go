@@ -29,7 +29,7 @@ var (
 // command.
 type BootstrapOptions struct {
 	quayUsername       string
-	baseRepo           string // e.g. tekton/triggers
+	gitRepo            string // e.g. tekton/triggers
 	prefix             string // used to generate the environments in a shared cluster
 	githubToken        string
 	quayIOAuthFilename string
@@ -56,8 +56,8 @@ func (bo *BootstrapOptions) Complete(name string, cmd *cobra.Command, args []str
 // Validate validates the parameters of the BootstrapOptions.
 func (bo *BootstrapOptions) Validate() error {
 	// TODO: this won't work with GitLab as the repo can have more path elements.
-	if len(strings.Split(bo.baseRepo, "/")) != 2 {
-		return fmt.Errorf("repo must be org/repo: %s", bo.baseRepo)
+	if len(strings.Split(bo.gitRepo, "/")) != 2 {
+		return fmt.Errorf("repo must be org/repo: %s", bo.gitRepo)
 	}
 	return nil
 }
@@ -67,7 +67,7 @@ func (bo *BootstrapOptions) Run() error {
 	options := pipelines.BootstrapOptions{
 		Prefix: bo.prefix,
 	}
-	return pipelines.Bootstrap(bo.quayUsername, bo.baseRepo, bo.githubToken, bo.quayIOAuthFilename, &options)
+	return pipelines.Bootstrap(bo.quayUsername, bo.gitRepo, bo.githubToken, bo.quayIOAuthFilename, &options)
 }
 
 // NewCmdBootstrap creates the project bootstrap command.
@@ -85,13 +85,13 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	}
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	bootstrapCmd.Flags().StringVar(&o.quayUsername, "quay-username", "", "provide the Quay username")
+	bootstrapCmd.Flags().StringVar(&o.quayUsername, "quay-username", "", "Image registry username")
 	bootstrapCmd.MarkFlagRequired("quay-username")
 	bootstrapCmd.Flags().StringVar(&o.githubToken, "github-token", "", "provide the Github token")
 	bootstrapCmd.MarkFlagRequired("github-token")
-	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "filename for Quay.IO auth json")
+	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "Docker configuration json filename")
 	bootstrapCmd.MarkFlagRequired("dockerconfigjson")
-	bootstrapCmd.Flags().StringVar(&o.baseRepo, "base-repository", "", "provide the base repository")
-	bootstrapCmd.MarkFlagRequired("base-repository")
+	bootstrapCmd.Flags().StringVar(&o.gitRepo, "git-repository", "", "provide the base repository")
+	bootstrapCmd.MarkFlagRequired("git-repository")
 	return bootstrapCmd
 }

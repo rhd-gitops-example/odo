@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: set up for complete BootstrapOptions instead of just prefix.
 func TestCompleteBootstrapOptions(t *testing.T) {
 	completeTests := []struct {
 		name       string
@@ -26,7 +25,7 @@ func TestCompleteBootstrapOptions(t *testing.T) {
 		err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
 
 		if err != nil {
-			t.Fatalf("Complete() %#v failed: ", err)
+			t.Errorf("Complete() %#v failed: ", err)
 		}
 
 		if o.prefix != tt.wantPrefix {
@@ -35,20 +34,18 @@ func TestCompleteBootstrapOptions(t *testing.T) {
 	}
 }
 
-// TODO: set up for complete BootstrapOptions instead of just prefix.
-
 func TestValidateBootstrapOptions(t *testing.T) {
 	optionTests := []struct {
-		name     string
-		baseRepo string
-		errMsg   string
+		name    string
+		gitRepo string
+		errMsg  string
 	}{
 		{"invalid repo", "test", "repo must be org/repo"},
 		{"valid repo", "test/repo", ""},
 	}
 
 	for _, tt := range optionTests {
-		o := BootstrapOptions{quayUsername: "testing", baseRepo: tt.baseRepo, prefix: "test"}
+		o := BootstrapOptions{quayUsername: "testing", gitRepo: tt.gitRepo, prefix: "test"}
 
 		err := o.Validate()
 
@@ -67,10 +64,10 @@ func TestBootstrapCommandWithMissingParams(t *testing.T) {
 		args    []string
 		wantErr string
 	}{
-		{[]string{"quay-username", "example", "github-token", "abc123", "dockerconfigjson", "~/"}, `Required flag(s) "base-repository" have/has not been set`},
-		{[]string{"quay-username", "example", "github-token", "abc123", "base-repository", "example/repo"}, `Required flag(s) "dockerconfigjson" have/has not been set`},
-		{[]string{"quay-username", "example", "dockerconfigjson", "~/", "base-repository", "example/repo"}, `Required flag(s) "github-token" have/has not been set`},
-		{[]string{"github-token", "abc123", "dockerconfigjson", "~/", "base-repository", "example/repo"}, `Required flag(s) "quay-username" have/has not been set`},
+		{[]string{"quay-username", "example", "github-token", "abc123", "dockerconfigjson", "~/"}, `Required flag(s) "git-repository" have/has not been set`},
+		{[]string{"quay-username", "example", "github-token", "abc123", "git-repository", "example/repo"}, `Required flag(s) "dockerconfigjson" have/has not been set`},
+		{[]string{"quay-username", "example", "dockerconfigjson", "~/", "git-repository", "example/repo"}, `Required flag(s) "github-token" have/has not been set`},
+		{[]string{"github-token", "abc123", "dockerconfigjson", "~/", "git-repository", "example/repo"}, `Required flag(s) "quay-username" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
 		_, _, err := executeCommand(NewCmdBootstrap("bootstrap", "odo pipelines bootstrap"), tt.args...)
