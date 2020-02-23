@@ -33,6 +33,7 @@ type BootstrapOptions struct {
 	prefix             string // used to generate the environments in a shared cluster
 	githubToken        string
 	quayIOAuthFilename string
+	imageRepo          string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -67,6 +68,7 @@ func (bo *BootstrapOptions) Run() error {
 	options := pipelines.BootstrapOptions{
 		GithubToken:      bo.githubToken,
 		GitRepo:          bo.gitRepo,
+		ImageRepo:        bo.imageRepo,
 		Prefix:           bo.prefix,
 		QuayAuthFileName: bo.quayIOAuthFilename,
 		QuayUserName:     bo.quayUsername,
@@ -97,5 +99,7 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.MarkFlagRequired("dockerconfigjson")
 	bootstrapCmd.Flags().StringVar(&o.gitRepo, "git-repository", "", "provide the base repository")
 	bootstrapCmd.MarkFlagRequired("git-repository")
+	bootstrapCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository>")
+	bootstrapCmd.MarkFlagRequired("image-repo")
 	return bootstrapCmd
 }

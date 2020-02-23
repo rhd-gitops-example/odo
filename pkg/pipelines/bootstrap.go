@@ -39,6 +39,7 @@ var (
 
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
+	ImageRepo        string
 	GithubToken      string
 	GitRepo          string
 	Prefix           string
