@@ -1,4 +1,4 @@
-package bindings
+package triggers
 
 import (
 	"testing"
@@ -24,12 +24,14 @@ func TestCreateDevCDDeployBinding(t *testing.T) {
 					Name: "gitref",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.head_commit.id)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.Param{
 					Name: "gitrepositoryurl",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.repository.clone_url)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 			},
@@ -56,24 +58,28 @@ func TestCreateDevCIBuildBinding(t *testing.T) {
 					Name: "gitref",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.pull_request.head.ref)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.Param{
 					Name: "gitsha",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.pull_request.head.sha)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.Param{
 					Name: "gitrepositoryurl",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.repository.clone_url)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.Param{
 					Name: "fullname",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.repository.full_name)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 			},
@@ -100,18 +106,21 @@ func TestCreateStageCDDeployBinding(t *testing.T) {
 					Name: "gitref",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.ref)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.Param{
 					Name: "gitsha",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.commits.0.id)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.Param{
 					Name: "gitrepositoryurl",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.repository.clone_url)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 			},
@@ -138,12 +147,14 @@ func TestCreateStageCIDryRunBinding(t *testing.T) {
 					Name: "gitref",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.pull_request.head.ref)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.Param{
 					Name: "gitrepositoryurl",
 					Value: pipelinev1.ArrayOrString{
 						StringVal: "$(body.repository.clone_url)",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 			},
@@ -160,6 +171,7 @@ func TestCreateBindingParam(t *testing.T) {
 		Name: "gitref",
 		Value: pipelinev1.ArrayOrString{
 			StringVal: "$(body.ref)",
+			Type:      pipelinev1.ParamTypeString,
 		},
 	}
 	bindingParam := createBindingParam("gitref", "$(body.ref)")

@@ -1,4 +1,4 @@
-package templates
+package triggers
 
 import (
 	"encoding/json"
@@ -7,8 +7,8 @@ import (
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
-// Generate will return a slice of trigger templates
-func Generate() []triggersv1.TriggerTemplate {
+// GenerateTemplates will return a slice of trigger templates
+func GenerateTemplates() []triggersv1.TriggerTemplate {
 	return []triggersv1.TriggerTemplate{
 		createDevCDDeployTemplate(),
 		createDevCIBuildPRTemplate(),

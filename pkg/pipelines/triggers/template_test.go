@@ -1,4 +1,4 @@
-package templates
+package triggers
 
 import (
 	"testing"
@@ -19,6 +19,7 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 					Description: "The git revision",
 					Default: &pipelinev1.ArrayOrString{
 						StringVal: "master",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.ParamSpec{
@@ -90,6 +91,7 @@ func TestCreateStageCDPushTemplate(t *testing.T) {
 					Description: "The git revision",
 					Default: &pipelinev1.ArrayOrString{
 						StringVal: "master",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.ParamSpec{
@@ -122,6 +124,7 @@ func TestCreateStageCIdryrunptemplate(t *testing.T) {
 					Description: "The git revision",
 					Default: &pipelinev1.ArrayOrString{
 						StringVal: "master",
+						Type:      pipelinev1.ParamTypeString,
 					},
 				},
 				pipelinev1.ParamSpec{

@@ -1,6 +1,7 @@
 package pipelines
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,10 +10,10 @@ import (
 	v1rbac "k8s.io/api/rbac/v1"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/openshift/odo/pkg/pipelines/bindings"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/openshift/odo/pkg/pipelines/routes"
 	"github.com/openshift/odo/pkg/pipelines/tasks"
+	"github.com/openshift/odo/pkg/pipelines/triggers"
 	"sigs.k8s.io/yaml"
 )
 
@@ -50,13 +51,13 @@ type BootstrapOptions struct {
 // configured with a basic configuration.
 func Bootstrap(o *BootstrapOptions) error {
 	// First, check for Tekton.  We proceed only if Tekton is installed
-	// installed, err := checkTektonInstall()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
-	// }
-	// if !installed {
-	// 	return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
-	// }
+	installed, err := checkTektonInstall()
+	if err != nil {
+		return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
+	}
+	if !installed {
+		return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
+	}
 
 	outputs := make([]interface{}, 0)
 
@@ -77,6 +78,18 @@ func Bootstrap(o *BootstrapOptions) error {
 	tasks := tasks.Generate(githubAuth.GetName())
 	for _, task := range tasks {
 		outputs = append(outputs, task)
+	}
+
+	// Create trigger templates
+	templates := triggers.GenerateTemplates()
+	for _, template := range templates {
+		outputs = append(outputs, template)
+	}
+
+	// Create trigger bindings
+	bindings := triggers.GenerateBindings()
+	for _, binding := range bindings {
+		outputs = append(outputs, binding)
 	}
 
 	// Create Event Listener

@@ -1,4 +1,4 @@
-package templates
+package triggers
 
 import (
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
@@ -102,12 +102,6 @@ func createResourceParams(name string, value string) pipelinev1.ResourceParam {
 }
 func createPipelineRef(name string) *pipelinev1.PipelineRef {
 	return &pipelinev1.PipelineRef{
-		Name: name,
-	}
-}
-
-func createObjectMeta(name string) v1.ObjectMeta {
-	return v1.ObjectMeta{
 		Name: name,
 	}
 }

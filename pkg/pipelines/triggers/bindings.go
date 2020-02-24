@@ -1,4 +1,4 @@
-package bindings
+package triggers
 
 import (
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
@@ -6,8 +6,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Generate returns a slice of trigger bindings
-func Generate() []triggersv1.TriggerBinding {
+// GenerateBindings returns a slice of trigger bindings
+func GenerateBindings() []triggersv1.TriggerBinding {
 	return []triggersv1.TriggerBinding{
 		createDevCDDeployBinding(),
 		createDevCIBuildBinding(),
