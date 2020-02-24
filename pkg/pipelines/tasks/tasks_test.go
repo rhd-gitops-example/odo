@@ -207,28 +207,7 @@ func TestGenerateBuildahTask(t *testing.T) {
 			Inputs:  createInputsForBuildah(),
 			Outputs: createOutputsForBuildah(),
 			TaskSpec: v1alpha2.TaskSpec{
-				Steps: []pipelinev1.Step{
-					pipelinev1.Step{
-						Container: corev1.Container{
-							Name:            "build",
-							Image:           "$(inputs.params.BUILDER_IMAGE)",
-							WorkingDir:      "/workspace/source",
-							Command:         buildCommands,
-							VolumeMounts:    createVolumeMounts(),
-							SecurityContext: createSecurityContext(true),
-						},
-					},
-					pipelinev1.Step{
-						Container: corev1.Container{
-							Name:            "push",
-							Image:           "$(inputs.params.BUILDER_IMAGE)",
-							WorkingDir:      "/workspace/source",
-							Command:         pushCommands,
-							VolumeMounts:    createVolumeMounts(),
-							SecurityContext: createSecurityContext(true),
-						},
-					},
-				},
+				Steps:   createStepsForBuildah(),
 				Volumes: createVolumes("varlibcontainers"),
 			},
 		},
