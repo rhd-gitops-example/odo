@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -11,8 +12,10 @@ import (
 
 // createOpaqueSecret creates a Kubernetes v1/Secret with the provided name and
 // body, and type Opaque.
-func createOpaqueSecret(name apitypes.NamespacedName, in io.Reader) (*corev1.Secret, error) {
-	return createSecret(name, "token", corev1.SecretTypeOpaque, in)
+func createOpaqueSecret(name apitypes.NamespacedName, data string) (*corev1.Secret, error) {
+	r := strings.NewReader(data)
+
+	return createSecret(name, "token", corev1.SecretTypeOpaque, r)
 }
 
 // createDockerConfigSecret creates a Kubernetes v1/Secret with the provided name and

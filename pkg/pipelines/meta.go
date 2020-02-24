@@ -19,9 +19,9 @@ func objectMeta(n apitypes.NamespacedName) metav1.ObjectMeta {
 	}
 }
 
-func namespacedName(name, ns string) apitypes.NamespacedName {
+func namespacedName(ns, name string) apitypes.NamespacedName {
 	return apitypes.NamespacedName{
-		Name:      name,
 		Namespace: ns,
+		Name:      name,
 	}
 }

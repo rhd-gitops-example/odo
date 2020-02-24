@@ -3,8 +3,8 @@ package pipelines
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
-	"path"
 
 	corev1 "k8s.io/api/core/v1"
 	v1rbac "k8s.io/api/rbac/v1"
@@ -37,9 +37,18 @@ var (
 	}
 )
 
+// BootstrapOptions is a struct that provides the optional flags
+type BootstrapOptions struct {
+	GithubToken      string
+	GitRepo          string
+	Prefix           string
+	QuayAuthFileName string
+	QuayUserName     string
+}
+
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
-func Bootstrap(quayUsername, baseRepo, prefix string) error {
+func Bootstrap(o *BootstrapOptions) error {
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
 	if err != nil {
@@ -49,84 +58,60 @@ func Bootstrap(quayUsername, baseRepo, prefix string) error {
 		return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
 	}
 	outputs := make([]interface{}, 0)
-	names := namespaceNames(prefix)
+	names := namespaceNames(o.Prefix)
 	for _, n := range createNamespaces(values(names)) {
 		outputs = append(outputs, n)
 	}
 
-	githubAuth, err := createGithubSecret(names["cicd"])
+	githubAuth, err := createOpaqueSecret(namespacedName(names["cicd"], "github-auth"), o.GithubToken)
 	if err != nil {
 		return fmt.Errorf("failed to generate path to file: %w", err)
 	}
 	outputs = append(outputs, githubAuth)
 
-	dockerSecret, err := createDockerSecret(quayUsername, names["cicd"])
+	// Create Docker Secret
+	dockerSecret, err := createDockerSecret(o.QuayAuthFileName, names["cicd"])
 	if err != nil {
 		return err
 	}
 	outputs = append(outputs, dockerSecret)
 
+	// Create Tasks
 	tasks := tasks.Generate(githubAuth.GetName(), names["cicd"])
 	for _, task := range tasks {
 		outputs = append(outputs, task)
 	}
 
-	eventListener := eventlisteners.Generate(baseRepo, names["cicd"])
+	// Create Event Listener
+	eventListener := eventlisteners.Generate(o.GitRepo, names["cicd"])
 	outputs = append(outputs, eventListener)
 
+	// Create route
 	route := routes.Generate()
 	outputs = append(outputs, route)
 
 	//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
-	sa := createServiceAccount(saName, dockerSecretName)
+	sa := createServiceAccount(namespacedName(names["cicd"], saName), dockerSecretName)
 	outputs = append(outputs, sa)
-	role := createRole(roleName, rules)
+	role := createRole(namespacedName(names["cicd"], roleName), rules)
 	outputs = append(outputs, role)
 	outputs = append(outputs, createRoleBinding(namespacedName(roleBindingName, names["ci-cd"]), sa, role.Kind, role.Name))
 	outputs = append(outputs, createRoleBinding(namespacedName("edit-clusterrole-binding", ""), sa, "ClusterRole", "edit"))
 
-	// Marshall
-	for _, r := range outputs {
-		data, err := yaml.Marshal(r)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%s---\n", data)
-	}
-
-	return nil
-}
-
-// createGithubSecret creates Github secret
-func createGithubSecret(ns string) (*corev1.Secret, error) {
-	tokenPath, err := pathToDownloadedFile("token")
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate path to file: %w", err)
-	}
-	f, err := os.Open(tokenPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read token file %s due to %w", tokenPath, err)
-	}
-	defer f.Close()
-
-	githubAuth, err := createOpaqueSecret(namespacedName("github-auth", ns), f)
-	if err != nil {
-		return nil, err
-	}
-
-	return githubAuth, nil
+	return marshalOutputs(os.Stdout, outputs)
 }
 
 // createDockerSecret creates Docker secret
-func createDockerSecret(quayUsername, ns string) (*corev1.Secret, error) {
-	authJSONPath, err := pathToDownloadedFile(quayUsername + "-auth.json")
+func createDockerSecret(quayIOAuthFilename, ns string) (*corev1.Secret, error) {
+
+	authJSONPath, err := homedir.Expand(quayIOAuthFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate path to file: %w", err)
 	}
 
 	f, err := os.Open(authJSONPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read docker file '%s' due to %w", authJSONPath, err)
+		return nil, fmt.Errorf("failed to read docker file '%s' : %w", authJSONPath, err)
 	}
 	defer f.Close()
 
@@ -137,9 +122,6 @@ func createDockerSecret(quayUsername, ns string) (*corev1.Secret, error) {
 
 	return dockerSecret, nil
 
-}
-func pathToDownloadedFile(fname string) (string, error) {
-	return homedir.Expand(path.Join("~/Downloads/", fname))
 }
 
 // create and invoke a Tekton Checker
@@ -158,4 +140,19 @@ func values(m map[string]string) []string {
 
 	}
 	return values
+}
+
+// marshalOutputs marshal outputs to given writer
+func marshalOutputs(out io.Writer, outputs []interface{}) error {
+	for _, r := range outputs {
+		data, err := yaml.Marshal(r)
+		if err != nil {
+			return fmt.Errorf("failed to marshal data: %w", err)
+		}
+		_, err = fmt.Fprintf(out, "%s---\n", data)
+		if err != nil {
+			return fmt.Errorf("failed to write data: %w", err)
+		}
+	}
+	return nil
 }

@@ -6,11 +6,11 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 )
 
-// createServiceAccount creates a ServiceAccount given saName and secretName
-func createServiceAccount(saName, secretName string) *corev1.ServiceAccount {
+// createServiceAccount creates a ServiceAccount given name and secretName
+func createServiceAccount(name apitypes.NamespacedName, secretName string) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		TypeMeta:   typeMeta("ServiceAccount", "v1"),
-		ObjectMeta: objectMeta(namespacedName(saName, "")),
+		ObjectMeta: objectMeta(name),
 		Secrets: []corev1.ObjectReference{
 			corev1.ObjectReference{Name: secretName},
 		},
@@ -36,11 +36,11 @@ func createRoleBinding(name apitypes.NamespacedName, sa *corev1.ServiceAccount, 
 	}
 }
 
-// createRole creates a Role given a roleName and policyRules
-func createRole(roleName string, policyRules []v1rbac.PolicyRule) *v1rbac.Role {
+// createRole creates a Role given a name and policyRules
+func createRole(name apitypes.NamespacedName, policyRules []v1rbac.PolicyRule) *v1rbac.Role {
 	return &v1rbac.Role{
 		TypeMeta:   typeMeta("Role", "rbac.authorization.k8s.io/v1"),
-		ObjectMeta: objectMeta(namespacedName(roleName, "")),
+		ObjectMeta: objectMeta(name),
 		Rules:      policyRules,
 	}
 }

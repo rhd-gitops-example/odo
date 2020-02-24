@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var baseNames = map[string]string{
+var namespaceBaseNames = map[string]string{
 	"dev":   "dev-environment",
 	"stage": "stage-environment",
 	"cicd":  "cicd-environment",
@@ -23,7 +23,7 @@ func createNamespaces(names []string) []*corev1.Namespace {
 
 func namespaceNames(prefix string) map[string]string {
 	prefixedNames := make(map[string]string)
-	for k, v := range baseNames {
+	for k, v := range namespaceBaseNames {
 		prefixedNames[k] = fmt.Sprintf("%s%s", prefix, v)
 	}
 	return prefixedNames

@@ -12,8 +12,8 @@ import (
 )
 
 func TestCreateOpaqueSecret(t *testing.T) {
-	data := []byte(`abcdefghijklmnop`)
-	secret, err := createOpaqueSecret(namespacedName("github-auth", "cicd"), bytes.NewReader(data))
+	data := "abcdefghijklmnop"
+	secret, err := createOpaqueSecret(namespacedName("cicd", "github-auth"), data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestCreateOpaqueSecret(t *testing.T) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			"token": data,
+			"token": []byte(data),
 		},
 	}
 
@@ -38,9 +38,9 @@ func TestCreateOpaqueSecret(t *testing.T) {
 	}
 }
 
-func TestCreateOpaqueSecretWithErrorReading(t *testing.T) {
+func TestCreateDockerConfigSecretWithErrorReading(t *testing.T) {
 	testErr := errors.New("test failure")
-	_, err := createOpaqueSecret(namespacedName("github-auth", "cicd"), errorReader{testErr})
+	_, err := createDockerConfigSecret(namespacedName("cici", "github-auth"), errorReader{testErr})
 	if !matchError(t, "failed to read .* test failure", err) {
 		t.Fatalf("got an unexpected error: %#v", err)
 	}
@@ -48,7 +48,7 @@ func TestCreateOpaqueSecretWithErrorReading(t *testing.T) {
 
 func TestCreateDockerConfigSecret(t *testing.T) {
 	data := []byte(`abcdefghijklmnop`)
-	secret, err := createDockerConfigSecret(namespacedName("regcred", "cicd"), bytes.NewReader(data))
+	secret, err := createDockerConfigSecret(namespacedName("cicd", "regcred"), bytes.NewReader(data))
 	if err != nil {
 		t.Fatal(err)
 	}

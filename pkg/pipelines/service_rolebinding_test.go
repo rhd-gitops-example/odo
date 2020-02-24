@@ -32,10 +32,10 @@ func TestRoleBinding(t *testing.T) {
 	}
 	sa := &corev1.ServiceAccount{
 		TypeMeta:   typeMeta("ServiceAccount", "v1"),
-		ObjectMeta: objectMeta(namespacedName("demo-sa", "testing")),
+		ObjectMeta: objectMeta(namespacedName("testing", "demo-sa")),
 	}
 	roleBindingTask := createRoleBinding(
-		namespacedName("tekton-triggers-openshift-binding", ""),
+		namespacedName("", "tekton-triggers-openshift-binding"),
 		sa, "Role", "tekton-triggers-openshift-demo")
 	if diff := cmp.Diff(want, roleBindingTask); diff != "" {
 		t.Errorf("TestRoleBinding() failed:\n%s", diff)
@@ -65,7 +65,7 @@ func TestCreateRole(t *testing.T) {
 			},
 		},
 	}
-	roleTask := createRole("tekton-triggers-openshift-demo", rules)
+	roleTask := createRole(namespacedName("", "tekton-triggers-openshift-demo"), rules)
 	if diff := cmp.Diff(roleTask, want); diff != "" {
 		t.Errorf("TestCreateRole() failed:\n%s", diff)
 	}
@@ -86,7 +86,7 @@ func TestServiceAccount(t *testing.T) {
 			},
 		},
 	}
-	servicetask := createServiceAccount("demo-sa", "regcred")
+	servicetask := createServiceAccount(namespacedName("", "demo-sa"), "regcred")
 	if diff := cmp.Diff(servicetask, want); diff != "" {
 		t.Errorf("TestServiceAccount() failed:\n%s", diff)
 	}
