@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	corev1 "k8s.io/api/core/v1"
 	v1rbac "k8s.io/api/rbac/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestRoleBinding(t *testing.T) {
-	roleBinding := v1rbac.RoleBinding{
+	want := &v1rbac.RoleBinding{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "RoleBinding",
 			APIVersion: "rbac.authorization.k8s.io/v1",
@@ -31,18 +32,20 @@ func TestRoleBinding(t *testing.T) {
 		},
 	}
 	sa := &corev1.ServiceAccount{
-		TypeMeta:   createTypeMeta("ServiceAccount", "v1"),
-		ObjectMeta: createObjectMeta("demo-sa"),
+		TypeMeta:   meta.TypeMeta("ServiceAccount", "v1"),
+		ObjectMeta: meta.CreateObjectMeta("testing", "demo-sa"),
 	}
-	roleBindingTask := createRoleBinding("tekton-triggers-openshift-binding", sa, "Role", "tekton-triggers-openshift-demo")
-	if diff := cmp.Diff(roleBinding, roleBindingTask); diff != "" {
-		t.Errorf("GenerateGithubStatusTask() failed:\n%s", diff)
+	roleBindingTask := createRoleBinding(
+		meta.NamespacedName("", "tekton-triggers-openshift-binding"),
+		sa, "Role", "tekton-triggers-openshift-demo")
+	if diff := cmp.Diff(want, roleBindingTask); diff != "" {
+		t.Errorf("TestRoleBinding() failed:\n%s", diff)
 	}
 
 }
 
 func TestCreateRole(t *testing.T) {
-	role := v1rbac.Role{
+	want := &v1rbac.Role{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Role",
 			APIVersion: "rbac.authorization.k8s.io/v1",
@@ -63,16 +66,14 @@ func TestCreateRole(t *testing.T) {
 			},
 		},
 	}
-	roleTask := createRole("tekton-triggers-openshift-demo", rules)
-	if diff := cmp.Diff(role, roleTask); diff != "" {
-		t.Errorf("GenerateGithubStatusTask() failed:\n%s", diff)
+	roleTask := createRole(meta.NamespacedName("", "tekton-triggers-openshift-demo"), rules)
+	if diff := cmp.Diff(roleTask, want); diff != "" {
+		t.Errorf("TestCreateRole() failed:\n%s", diff)
 	}
-
 }
 
-func ServiceAccountTest(t *testing.T) {
-
-	serviceAccount := corev1.ServiceAccount{
+func TestServiceAccount(t *testing.T) {
+	want := &corev1.ServiceAccount{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "ServiceAccount",
 			APIVersion: "v1",
@@ -86,9 +87,8 @@ func ServiceAccountTest(t *testing.T) {
 			},
 		},
 	}
-	servicetask := createServiceAccount("demo-sa", "regcred")
-	if diff := cmp.Diff(servicetask, serviceAccount); diff != "" {
-		t.Errorf("GenerateGithubStatusTask() failed:\n%s", diff)
+	servicetask := createServiceAccount(meta.NamespacedName("", "demo-sa"), "regcred")
+	if diff := cmp.Diff(servicetask, want); diff != "" {
+		t.Errorf("TestServiceAccount() failed:\n%s", diff)
 	}
-
 }
