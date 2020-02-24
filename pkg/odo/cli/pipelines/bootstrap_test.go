@@ -71,15 +71,15 @@ func TestBootstrapCommandWithMissingParams(t *testing.T) {
 	}{
 		{[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
 			flag("dockerconfigjson", "~/"), flag("image-repo", "foo/bar/bar")},
-			`Required flag(s) "git-repository" have/has not been set`},
+			`Required flag(s) "git-repo" have/has not been set`},
 		{[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
-			flag("git-repository", "example/repo"), flag("image-repo", "foo/bar/bar")},
+			flag("git-repo", "example/repo"), flag("image-repo", "foo/bar/bar")},
 			`Required flag(s) "dockerconfigjson" have/has not been set`},
 		{[]keyValuePair{flag("quay-username", "example"), flag("dockerconfigjson", "~/"),
-			flag("git-repository", "example/repo"), flag("image-repo", "foo/bar/bar")},
+			flag("git-repo", "example/repo"), flag("image-repo", "foo/bar/bar")},
 			`Required flag(s) "github-token" have/has not been set`},
 		{[]keyValuePair{flag("github-token", "abc123"), flag("dockerconfigjson", "~/"),
-			flag("git-repository", "example/repo"), flag("image-repo", "foo/bar/bar")},
+			flag("git-repo", "example/repo"), flag("image-repo", "foo/bar/bar")},
 			`Required flag(s) "quay-username" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
