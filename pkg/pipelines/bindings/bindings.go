@@ -1,4 +1,4 @@
-package triggers
+package bindings
 
 import (
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
@@ -6,8 +6,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// GetTriggerBindings returns a slice of trigger bindings
-func GetTriggerBindings() []triggersv1.TriggerBinding {
+// Generate returns a slice of trigger bindings
+func Generate() []triggersv1.TriggerBinding {
 	return []triggersv1.TriggerBinding{
 		createDevCDDeployBinding(),
 		createDevCIBuildBinding(),
@@ -89,6 +89,7 @@ func createBindingParam(name string, value string) pipelinev1.Param {
 		Name: name,
 		Value: pipelinev1.ArrayOrString{
 			StringVal: value,
+			Type:      pipelinev1.ParamTypeString,
 		},
 	}
 }

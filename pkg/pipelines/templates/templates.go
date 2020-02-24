@@ -1,16 +1,25 @@
-package triggers
+package templates
 
 import (
 	"encoding/json"
 
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// Generate will return a slice of trigger templates
+func Generate() []triggersv1.TriggerTemplate {
+	return []triggersv1.TriggerTemplate{
+		createDevCDDeployTemplate(),
+		createDevCIBuildPRTemplate(),
+		createStageCDPushTemplate(),
+		createStageCIdryrunptemplate(),
+	}
+}
 
 func createDevCDDeployTemplate() triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
+		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("dev-cd-deploy-from-master-Template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -27,9 +36,9 @@ func createDevCDDeployTemplate() triggersv1.TriggerTemplate {
 	}
 }
 
-func createdevCIBuildPRTemplate() triggersv1.TriggerTemplate {
+func createDevCIBuildPRTemplate() triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
+		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("dev-ci-build-from-pr-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -51,7 +60,7 @@ func createdevCIBuildPRTemplate() triggersv1.TriggerTemplate {
 
 func createStageCDPushTemplate() triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
+		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("stage-cd-deploy-from-push-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -70,7 +79,7 @@ func createStageCDPushTemplate() triggersv1.TriggerTemplate {
 
 func createStageCIdryrunptemplate() triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
+		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("stage-ci-dryrun-from-pr-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -87,19 +96,13 @@ func createStageCIdryrunptemplate() triggersv1.TriggerTemplate {
 	}
 }
 
-func createTriggerTemplateMeta() v1.TypeMeta {
-	return v1.TypeMeta{
-		Kind:       "TriggerTemplate",
-		APIVersion: "tekton.dev/v1alpha1",
-	}
-}
-
 func createTemplateParamSpecDefault(name string, description string, value string) pipelinev1.ParamSpec {
 	return pipelinev1.ParamSpec{
 		Name:        name,
 		Description: description,
 		Default: &pipelinev1.ArrayOrString{
 			StringVal: value,
+			Type:      pipelinev1.ParamTypeString,
 		},
 	}
 }

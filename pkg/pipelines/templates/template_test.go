@@ -1,4 +1,4 @@
-package triggers
+package templates
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 
 func TestCreateDevCDDeployTemplate(t *testing.T) {
 	validDevCDTemplate := triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
+		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("dev-cd-deploy-from-master-Template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -43,7 +43,7 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 
 func TestCreatedevCIBuildPRTemplate(t *testing.T) {
 	validdevCIPRTemplate := triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
+		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("dev-ci-build-from-pr-template"),
 
 		Spec: triggersv1.TriggerTemplateSpec{
@@ -73,7 +73,7 @@ func TestCreatedevCIBuildPRTemplate(t *testing.T) {
 			},
 		},
 	}
-	template := createdevCIBuildPRTemplate()
+	template := createDevCIBuildPRTemplate()
 	if diff := cmp.Diff(validdevCIPRTemplate, template); diff != "" {
 		t.Fatalf("CreatedevCIBuildPRTemplate failed:\n%s", diff)
 	}
@@ -81,7 +81,7 @@ func TestCreatedevCIBuildPRTemplate(t *testing.T) {
 
 func TestCreateStageCDPushTemplate(t *testing.T) {
 	ValidStageCDPushTemplate := triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
+		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("stage-cd-deploy-from-push-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -112,7 +112,7 @@ func TestCreateStageCDPushTemplate(t *testing.T) {
 
 func TestCreateStageCIdryrunptemplate(t *testing.T) {
 	validStageCIdryrunTemplate := triggersv1.TriggerTemplate{
-		TypeMeta:   createTriggerTemplateMeta(),
+		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("stage-ci-dryrun-from-pr-template"),
 
 		Spec: triggersv1.TriggerTemplateSpec{

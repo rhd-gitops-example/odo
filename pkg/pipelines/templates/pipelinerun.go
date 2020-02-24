@@ -1,17 +1,14 @@
-package triggers
+package templates
 
 import (
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	// triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-
-
-func createDevCDPipelineRun() pipelinev1.PipelineRun{
+func createDevCDPipelineRun() pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
-		TypeMeta: createPipelineRunTypeMeta(),
-		ObjectMeta: createObjectMeta("dev-cd-pipeline-run-$(uid)") ,
+		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		ObjectMeta: createObjectMeta("dev-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
 			PipelineRef:        createPipelineRef("dev-cd-pipeline"),
@@ -22,7 +19,7 @@ func createDevCDPipelineRun() pipelinev1.PipelineRun{
 }
 func createDevCIPipelineRun() pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
-		TypeMeta:   createPipelineRunTypeMeta(),
+		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
 		ObjectMeta: createObjectMeta("dev-ci-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
@@ -33,25 +30,22 @@ func createDevCIPipelineRun() pipelinev1.PipelineRun {
 
 }
 
-
-
-func createStageCDPipelineRun() pipelinev1.PipelineRun{
+func createStageCDPipelineRun() pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
-		TypeMeta: createPipelineRunTypeMeta(),
-		ObjectMeta: createObjectMeta("stage-cd-pipeline-run-$(uid)") ,
+		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		ObjectMeta: createObjectMeta("stage-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
 			PipelineRef:        createPipelineRef("stage-ci-pipeline"),
 			Resources:          createStageResources(),
 		},
-
 	}
 }
 
-func createStageCIPipelineRun() pipelinev1.PipelineRun{
+func createStageCIPipelineRun() pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
-		TypeMeta: createPipelineRunTypeMeta(),
-		ObjectMeta: createObjectMeta("stage-ci-pipeline-run-$(uid)") ,
+		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		ObjectMeta: createObjectMeta("stage-ci-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
 			PipelineRef:        createPipelineRef("stage-ci-pipeline"),
@@ -61,7 +55,7 @@ func createStageCIPipelineRun() pipelinev1.PipelineRun{
 
 }
 
-func createDevResource()[]pipelinev1.PipelineResourceBinding {
+func createDevResource() []pipelinev1.PipelineResourceBinding {
 	return []pipelinev1.PipelineResourceBinding{
 		pipelinev1.PipelineResourceBinding{
 			Name: "source-repo",
@@ -84,7 +78,7 @@ func createDevResource()[]pipelinev1.PipelineResourceBinding {
 		},
 	}
 }
-func createStageResources()[]pipelinev1.PipelineResourceBinding{
+func createStageResources() []pipelinev1.PipelineResourceBinding {
 	return []pipelinev1.PipelineResourceBinding{
 		pipelinev1.PipelineResourceBinding{
 			Name: "source-repo",
@@ -112,9 +106,15 @@ func createPipelineRef(name string) *pipelinev1.PipelineRef {
 	}
 }
 
-func createPipelineRunTypeMeta() v1.TypeMeta {
+func createObjectMeta(name string) v1.ObjectMeta {
+	return v1.ObjectMeta{
+		Name: name,
+	}
+}
+
+func createTypeMeta(kind, apiVersion string) v1.TypeMeta {
 	return v1.TypeMeta{
-		Kind:       "PipelineRun",
-		APIVersion: "tekton.dev/v1alpha1",
+		Kind:       kind,
+		APIVersion: apiVersion,
 	}
 }
