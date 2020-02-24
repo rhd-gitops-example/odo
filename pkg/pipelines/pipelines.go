@@ -73,8 +73,8 @@ func createDevCDPipeline(prefix, deploymentPath string) *pipelinev1.Pipeline {
 
 func createStageCDPipeline(prefix string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   createTypeMeta("Pipeline", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("stage-cd-pipeline"),
+		TypeMeta:   typeMeta("Pipeline", "tekton.dev/v1alpha1"),
+		ObjectMeta: objectMeta("stage-cd-pipeline"),
 		Spec: pipelinev1.PipelineSpec{
 
 			Resources: []pipelinev1.PipelineDeclaredResource{

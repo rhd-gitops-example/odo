@@ -150,7 +150,10 @@ func TestCreateDevCDPipeline(t *testing.T) {
 			Kind:       "Pipeline",
 			APIVersion: "tekton.dev/v1alpha1",
 		},
-		ObjectMeta: createObjectMeta("dev-cd-pipeline"),
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dev-cd-pipeline",
+		},
+
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
 				pipelinev1.PipelineDeclaredResource{

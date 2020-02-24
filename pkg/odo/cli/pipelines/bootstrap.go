@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
+	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/odo/pkg/pipelines"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
@@ -18,20 +18,28 @@ const (
 var (
 	bootstrapExample = ktemplates.Examples(`
 	# Bootstrap OpenShift pipelines in a cluster
-	%[1]s username org/repo
+	%[1]s 
 	`)
 
-	bootstrapLongDesc  = ktemplates.LongDesc(`Bootstrap GitOps pipelines`)
+	bootstrapLongDesc  = ktemplates.LongDesc(`Bootstrap GitOps CI/CD Pipelines`)
 	bootstrapShortDesc = `Bootstrap pipelines`
 )
 
 // BootstrapOptions encapsulates the options for the odo pipelines bootstrap
 // command.
 type BootstrapOptions struct {
+<<<<<<< HEAD
 	quayUsername   string
 	baseRepo       string // e.g. tekton/triggers
 	prefix         string // used to generate the environments in a shared cluster
 	deploymentPath string
+=======
+	quayUsername       string
+	gitRepo            string // e.g. tekton/triggers
+	prefix             string // used to generate the environments in a shared cluster
+	githubToken        string
+	quayIOAuthFilename string
+>>>>>>> 62b80f5abe8a161147919d9887a75851d332f637
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -46,9 +54,6 @@ func NewBootstrapOptions() *BootstrapOptions {
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (bo *BootstrapOptions) Complete(name string, cmd *cobra.Command, args []string) error {
-	bo.quayUsername = args[0]
-	bo.baseRepo = args[1]
-
 	if bo.prefix != "" && !strings.HasSuffix(bo.prefix, "-") {
 		bo.prefix = bo.prefix + "-"
 	}
@@ -58,15 +63,26 @@ func (bo *BootstrapOptions) Complete(name string, cmd *cobra.Command, args []str
 // Validate validates the parameters of the BootstrapOptions.
 func (bo *BootstrapOptions) Validate() error {
 	// TODO: this won't work with GitLab as the repo can have more path elements.
-	if len(strings.Split(bo.baseRepo, "/")) != 2 {
-		return fmt.Errorf("repo must be org/repo: %s", bo.baseRepo)
+	if len(strings.Split(bo.gitRepo, "/")) != 2 {
+		return fmt.Errorf("repo must be org/repo: %s", bo.gitRepo)
 	}
 	return nil
 }
 
 // Run runs the project bootstrap command.
 func (bo *BootstrapOptions) Run() error {
+<<<<<<< HEAD
 	return pipelines.Bootstrap(bo.quayUsername, bo.baseRepo, bo.prefix, bo.deploymentPath)
+=======
+	options := pipelines.BootstrapOptions{
+		GithubToken:      bo.githubToken,
+		GitRepo:          bo.gitRepo,
+		Prefix:           bo.prefix,
+		QuayAuthFileName: bo.quayIOAuthFilename,
+		QuayUserName:     bo.quayUsername,
+	}
+	return pipelines.Bootstrap(&options)
+>>>>>>> 62b80f5abe8a161147919d9887a75851d332f637
 }
 
 // NewCmdBootstrap creates the project bootstrap command.
@@ -78,12 +94,19 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 		Short:   bootstrapShortDesc,
 		Long:    bootstrapLongDesc,
 		Example: fmt.Sprintf(bootstrapExample, fullName),
-		Args:    cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			genericclioptions.GenericRun(o, cmd, args)
 		},
 	}
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
+	bootstrapCmd.Flags().StringVar(&o.quayUsername, "quay-username", "", "image registry username")
+	bootstrapCmd.MarkFlagRequired("quay-username")
+	bootstrapCmd.Flags().StringVar(&o.githubToken, "github-token", "", "provide the Github token")
+	bootstrapCmd.MarkFlagRequired("github-token")
+	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "Docker configuration json filename")
+	bootstrapCmd.MarkFlagRequired("dockerconfigjson")
+	bootstrapCmd.Flags().StringVar(&o.gitRepo, "git-repo", "", "git repository in this form <username>/<repository>")
+	bootstrapCmd.MarkFlagRequired("git-repo")
 	return bootstrapCmd
 }
