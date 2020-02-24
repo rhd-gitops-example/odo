@@ -1,15 +1,16 @@
 package pipelines
 
 import (
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 )
 
 const devCIPipelineName = "dev-ci-pipeline"
 
 // createCIPipeline creates the dev-ci-pipeline.
-func createDevCIPipeline() *pipelinev1.Pipeline {
-	typeMeta := createTypeMeta("Pipeline", "tekton.dev/v1alpha1")
-	objectMeta := createObjectMeta(devCIPipelineName)
+func createDevCIPipeline(nss map[string]string) *pipelinev1.Pipeline {
+	typeMeta := meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1")
+	objectMeta := meta.CreateObjectMeta(nss["cicd"], devCIPipelineName)
 	return &pipelinev1.Pipeline{
 		TypeMeta:   typeMeta,
 		ObjectMeta: objectMeta,
@@ -33,10 +34,10 @@ func createDevCIPipeline() *pipelinev1.Pipeline {
 	}
 }
 
-func createStageCIPipeline(prefix string) *pipelinev1.Pipeline {
+func createStageCIPipeline(prefix string, nss map[string]string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   createTypeMeta("Pipeline", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("stage-ci-pipeline"),
+		TypeMeta:   meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1"),
+		ObjectMeta: meta.CreateObjectMeta(nss["cicd"], "stage-ci-pipeline"),
 		Spec: pipelinev1.PipelineSpec{
 
 			Resources: []pipelinev1.PipelineDeclaredResource{
@@ -49,10 +50,10 @@ func createStageCIPipeline(prefix string) *pipelinev1.Pipeline {
 		},
 	}
 }
-func createDevCDPipeline(prefix, deploymentPath string) *pipelinev1.Pipeline {
+func createDevCDPipeline(prefix, deploymentPath string, nss map[string]string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   createTypeMeta("Pipeline", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("dev-cd-pipeline"),
+		TypeMeta:   meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1"),
+		ObjectMeta: meta.CreateObjectMeta(nss["cicd"], "dev-cd-pipeline"),
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
 				createPipelineDeclaredResource("source-repo", "git"),
@@ -71,10 +72,10 @@ func createDevCDPipeline(prefix, deploymentPath string) *pipelinev1.Pipeline {
 	}
 }
 
-func createStageCDPipeline(prefix string) *pipelinev1.Pipeline {
+func createStageCDPipeline(prefix string, nss map[string]string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   typeMeta("Pipeline", "tekton.dev/v1alpha1"),
-		ObjectMeta: objectMeta("stage-cd-pipeline"),
+		TypeMeta:   meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1"),
+		ObjectMeta: meta.CreateObjectMeta(nss["cicd"], "stage-cd-pipeline"),
 		Spec: pipelinev1.PipelineSpec{
 
 			Resources: []pipelinev1.PipelineDeclaredResource{

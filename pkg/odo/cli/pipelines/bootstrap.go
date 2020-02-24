@@ -28,18 +28,11 @@ var (
 // BootstrapOptions encapsulates the options for the odo pipelines bootstrap
 // command.
 type BootstrapOptions struct {
-<<<<<<< HEAD
-	quayUsername   string
-	baseRepo       string // e.g. tekton/triggers
-	prefix         string // used to generate the environments in a shared cluster
-	deploymentPath string
-=======
 	quayUsername       string
 	gitRepo            string // e.g. tekton/triggers
 	prefix             string // used to generate the environments in a shared cluster
 	githubToken        string
 	quayIOAuthFilename string
->>>>>>> 62b80f5abe8a161147919d9887a75851d332f637
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -71,9 +64,6 @@ func (bo *BootstrapOptions) Validate() error {
 
 // Run runs the project bootstrap command.
 func (bo *BootstrapOptions) Run() error {
-<<<<<<< HEAD
-	return pipelines.Bootstrap(bo.quayUsername, bo.baseRepo, bo.prefix, bo.deploymentPath)
-=======
 	options := pipelines.BootstrapOptions{
 		GithubToken:      bo.githubToken,
 		GitRepo:          bo.gitRepo,
@@ -82,7 +72,6 @@ func (bo *BootstrapOptions) Run() error {
 		QuayUserName:     bo.quayUsername,
 	}
 	return pipelines.Bootstrap(&options)
->>>>>>> 62b80f5abe8a161147919d9887a75851d332f637
 }
 
 // NewCmdBootstrap creates the project bootstrap command.

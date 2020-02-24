@@ -11,6 +11,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/routes"
 	"github.com/openshift/odo/pkg/pipelines/tasks"
 	"sigs.k8s.io/yaml"
@@ -48,12 +49,7 @@ type BootstrapOptions struct {
 
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
-<<<<<<< HEAD
-func Bootstrap(quayUsername, baseRepo, prefix, deploymentPath string) error {
-
-=======
 func Bootstrap(o *BootstrapOptions) error {
->>>>>>> 62b80f5abe8a161147919d9887a75851d332f637
 	// First, check for Tekton.  We proceed only if Tekton is installed
 	installed, err := checkTektonInstall()
 	if err != nil {
@@ -68,7 +64,7 @@ func Bootstrap(o *BootstrapOptions) error {
 		outputs = append(outputs, n)
 	}
 
-	githubAuth, err := createOpaqueSecret(namespacedName(names["cicd"], "github-auth"), o.GithubToken)
+	githubAuth, err := createOpaqueSecret(meta.NamespacedName(names["cicd"], "github-auth"), o.GithubToken)
 	if err != nil {
 		return fmt.Errorf("failed to generate path to file: %w", err)
 	}
@@ -96,50 +92,12 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, route)
 
 	//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
-	sa := createServiceAccount(namespacedName(names["cicd"], saName), dockerSecretName)
+	sa := createServiceAccount(meta.NamespacedName(names["cicd"], saName), dockerSecretName)
 	outputs = append(outputs, sa)
-	role := createRole(namespacedName(names["cicd"], roleName), rules)
+	role := createRole(meta.NamespacedName(names["cicd"], roleName), rules)
 	outputs = append(outputs, role)
-<<<<<<< HEAD
-	outputs = append(outputs, createRoleBinding(roleBindingName, &sa, role.Kind, role.Name))
-	outputs = append(outputs, createRoleBinding("edit-clusterrole-binding", &sa, "ClusterRole", "edit"))
-	outputs = append(outputs, createDevCIPipeline())
-	outputs = append(outputs, createStageCIPipeline(prefix))
-	outputs = append(outputs, createDevCDPipeline(prefix, deploymentPath))
-	outputs = append(outputs, createStageCDPipeline(prefix))
-
-	// Marshall
-	for _, r := range outputs {
-		data, err := yaml.Marshal(r)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%s---\n", data)
-	}
-
-	return nil
-}
-
-// createGithubSecret creates Github secret
-func createGithubSecret() (*corev1.Secret, error) {
-	tokenPath, err := pathToDownloadedFile("token")
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate path to file: %w", err)
-	}
-	f, err := os.Open(tokenPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read token file %s due to %w", tokenPath, err)
-	}
-	defer f.Close()
-
-	githubAuth, err := createOpaqueSecret("github-auth", f)
-	if err != nil {
-		return nil, err
-	}
-=======
-	outputs = append(outputs, createRoleBinding(namespacedName(roleBindingName, names["ci-cd"]), sa, role.Kind, role.Name))
-	outputs = append(outputs, createRoleBinding(namespacedName("edit-clusterrole-binding", ""), sa, "ClusterRole", "edit"))
->>>>>>> 62b80f5abe8a161147919d9887a75851d332f637
+	outputs = append(outputs, createRoleBinding(meta.NamespacedName(roleBindingName, names["ci-cd"]), sa, role.Kind, role.Name))
+	outputs = append(outputs, createRoleBinding(meta.NamespacedName("edit-clusterrole-binding", ""), sa, "ClusterRole", "edit"))
 
 	return marshalOutputs(os.Stdout, outputs)
 }
@@ -158,7 +116,7 @@ func createDockerSecret(quayIOAuthFilename, ns string) (*corev1.Secret, error) {
 	}
 	defer f.Close()
 
-	dockerSecret, err := createDockerConfigSecret(namespacedName(dockerSecretName, ns), f)
+	dockerSecret, err := createDockerConfigSecret(meta.NamespacedName(dockerSecretName, ns), f)
 	if err != nil {
 		return nil, err
 	}

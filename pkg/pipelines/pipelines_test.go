@@ -10,7 +10,8 @@ import (
 )
 
 func TestCreateDevCIPipeline(t *testing.T) {
-	DevCIpipeline := createDevCIPipeline()
+	names := namespaceNames("abc")
+	DevCIpipeline := createDevCIPipeline(names)
 
 	want := &pipelinev1.Pipeline{
 		TypeMeta: metav1.TypeMeta{
@@ -18,7 +19,8 @@ func TestCreateDevCIPipeline(t *testing.T) {
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: devCIPipelineName,
+			Name:      devCIPipelineName,
+			Namespace: names["cicd"],
 		},
 		Spec: pipelinev1.PipelineSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -98,14 +100,17 @@ func TestCreateDevCIPipeline(t *testing.T) {
 }
 
 func TestCreateStageCIPipeline(t *testing.T) {
-	stageCIpipeline := createStageCIPipeline("Testprefix")
+	names := namespaceNames("abc")
+	stageCIpipeline := createStageCIPipeline("Testprefix", names)
+
 	want := &pipelinev1.Pipeline{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pipeline",
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "stage-ci-pipeline",
+			Name:      "stage-ci-pipeline",
+			Namespace: names["cicd"],
 		},
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
@@ -143,15 +148,16 @@ func TestCreateStageCIPipeline(t *testing.T) {
 }
 
 func TestCreateDevCDPipeline(t *testing.T) {
-	DevCDpipeline := createDevCDPipeline("Testprefix", "usr/path/")
-
+	names := namespaceNames("abc")
+	DevCDpipeline := createDevCDPipeline("Testprefix", "usr/path/", names)
 	want := &pipelinev1.Pipeline{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pipeline",
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "dev-cd-pipeline",
+			Name:      "dev-cd-pipeline",
+			Namespace: names["cicd"],
 		},
 
 		Spec: pipelinev1.PipelineSpec{
@@ -223,14 +229,16 @@ func TestCreateDevCDPipeline(t *testing.T) {
 }
 
 func TestCreateStageCDPipeline(t *testing.T) {
-	stageCDpipeline := createStageCDPipeline("Testprefix")
+	names := namespaceNames("abc")
+	stageCDpipeline := createStageCDPipeline("Testprefix", names)
 	want := &pipelinev1.Pipeline{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pipeline",
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "stage-cd-pipeline",
+			Name:      "stage-cd-pipeline",
+			Namespace: names["cicd"],
 		},
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
