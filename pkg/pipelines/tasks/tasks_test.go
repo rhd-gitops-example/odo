@@ -218,7 +218,7 @@ func TestGenerateBuildahTask(t *testing.T) {
 	}
 }
 
-func TestCreaetVolumes(t *testing.T) {
+func TestCreateVolumes(t *testing.T) {
 	validVolume := []corev1.Volume{
 		corev1.Volume{
 			Name: "sample",
