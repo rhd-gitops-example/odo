@@ -34,6 +34,7 @@ type BootstrapOptions struct {
 	prefix             string // used to generate the environments in a shared cluster
 	githubToken        string
 	quayIOAuthFilename string
+	bypassChecks       bool
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -72,6 +73,7 @@ func (bo *BootstrapOptions) Run() error {
 		Prefix:           bo.prefix,
 		QuayAuthFileName: bo.quayIOAuthFilename,
 		QuayUserName:     bo.quayUsername,
+		BypassChecks:     bo.bypassChecks,
 	}
 	return pipelines.Bootstrap(&options)
 }
@@ -101,5 +103,6 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.MarkFlagRequired("git-repo")
 	bootstrapCmd.Flags().StringVar(&o.deploymentPath, "deployment-path", "", "deployment folder path name")
 	bootstrapCmd.MarkFlagRequired("deployment-path")
+	bootstrapCmd.Flags().BoolVarP(&o.bypassChecks, "bypass-checks", "b", false, "bypass Tekton installation checks")
 	return bootstrapCmd
 }
