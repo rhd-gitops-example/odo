@@ -11,6 +11,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/routes"
 	"github.com/openshift/odo/pkg/pipelines/tasks"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
@@ -40,6 +41,7 @@ var (
 
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
+	DeploymentPath   string
 	GithubToken      string
 	GitRepo          string
 	Prefix           string
@@ -58,24 +60,27 @@ func Bootstrap(o *BootstrapOptions) error {
 	if !installed {
 		return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
 	}
-
 	outputs := make([]interface{}, 0)
+	namespaces := namespaceNames(o.Prefix)
+	for _, n := range createNamespaces(values(namespaces)) {
+		outputs = append(outputs, n)
+	}
 
-	githubAuth, err := createOpaqueSecret("github-auth", o.GithubToken)
+	githubAuth, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], "github-auth"), o.GithubToken)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate path to file: %w", err)
 	}
 	outputs = append(outputs, githubAuth)
 
 	// Create Docker Secret
-	dockerSecret, err := createDockerSecret(o.QuayAuthFileName)
+	dockerSecret, err := createDockerSecret(o.QuayAuthFileName, namespaces["cicd"])
 	if err != nil {
 		return err
 	}
 	outputs = append(outputs, dockerSecret)
 
 	// Create Tasks
-	tasks := tasks.Generate(githubAuth.GetName())
+	tasks := tasks.Generate(githubAuth.GetName(), namespaces["cicd"])
 	for _, task := range tasks {
 		outputs = append(outputs, task)
 	}
@@ -91,9 +96,14 @@ func Bootstrap(o *BootstrapOptions) error {
 	for _, binding := range bindings {
 		outputs = append(outputs, binding)
 	}
+	// Create Pipelines
+	outputs = append(outputs, createDevCIPipeline(meta.NamespacedName(namespaces["cicd"], "dev-ci-pipeline")))
+	outputs = append(outputs, createStageCIPipeline(meta.NamespacedName(namespaces["cicd"], "stage-ci-pipeline"), namespaces["stage"]))
+	outputs = append(outputs, createDevCDPipeline(meta.NamespacedName(namespaces["cicd"], "dev-cd-pipeline"), o.DeploymentPath, namespaces["dev"]))
+	outputs = append(outputs, createStageCDPipeline(meta.NamespacedName(namespaces["cicd"], "stage-cd-pipeline"), namespaces["stage"]))
 
 	// Create Event Listener
-	eventListener := eventlisteners.Generate(o.GitRepo)
+	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"])
 	outputs = append(outputs, eventListener)
 
 	// Create route
@@ -101,18 +111,18 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, route)
 
 	//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
-	sa := createServiceAccount(saName, dockerSecretName)
+	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName), dockerSecretName)
 	outputs = append(outputs, sa)
-	role := createRole(roleName, rules)
+	role := createRole(meta.NamespacedName(namespaces["cicd"], roleName), rules)
 	outputs = append(outputs, role)
-	outputs = append(outputs, createRoleBinding(roleBindingName, &sa, role.Kind, role.Name))
-	outputs = append(outputs, createRoleBinding("edit-clusterrole-binding", &sa, "ClusterRole", "edit"))
+	outputs = append(outputs, createRoleBinding(meta.NamespacedName(roleBindingName, namespaces["cicd"]), sa, role.Kind, role.Name))
+	outputs = append(outputs, createRoleBinding(meta.NamespacedName("edit-clusterrole-binding", ""), sa, "ClusterRole", "edit"))
 
 	return marshalOutputs(os.Stdout, outputs)
 }
 
 // createDockerSecret creates Docker secret
-func createDockerSecret(quayIOAuthFilename string) (*corev1.Secret, error) {
+func createDockerSecret(quayIOAuthFilename, ns string) (*corev1.Secret, error) {
 
 	authJSONPath, err := homedir.Expand(quayIOAuthFilename)
 	if err != nil {
@@ -125,7 +135,7 @@ func createDockerSecret(quayIOAuthFilename string) (*corev1.Secret, error) {
 	}
 	defer f.Close()
 
-	dockerSecret, err := createDockerConfigSecret(dockerSecretName, f)
+	dockerSecret, err := createDockerConfigSecret(meta.NamespacedName(dockerSecretName, ns), f)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +151,15 @@ func checkTektonInstall() (bool, error) {
 		return false, err
 	}
 	return tektonChecker.checkInstall()
+}
+
+func values(m map[string]string) []string {
+	values := []string{}
+	for _, v := range m {
+		values = append(values, v)
+
+	}
+	return values
 }
 
 // marshalOutputs marshal outputs to given writer
