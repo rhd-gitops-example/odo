@@ -128,6 +128,7 @@ func createRoleBindings(ns map[string]string) []interface{} {
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], "edit-clusterrole-binding"), sa, "ClusterRole", "edit"))
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], devRoleBindingName), sa, "ClusterRole", "edit"))
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], stageRoleBindingName), sa, "ClusterRole", "edit"))
+
 	return out
 }
 
