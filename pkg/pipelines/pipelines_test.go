@@ -4,23 +4,21 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 )
 
 func TestCreateDevCIPipeline(t *testing.T) {
-	names := namespaceNames("abc")
-	DevCIpipeline := createDevCIPipeline(names)
+
+	DevCIpipeline := createDevCIPipeline(meta.NamespacedName("cicd-environment", "dev-ci-pipeline"))
 
 	want := &pipelinev1.Pipeline{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pipeline",
-			APIVersion: "tekton.dev/v1alpha1",
-		},
+		TypeMeta: PipelineTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      devCIPipelineName,
-			Namespace: names["cicd"],
+			Name:      "dev-ci-pipeline",
+			Namespace: "cicd-environment",
 		},
 		Spec: pipelinev1.PipelineSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -100,17 +98,14 @@ func TestCreateDevCIPipeline(t *testing.T) {
 }
 
 func TestCreateStageCIPipeline(t *testing.T) {
-	names := namespaceNames("abc")
-	stageCIpipeline := createStageCIPipeline("Testprefix", names)
+
+	stageCIpipeline := createStageCIPipeline(meta.NamespacedName("cicd-environment", "stage-ci-pipeline"), "stage-environment")
 
 	want := &pipelinev1.Pipeline{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pipeline",
-			APIVersion: "tekton.dev/v1alpha1",
-		},
+		TypeMeta: PipelineTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "stage-ci-pipeline",
-			Namespace: names["cicd"],
+			Namespace: "cicd-environment",
 		},
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
@@ -133,7 +128,7 @@ func TestCreateStageCIPipeline(t *testing.T) {
 						},
 					},
 					Params: []pipelinev1.Param{
-						{Name: "NAMESPACE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "Testprefix-stage-environment"}},
+						{Name: "NAMESPACE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "stage-environment"}},
 						{Name: "DRYRUN", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "true"}},
 					},
 				},
@@ -148,16 +143,12 @@ func TestCreateStageCIPipeline(t *testing.T) {
 }
 
 func TestCreateDevCDPipeline(t *testing.T) {
-	names := namespaceNames("abc")
-	DevCDpipeline := createDevCDPipeline("Testprefix", "usr/path/", names)
+	DevCDpipeline := createDevCDPipeline(meta.NamespacedName("cicd-environment", "dev-cd-pipeline"), "usr/path/", "dev-environment")
 	want := &pipelinev1.Pipeline{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pipeline",
-			APIVersion: "tekton.dev/v1alpha1",
-		},
+		TypeMeta: PipelineTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dev-cd-pipeline",
-			Namespace: names["cicd"],
+			Namespace: "cicd-environment",
 		},
 
 		Spec: pipelinev1.PipelineSpec{
@@ -206,18 +197,8 @@ func TestCreateDevCDPipeline(t *testing.T) {
 					Params: []pipelinev1.Param{
 						{Name: "PATHTODEPLOYMENT", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "usr/path/"}},
 						{Name: "YAMLPATHTOIMAGE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "spec.template.spec.containers[0].image"}},
-						{Name: "NAMESPACE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "Testprefix-dev-environment"}},
+						{Name: "NAMESPACE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "dev-environment"}},
 					},
-				},
-			},
-			Params: []pipelinev1.ParamSpec{
-				pipelinev1.ParamSpec{
-					Name: "REPO",
-					Type: "string",
-				},
-				pipelinev1.ParamSpec{
-					Name: "COMMIT_SHA",
-					Type: "string",
 				},
 			},
 		},
@@ -229,16 +210,12 @@ func TestCreateDevCDPipeline(t *testing.T) {
 }
 
 func TestCreateStageCDPipeline(t *testing.T) {
-	names := namespaceNames("abc")
-	stageCDpipeline := createStageCDPipeline("Testprefix", names)
+	stageCDpipeline := createStageCDPipeline(meta.NamespacedName("cicd-environment", "stage-cd-pipeline"), "stage-environment")
 	want := &pipelinev1.Pipeline{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pipeline",
-			APIVersion: "tekton.dev/v1alpha1",
-		},
+		TypeMeta: PipelineTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "stage-cd-pipeline",
-			Namespace: names["cicd"],
+			Namespace: "cicd-environment",
 		},
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
@@ -261,7 +238,7 @@ func TestCreateStageCDPipeline(t *testing.T) {
 						},
 					},
 					Params: []pipelinev1.Param{
-						{Name: "NAMESPACE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "Testprefix-stage-environment"}},
+						{Name: "NAMESPACE", Value: pipelinev1.ArrayOrString{Type: "string", StringVal: "stage-environment"}},
 					},
 				},
 			},

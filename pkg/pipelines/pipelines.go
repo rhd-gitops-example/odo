@@ -3,17 +3,23 @@ package pipelines
 import (
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-const devCIPipelineName = "dev-ci-pipeline"
+var (
+	// PipelineTypeMeta Pipeline TypeMeta
+	PipelineTypeMeta = v1.TypeMeta{
+		Kind:       "Pipeline",
+		APIVersion: "tekton.dev/v1alpha1",
+	}
+)
 
 // createCIPipeline creates the dev-ci-pipeline.
-func createDevCIPipeline(nss map[string]string) *pipelinev1.Pipeline {
-	typeMeta := meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1")
-	objectMeta := meta.CreateObjectMeta(nss["cicd"], devCIPipelineName)
+func createDevCIPipeline(name types.NamespacedName) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   typeMeta,
-		ObjectMeta: objectMeta,
+		TypeMeta:   PipelineTypeMeta,
+		ObjectMeta: meta.ObjectMeta(name),
 		Spec: pipelinev1.PipelineSpec{
 			Params: []pipelinev1.ParamSpec{
 				createParamSpec("REPO", "string"),
@@ -34,10 +40,11 @@ func createDevCIPipeline(nss map[string]string) *pipelinev1.Pipeline {
 	}
 }
 
-func createStageCIPipeline(prefix string, nss map[string]string) *pipelinev1.Pipeline {
+// createStageCIPipeline creates the stage-ci-pipeline
+func createStageCIPipeline(name types.NamespacedName, stageNamespace string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1"),
-		ObjectMeta: meta.CreateObjectMeta(nss["cicd"], "stage-ci-pipeline"),
+		TypeMeta:   PipelineTypeMeta,
+		ObjectMeta: meta.ObjectMeta(name),
 		Spec: pipelinev1.PipelineSpec{
 
 			Resources: []pipelinev1.PipelineDeclaredResource{
@@ -45,45 +52,41 @@ func createStageCIPipeline(prefix string, nss map[string]string) *pipelinev1.Pip
 			},
 
 			Tasks: []pipelinev1.PipelineTask{
-				createStageCIPipelineTask("apply-source", prefix),
+				createStageCIPipelineTask("apply-source", stageNamespace),
 			},
 		},
 	}
 }
-func createDevCDPipeline(prefix, deploymentPath string, nss map[string]string) *pipelinev1.Pipeline {
+
+// createDevCDPipeline creates the dev-cd-pipeline
+func createDevCDPipeline(name types.NamespacedName, deploymentPath, devNamespace string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1"),
-		ObjectMeta: meta.CreateObjectMeta(nss["cicd"], "dev-cd-pipeline"),
+		TypeMeta:   PipelineTypeMeta,
+		ObjectMeta: meta.ObjectMeta(name),
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
 				createPipelineDeclaredResource("source-repo", "git"),
 				createPipelineDeclaredResource("runtime-image", "image"),
 			},
-			Params: []pipelinev1.ParamSpec{
-				createParamSpec("REPO", "string"),
-				createParamSpec("COMMIT_SHA", "string"),
-			},
-
 			Tasks: []pipelinev1.PipelineTask{
 				createDevCDBuildImageTask("build-image"),
-				createDevCDDeployImageTask("deploy-image", prefix, deploymentPath),
+				createDevCDDeployImageTask("deploy-image", devNamespace, deploymentPath),
 			},
 		},
 	}
 }
 
-func createStageCDPipeline(prefix string, nss map[string]string) *pipelinev1.Pipeline {
+// createStageCDPipeline creates the stage-cd-pipeline
+func createStageCDPipeline(name types.NamespacedName, stageNamespace string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1"),
-		ObjectMeta: meta.CreateObjectMeta(nss["cicd"], "stage-cd-pipeline"),
+		TypeMeta:   PipelineTypeMeta,
+		ObjectMeta: meta.ObjectMeta(name),
 		Spec: pipelinev1.PipelineSpec{
-
 			Resources: []pipelinev1.PipelineDeclaredResource{
 				createPipelineDeclaredResource("source-repo", "git"),
 			},
-
 			Tasks: []pipelinev1.PipelineTask{
-				createStageCDPipelineTask("apply-source", prefix),
+				createStageCDPipelineTask("apply-source", stageNamespace),
 			},
 		},
 	}
@@ -139,7 +142,7 @@ func createDevCDBuildImageTask(name string) pipelinev1.PipelineTask {
 	}
 }
 
-func createDevCDDeployImageTask(name, prefix, deploymentPath string) pipelinev1.PipelineTask {
+func createDevCDDeployImageTask(name, devNamespace, deploymentPath string) pipelinev1.PipelineTask {
 	return pipelinev1.PipelineTask{
 		Name:     name,
 		TaskRef:  createTaskRef("deploy-using-kubectl-task"),
@@ -153,38 +156,36 @@ func createDevCDDeployImageTask(name, prefix, deploymentPath string) pipelinev1.
 		Params: []pipelinev1.Param{
 			createTaskParam("PATHTODEPLOYMENT", deploymentPath),
 			createTaskParam("YAMLPATHTOIMAGE", "spec.template.spec.containers[0].image"),
-			createTaskParam("NAMESPACE", prefix+"-dev-environment"),
+			createTaskParam("NAMESPACE", devNamespace),
 		},
 	}
 }
 
-func createStageCIPipelineTask(name, prefix string) pipelinev1.PipelineTask {
+func createStageCIPipelineTask(taskName, stageNamespace string) pipelinev1.PipelineTask {
 	return pipelinev1.PipelineTask{
-		Name:    name,
+		Name:    taskName,
 		TaskRef: createTaskRef("deploy-from-source-task"),
 		Resources: &pipelinev1.PipelineTaskResources{
 			Inputs: []pipelinev1.PipelineTaskInputResource{createInputTaskResource("source", "source-repo")},
 		},
 		Params: []pipelinev1.Param{
-			createTaskParam("NAMESPACE", prefix+"-stage-environment"),
+			createTaskParam("NAMESPACE", stageNamespace),
 			createTaskParam("DRYRUN", "true"),
 		},
 	}
-
 }
 
-func createStageCDPipelineTask(name, prefix string) pipelinev1.PipelineTask {
+func createStageCDPipelineTask(taskName, stageNamespace string) pipelinev1.PipelineTask {
 	return pipelinev1.PipelineTask{
-		Name:    name,
+		Name:    taskName,
 		TaskRef: createTaskRef("deploy-from-source-task"),
 		Resources: &pipelinev1.PipelineTaskResources{
 			Inputs: []pipelinev1.PipelineTaskInputResource{createInputTaskResource("source", "source-repo")},
 		},
 		Params: []pipelinev1.Param{
-			createTaskParam("NAMESPACE", prefix+"-stage-environment"),
+			createTaskParam("NAMESPACE", stageNamespace),
 		},
 	}
-
 }
 
 func createTaskParam(name, value string) pipelinev1.Param {
