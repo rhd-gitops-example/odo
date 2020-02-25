@@ -20,7 +20,7 @@ import (
 
 var (
 	dockerSecretName     = "regcred"
-	saName               = "demo-sa"
+	saName               = "pipeline"
 	roleName             = "tekton-triggers-openshift-demo"
 	roleBindingName      = "tekton-triggers-openshift-binding"
 	devRoleBindingName   = "demo-sa-admin-dev"
@@ -128,6 +128,7 @@ func createRoleBindings(ns map[string]string) []interface{} {
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], "edit-clusterrole-binding"), sa, "ClusterRole", "edit"))
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], devRoleBindingName), sa, "ClusterRole", "edit"))
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], stageRoleBindingName), sa, "ClusterRole", "edit"))
+
 	return out
 }
 
