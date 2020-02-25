@@ -3,69 +3,62 @@ package triggers
 import (
 	"encoding/json"
 
+	"github.com/openshift/odo/pkg/pipelines/meta"
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/openshift/odo/pkg/pipelines/meta"
 )
 
 var (
-	triggerTemplateTypeMeta = meta.TypeMeta("TriggerTemplate", "triggers.tekton.dev/v1alpha1")
+	triggerTemplateTypeMeta = v1.TypeMeta{
+		Kind:       "TriggerTemplate",
+		APIVersion: "tekton.dev/v1alpha1",
+	}
 )
 
 // GenerateTemplates will return a slice of trigger templates
-func GenerateTemplates(ns, saName string) []triggersv1.TriggerTemplate {
+func GenerateTemplates(ns string) []triggersv1.TriggerTemplate {
 	return []triggersv1.TriggerTemplate{
-		CreateDevCDDeployTemplate(ns, saName),
-		CreateDevCIBuildPRTemplate(ns, saName),
-		CreateCDPushTemplate(ns, saName),
-		CreateCIDryRunTemplate(ns, saName),
+		createDevCDDeployTemplate(ns),
+		createDevCIBuildPRTemplate(ns),
+		createStageCDPushTemplate(ns),
+		createStageCIdryrunptemplate(ns),
 	}
 }
 
-// CreateDevCDDeployTemplate creates DevCDDeployTemplate
-func CreateDevCDDeployTemplate(ns, saName string) triggersv1.TriggerTemplate {
+func createDevCDDeployTemplate(ns string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "app-cd-template")),
+		ObjectMeta: meta.CreateObjectMeta(ns, "dev-cd-deploy-from-master-Template"),
 		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []triggersv1.ParamSpec{
-				createTemplateParamSpec("gitsha", "The specific commit SHA."),
+			Params: []pipelinev1.ParamSpec{
+				createTemplateParamSpecDefault("gitref", "The git revision", "master"),
 				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: createDevCDResourceTemplate(saName),
-					},
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createDevCDResourcetemplate(),
 				},
 			},
 		},
 	}
 }
 
-// CreateDevCIBuildPRTemplate creates DevCIBuildPRTemplate
-func CreateDevCIBuildPRTemplate(ns, saName string) triggersv1.TriggerTemplate {
+func createDevCIBuildPRTemplate(ns string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta: triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(
-			meta.NamespacedName(ns, "app-ci-template"),
-			statusTrackerAnnotations("dev-ci-build-from-pr", "Dev CI Build")),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "dev-ci-build-from-pr-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []triggersv1.ParamSpec{
-				createTemplateParamSpec("gitref", "The git branch for this PR."),
+			Params: []pipelinev1.ParamSpec{
+
+				createTemplateParamSpec("gitref", "The git branch for this PR"),
 				createTemplateParamSpec("gitsha", "the specific commit SHA."),
-				createTemplateParamSpec("gitrepositoryurl", "The git repository URL."),
+				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
 				createTemplateParamSpec("fullname", "The GitHub repository for this PullRequest."),
-				createTemplateParamSpec("imageRepo", "The repository to push built images to."),
-				createTemplateParamSpec("tlsVerify", "Enable image repostiory TLS certification verification."),
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: createDevCIResourceTemplate(saName),
-					},
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createDevCIResourceTemplate(),
 				},
 			},
 		},
@@ -73,101 +66,79 @@ func CreateDevCIBuildPRTemplate(ns, saName string) triggersv1.TriggerTemplate {
 
 }
 
-// CreateCDPushTemplate returns TriggerTemplate for CD Push Request
-func CreateCDPushTemplate(ns, saName string) triggersv1.TriggerTemplate {
+func createStageCDPushTemplate(ns string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "cd-deploy-from-push-template")),
+		ObjectMeta: meta.CreateObjectMeta(ns, "stage-cd-deploy-from-push-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []triggersv1.ParamSpec{
+			Params: []pipelinev1.ParamSpec{
 
 				createTemplateParamSpecDefault("gitref", "The git revision", "master"),
 				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: createCDResourceTemplate(saName),
-					},
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createStageCDResourceTemplate(),
 				},
 			},
 		},
 	}
 }
 
-// CreateCIDryRunTemplate returns TriggerTemplate for CI Dry Try
-func CreateCIDryRunTemplate(ns, saName string) triggersv1.TriggerTemplate {
+func createStageCIdryrunptemplate(ns string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta: triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "ci-dryrun-from-pr-template"),
-			statusTrackerAnnotations("ci-dryrun-from-pr-pipeline", "Stage CI Dry Run")),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "stage-ci-dryrun-from-pr-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []triggersv1.ParamSpec{
+			Params: []pipelinev1.ParamSpec{
+
 				createTemplateParamSpecDefault("gitref", "The git revision", "master"),
 				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: createCIResourceTemplate(saName),
-					},
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createStageCIResourceTemplate(),
 				},
 			},
 		},
 	}
 }
 
-func createTemplateParamSpecDefault(name string, description string, value string) triggersv1.ParamSpec {
-	return triggersv1.ParamSpec{
+func createTemplateParamSpecDefault(name string, description string, value string) pipelinev1.ParamSpec {
+	return pipelinev1.ParamSpec{
 		Name:        name,
 		Description: description,
-		Default:     strPtr(value),
+		Default: &pipelinev1.ArrayOrString{
+			StringVal: value,
+			Type:      pipelinev1.ParamTypeString,
+		},
 	}
 }
 
-func createTemplateParamSpec(name string, description string) triggersv1.ParamSpec {
-	return triggersv1.ParamSpec{
+func createTemplateParamSpec(name string, description string) pipelinev1.ParamSpec {
+	return pipelinev1.ParamSpec{
 		Name:        name,
 		Description: description,
 	}
+
 }
 
-func createDevCDResourceTemplate(saName string) []byte {
-	byteTemplate, _ := json.Marshal(createDevCDPipelineRun(saName))
+func createDevCDResourcetemplate() []byte {
+	byteTemplate, _ := json.Marshal(createDevCDPipelineRun())
 	return []byte(string(byteTemplate))
 }
 
-func createDevCIResourceTemplate(saName string) []byte {
-	byteTemplateCI, _ := json.Marshal(createDevCIPipelineRun(saName))
+func createDevCIResourceTemplate() []byte {
+	byteTemplateCI, _ := json.Marshal(createDevCIPipelineRun())
 	return []byte(string(byteTemplateCI))
 }
 
-func createCDResourceTemplate(saName string) []byte {
-	byteStageCD, _ := json.Marshal(createCDPipelineRun(saName))
+func createStageCDResourceTemplate() []byte {
+	byteStageCD, _ := json.Marshal(createStageCDPipelineRun())
 	return []byte(string(byteStageCD))
 }
 
-func createCIResourceTemplate(saName string) []byte {
-	byteStageCI, _ := json.Marshal(createCIPipelineRun(saName))
+func createStageCIResourceTemplate() []byte {
+	byteStageCI, _ := json.Marshal(createStageCIPipelineRun())
 	return []byte(string(byteStageCI))
-}
-
-func statusTrackerAnnotations(pipeline, description string) func(*v1.ObjectMeta) {
-	return func(om *v1.ObjectMeta) {
-		annotations := map[string]string{
-			"tekton.dev/git-status":         "true",
-			"tekton.dev/status-context":     pipeline,
-			"tekton.dev/status-description": description,
-		}
-		if om.Annotations == nil {
-			om.Annotations = map[string]string{}
-		}
-		for k, v := range annotations {
-			om.Annotations[k] = v
-		}
-	}
-}
-
-func strPtr(s string) *string {
-	return &s
 }
