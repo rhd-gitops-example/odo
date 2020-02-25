@@ -12,7 +12,7 @@ func TestCreateDevCDPipelineRun(t *testing.T) {
 		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("dev-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
-			ServiceAccountName: "demo-sa",
+			ServiceAccountName: "pipeline",
 			PipelineRef:        createPipelineRef("dev-cd-pipeline"),
 			Resources:          createDevResource(),
 		},
@@ -29,7 +29,7 @@ func TestCreateDevCIPipelineRun(t *testing.T) {
 		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("dev-ci-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
-			ServiceAccountName: "demo-sa",
+			ServiceAccountName: "pipeline",
 			PipelineRef:        createPipelineRef("dev-ci-pipeline"),
 			Resources:          createDevResource(),
 		},
@@ -45,7 +45,7 @@ func TestCreateStageCDPipelineRUn(t *testing.T) {
 		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("stage-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
-			ServiceAccountName: "demo-sa",
+			ServiceAccountName: "pipeline",
 			PipelineRef:        createPipelineRef("stage-ci-pipeline"),
 			Resources:          createStageResources(),
 		},
@@ -61,7 +61,7 @@ func TestCreateStageCIPipelineRun(t *testing.T) {
 		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("stage-ci-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
-			ServiceAccountName: "demo-sa",
+			ServiceAccountName: "pipeline",
 			PipelineRef:        createPipelineRef("stage-ci-pipeline"),
 			Resources:          createStageResources(),
 		},

@@ -19,7 +19,7 @@ func TestGenerateEventListener(t *testing.T) {
 			Namespace: "testing",
 		},
 		Spec: triggersv1.EventListenerSpec{
-			ServiceAccountName: "demo-sa",
+			ServiceAccountName: "pipeline",
 			Triggers: []triggersv1.EventListenerTrigger{
 				triggersv1.EventListenerTrigger{
 					Name: "dev-ci-build-from-pr",

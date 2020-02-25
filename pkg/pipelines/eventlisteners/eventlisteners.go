@@ -25,7 +25,7 @@ func Generate(githubRepo string, ns string) triggersv1.EventListener {
 		TypeMeta:   createListenerTypeMeta(),
 		ObjectMeta: createListenerObjectMeta("cicd-event-listener", ns),
 		Spec: triggersv1.EventListenerSpec{
-			ServiceAccountName: "demo-sa",
+			ServiceAccountName: "pipeline",
 			Triggers: []triggersv1.EventListenerTrigger{
 				createListenerTrigger(
 					"dev-ci-build-from-pr",
