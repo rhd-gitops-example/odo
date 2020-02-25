@@ -1,25 +1,33 @@
 package triggers
 
 import (
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	triggerBindingTypeMeta = v1.TypeMeta{
+		Kind:       "TriggerBinding",
+		APIVersion: "tekton.dev/v1alpha1",
+	}
+)
+
 // GenerateBindings returns a slice of trigger bindings
-func GenerateBindings() []triggersv1.TriggerBinding {
+func GenerateBindings(ns string) []triggersv1.TriggerBinding {
 	return []triggersv1.TriggerBinding{
-		createDevCDDeployBinding(),
-		createDevCIBuildBinding(),
-		createStageCDDeployBinding(),
-		createStageCIDryRunBinding(),
+		createDevCDDeployBinding(ns),
+		createDevCIBuildBinding(ns),
+		createStageCDDeployBinding(ns),
+		createStageCIDryRunBinding(ns),
 	}
 }
 
-func createDevCDDeployBinding() triggersv1.TriggerBinding {
+func createDevCDDeployBinding(ns string) triggersv1.TriggerBinding {
 	return triggersv1.TriggerBinding{
-		TypeMeta:   createTriggerBindingeMeta(),
-		ObjectMeta: createObjectMeta("dev-cd-deploy-from-master-binding"),
+		TypeMeta:   triggerBindingTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "dev-cd-deploy-from-master-binding"),
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
 				createBindingParam("gitref", "$(body.head_commit.id)"),
@@ -29,10 +37,10 @@ func createDevCDDeployBinding() triggersv1.TriggerBinding {
 	}
 }
 
-func createDevCIBuildBinding() triggersv1.TriggerBinding {
+func createDevCIBuildBinding(ns string) triggersv1.TriggerBinding {
 	return triggersv1.TriggerBinding{
-		TypeMeta:   createTriggerBindingeMeta(),
-		ObjectMeta: createObjectMeta("dev-ci-build-from-pr-binding"),
+		TypeMeta:   triggerBindingTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "dev-ci-build-from-pr-binding"),
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
 				createBindingParam("gitref", "$(body.pull_request.head.ref)"),
@@ -44,10 +52,10 @@ func createDevCIBuildBinding() triggersv1.TriggerBinding {
 	}
 }
 
-func createStageCDDeployBinding() triggersv1.TriggerBinding {
+func createStageCDDeployBinding(ns string) triggersv1.TriggerBinding {
 	return triggersv1.TriggerBinding{
-		TypeMeta:   createTriggerBindingeMeta(),
-		ObjectMeta: createObjectMeta("stage-cd-deploy-from-push-binding"),
+		TypeMeta:   triggerBindingTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "stage-cd-deploy-from-push-binding"),
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
 				createBindingParam("gitref", "$(body.ref)"),
@@ -58,10 +66,10 @@ func createStageCDDeployBinding() triggersv1.TriggerBinding {
 	}
 }
 
-func createStageCIDryRunBinding() triggersv1.TriggerBinding {
+func createStageCIDryRunBinding(ns string) triggersv1.TriggerBinding {
 	return triggersv1.TriggerBinding{
-		TypeMeta:   createTriggerBindingeMeta(),
-		ObjectMeta: createObjectMeta("stage-ci-dryrun-from-pr-binding"),
+		TypeMeta:   triggerBindingTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "stage-ci-dryrun-from-pr-binding"),
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
 				createBindingParam("gitref", "$(body.pull_request.head.ref)"),
@@ -71,19 +79,11 @@ func createStageCIDryRunBinding() triggersv1.TriggerBinding {
 	}
 }
 
-func createTriggerBindingeMeta() v1.TypeMeta {
-	return v1.TypeMeta{
-		Kind:       "TriggerBinding",
-		APIVersion: "tekton.dev/v1alpha1",
-	}
-}
-
 func createObjectMeta(name string) v1.ObjectMeta {
 	return v1.ObjectMeta{
 		Name: name,
 	}
 }
-
 func createBindingParam(name string, value string) pipelinev1.Param {
 	return pipelinev1.Param{
 		Name: name,

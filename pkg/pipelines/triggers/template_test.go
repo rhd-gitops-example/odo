@@ -4,14 +4,15 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
 func TestCreateDevCDDeployTemplate(t *testing.T) {
 	validDevCDTemplate := triggersv1.TriggerTemplate{
-		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("dev-cd-deploy-from-master-Template"),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta("testns", "dev-cd-deploy-from-master-Template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 				pipelinev1.ParamSpec{
@@ -36,7 +37,7 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 		},
 	}
 
-	template := createDevCDDeployTemplate()
+	template := createDevCDDeployTemplate("testns")
 	if diff := cmp.Diff(validDevCDTemplate, template); diff != "" {
 		t.Fatalf("CreateDevCDDeployTemplate failed:\n%s", diff)
 	}
@@ -44,8 +45,8 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 
 func TestCreatedevCIBuildPRTemplate(t *testing.T) {
 	validdevCIPRTemplate := triggersv1.TriggerTemplate{
-		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("dev-ci-build-from-pr-template"),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta("testns", "dev-ci-build-from-pr-template"),
 
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -74,7 +75,7 @@ func TestCreatedevCIBuildPRTemplate(t *testing.T) {
 			},
 		},
 	}
-	template := createDevCIBuildPRTemplate()
+	template := createDevCIBuildPRTemplate("testns")
 	if diff := cmp.Diff(validdevCIPRTemplate, template); diff != "" {
 		t.Fatalf("CreatedevCIBuildPRTemplate failed:\n%s", diff)
 	}
@@ -82,8 +83,8 @@ func TestCreatedevCIBuildPRTemplate(t *testing.T) {
 
 func TestCreateStageCDPushTemplate(t *testing.T) {
 	ValidStageCDPushTemplate := triggersv1.TriggerTemplate{
-		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("stage-cd-deploy-from-push-template"),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta("testns", "stage-cd-deploy-from-push-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 				pipelinev1.ParamSpec{
@@ -106,7 +107,7 @@ func TestCreateStageCDPushTemplate(t *testing.T) {
 			},
 		},
 	}
-	template := createStageCDPushTemplate()
+	template := createStageCDPushTemplate("testns")
 	if diff := cmp.Diff(ValidStageCDPushTemplate, template); diff != "" {
 		t.Fatalf("createStageCDPushTemplate failed:\n%s", diff)
 	}
@@ -114,8 +115,8 @@ func TestCreateStageCDPushTemplate(t *testing.T) {
 
 func TestCreateStageCIdryrunptemplate(t *testing.T) {
 	validStageCIdryrunTemplate := triggersv1.TriggerTemplate{
-		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("stage-ci-dryrun-from-pr-template"),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta("testns", "stage-ci-dryrun-from-pr-template"),
 
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -139,7 +140,7 @@ func TestCreateStageCIdryrunptemplate(t *testing.T) {
 			},
 		},
 	}
-	template := createStageCIdryrunptemplate()
+	template := createStageCIdryrunptemplate("testns")
 	if diff := cmp.Diff(validStageCIdryrunTemplate, template); diff != "" {
 		t.Fatalf("createStageCIdryrunptemplate failed:\n%s", diff)
 	}

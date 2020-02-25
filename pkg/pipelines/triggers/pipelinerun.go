@@ -5,9 +5,16 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	pipelineRunTypeMeta = v1.TypeMeta{
+		Kind:       "PipelineRun",
+		APIVersion: "tekton.dev/v1alpha1",
+	}
+)
+
 func createDevCDPipelineRun() pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
-		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("dev-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
@@ -19,7 +26,7 @@ func createDevCDPipelineRun() pipelinev1.PipelineRun {
 }
 func createDevCIPipelineRun() pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
-		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("dev-ci-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
@@ -32,7 +39,7 @@ func createDevCIPipelineRun() pipelinev1.PipelineRun {
 
 func createStageCDPipelineRun() pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
-		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("stage-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
@@ -44,7 +51,7 @@ func createStageCDPipelineRun() pipelinev1.PipelineRun {
 
 func createStageCIPipelineRun() pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
-		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("stage-ci-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
@@ -78,6 +85,7 @@ func createDevResource() []pipelinev1.PipelineResourceBinding {
 		},
 	}
 }
+
 func createStageResources() []pipelinev1.PipelineResourceBinding {
 	return []pipelinev1.PipelineResourceBinding{
 		pipelinev1.PipelineResourceBinding{
@@ -103,12 +111,5 @@ func createResourceParams(name string, value string) pipelinev1.ResourceParam {
 func createPipelineRef(name string) *pipelinev1.PipelineRef {
 	return &pipelinev1.PipelineRef{
 		Name: name,
-	}
-}
-
-func createTypeMeta(kind, apiVersion string) v1.TypeMeta {
-	return v1.TypeMeta{
-		Kind:       kind,
-		APIVersion: apiVersion,
 	}
 }

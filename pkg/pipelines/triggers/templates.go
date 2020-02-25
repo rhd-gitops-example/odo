@@ -3,27 +3,35 @@ package triggers
 import (
 	"encoding/json"
 
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+var (
+	triggerTemplateTypeMeta = v1.TypeMeta{
+		Kind:       "TriggerTemplate",
+		APIVersion: "tekton.dev/v1alpha1",
+	}
 )
 
 // GenerateTemplates will return a slice of trigger templates
-func GenerateTemplates() []triggersv1.TriggerTemplate {
+func GenerateTemplates(ns string) []triggersv1.TriggerTemplate {
 	return []triggersv1.TriggerTemplate{
-		createDevCDDeployTemplate(),
-		createDevCIBuildPRTemplate(),
-		createStageCDPushTemplate(),
-		createStageCIdryrunptemplate(),
+		createDevCDDeployTemplate(ns),
+		createDevCIBuildPRTemplate(ns),
+		createStageCDPushTemplate(ns),
+		createStageCIdryrunptemplate(ns),
 	}
 }
 
-func createDevCDDeployTemplate() triggersv1.TriggerTemplate {
+func createDevCDDeployTemplate(ns string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("dev-cd-deploy-from-master-Template"),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "dev-cd-deploy-from-master-Template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
-
 				createTemplateParamSpecDefault("gitref", "The git revision", "master"),
 				createTemplateParamSpec("gitrepositoryurl", "The git repository url"),
 			},
@@ -36,10 +44,10 @@ func createDevCDDeployTemplate() triggersv1.TriggerTemplate {
 	}
 }
 
-func createDevCIBuildPRTemplate() triggersv1.TriggerTemplate {
+func createDevCIBuildPRTemplate(ns string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("dev-ci-build-from-pr-template"),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "dev-ci-build-from-pr-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 
@@ -58,10 +66,10 @@ func createDevCIBuildPRTemplate() triggersv1.TriggerTemplate {
 
 }
 
-func createStageCDPushTemplate() triggersv1.TriggerTemplate {
+func createStageCDPushTemplate(ns string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("stage-cd-deploy-from-push-template"),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "stage-cd-deploy-from-push-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 
@@ -77,10 +85,10 @@ func createStageCDPushTemplate() triggersv1.TriggerTemplate {
 	}
 }
 
-func createStageCIdryrunptemplate() triggersv1.TriggerTemplate {
+func createStageCIdryrunptemplate(ns string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
-		TypeMeta:   createTypeMeta("TriggerTemplate", "tekton.dev/v1alpha1"),
-		ObjectMeta: createObjectMeta("stage-ci-dryrun-from-pr-template"),
+		TypeMeta:   triggerTemplateTypeMeta,
+		ObjectMeta: meta.CreateObjectMeta(ns, "stage-ci-dryrun-from-pr-template"),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 
@@ -118,17 +126,18 @@ func createTemplateParamSpec(name string, description string) pipelinev1.ParamSp
 func createDevCDResourcetemplate() []byte {
 	byteTemplate, _ := json.Marshal(createDevCDPipelineRun())
 	return []byte(string(byteTemplate))
-
 }
+
 func createDevCIResourceTemplate() []byte {
 	byteTemplateCI, _ := json.Marshal(createDevCIPipelineRun())
 	return []byte(string(byteTemplateCI))
-
 }
+
 func createStageCDResourceTemplate() []byte {
 	byteStageCD, _ := json.Marshal(createStageCDPipelineRun())
 	return []byte(string(byteStageCD))
 }
+
 func createStageCIResourceTemplate() []byte {
 	byteStageCI, _ := json.Marshal(createStageCIPipelineRun())
 	return []byte(string(byteStageCI))

@@ -16,7 +16,8 @@ func TestCreateDevCDDeployBinding(t *testing.T) {
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: "dev-cd-deploy-from-master-binding",
+			Name:      "dev-cd-deploy-from-master-binding",
+			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
@@ -37,7 +38,7 @@ func TestCreateDevCDDeployBinding(t *testing.T) {
 			},
 		},
 	}
-	binding := createDevCDDeployBinding()
+	binding := createDevCDDeployBinding("testns")
 	if diff := cmp.Diff(validDevCDBinding, binding); diff != "" {
 		t.Fatalf("createDevCDDeployBinding() failed:\n%s", diff)
 	}
@@ -50,7 +51,8 @@ func TestCreateDevCIBuildBinding(t *testing.T) {
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: "dev-ci-build-from-pr-binding",
+			Name:      "dev-ci-build-from-pr-binding",
+			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
@@ -85,7 +87,7 @@ func TestCreateDevCIBuildBinding(t *testing.T) {
 			},
 		},
 	}
-	binding := createDevCIBuildBinding()
+	binding := createDevCIBuildBinding("testns")
 	if diff := cmp.Diff(validDevCIBinding, binding); diff != "" {
 		t.Fatalf("createDevCIBuildBinding() failed:\n%s", diff)
 	}
@@ -98,7 +100,8 @@ func TestCreateStageCDDeployBinding(t *testing.T) {
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: "stage-cd-deploy-from-push-binding",
+			Name:      "stage-cd-deploy-from-push-binding",
+			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
@@ -126,7 +129,7 @@ func TestCreateStageCDDeployBinding(t *testing.T) {
 			},
 		},
 	}
-	binding := createStageCDDeployBinding()
+	binding := createStageCDDeployBinding("testns")
 	if diff := cmp.Diff(validStageCDDeployBinding, binding); diff != "" {
 		t.Fatalf("createDevCIBuildBinding() failed:\n%s", diff)
 	}
@@ -139,7 +142,8 @@ func TestCreateStageCIDryRunBinding(t *testing.T) {
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: "stage-ci-dryrun-from-pr-binding",
+			Name:      "stage-ci-dryrun-from-pr-binding",
+			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
@@ -160,7 +164,7 @@ func TestCreateStageCIDryRunBinding(t *testing.T) {
 			},
 		},
 	}
-	binding := createStageCIDryRunBinding()
+	binding := createStageCIDryRunBinding("testns")
 	if diff := cmp.Diff(validStageCIDryRunBinding, binding); diff != "" {
 		t.Errorf("createStageCIDryRunBinding() failed:\n%s", diff)
 	}

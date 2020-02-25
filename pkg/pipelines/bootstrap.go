@@ -86,16 +86,17 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 
 	// Create trigger templates
-	templates := triggers.GenerateTemplates()
+	templates := triggers.GenerateTemplates(namespaces["cicd"])
 	for _, template := range templates {
 		outputs = append(outputs, template)
 	}
 
 	// Create trigger bindings
-	bindings := triggers.GenerateBindings()
+	bindings := triggers.GenerateBindings(namespaces["cicd"])
 	for _, binding := range bindings {
 		outputs = append(outputs, binding)
 	}
+
 	// Create Pipelines
 	outputs = append(outputs, createDevCIPipeline(meta.NamespacedName(namespaces["cicd"], "dev-ci-pipeline")))
 	outputs = append(outputs, createStageCIPipeline(meta.NamespacedName(namespaces["cicd"], "stage-ci-pipeline"), namespaces["stage"]))

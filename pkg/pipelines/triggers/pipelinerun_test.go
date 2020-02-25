@@ -9,7 +9,7 @@ import (
 
 func TestCreateDevCDPipelineRun(t *testing.T) {
 	validDevCDPipeline := pipelinev1.PipelineRun{
-		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("dev-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
@@ -26,7 +26,7 @@ func TestCreateDevCDPipelineRun(t *testing.T) {
 
 func TestCreateDevCIPipelineRun(t *testing.T) {
 	validDevCIPipelineRun := pipelinev1.PipelineRun{
-		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("dev-ci-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
@@ -42,7 +42,7 @@ func TestCreateDevCIPipelineRun(t *testing.T) {
 
 func TestCreateStageCDPipelineRUn(t *testing.T) {
 	validStageCDPipeline := pipelinev1.PipelineRun{
-		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("stage-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
@@ -58,7 +58,7 @@ func TestCreateStageCDPipelineRUn(t *testing.T) {
 
 func TestCreateStageCIPipelineRun(t *testing.T) {
 	validStageCIPipeline := pipelinev1.PipelineRun{
-		TypeMeta:   createTypeMeta("PipelineRun", "tekton.dev/v1alpha1"),
+		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("stage-ci-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: "demo-sa",
