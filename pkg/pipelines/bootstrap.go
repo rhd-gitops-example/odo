@@ -47,14 +47,14 @@ type BootstrapOptions struct {
 	Prefix           string
 	QuayAuthFileName string
 	QuayUserName     string
-	BypassChecks     bool
+	SkipChecks       bool
 }
 
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
 func Bootstrap(o *BootstrapOptions) error {
 	// First, check for Tekton.  We proceed only if Tekton is installed
-	if !o.BypassChecks {
+	if !o.SkipChecks {
 		installed, err := checkTektonInstall()
 		if err != nil {
 			return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
