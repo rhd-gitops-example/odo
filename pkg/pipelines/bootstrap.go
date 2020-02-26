@@ -21,7 +21,7 @@ import (
 
 var (
 	dockerSecretName = "regcred"
-	saName           = "demo-sa"
+	saName           = "pipeline"
 	roleName         = "tekton-triggers-openshift-demo"
 	roleBindingName  = "tekton-triggers-openshift-binding"
 
@@ -49,18 +49,21 @@ type BootstrapOptions struct {
 	Prefix           string
 	QuayAuthFileName string
 	QuayUserName     string
+	SkipChecks       bool
 }
 
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
 func Bootstrap(o *BootstrapOptions) error {
 	// First, check for Tekton.  We proceed only if Tekton is installed
-	installed, err := checkTektonInstall()
-	if err != nil {
-		return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
-	}
-	if !installed {
-		return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
+	if !o.SkipChecks {
+		installed, err := checkTektonInstall()
+		if err != nil {
+			return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
+		}
+		if !installed {
+			return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
+		}
 	}
 
 	// Validate image repository
@@ -94,7 +97,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 
 	// Create trigger templates
-	templates := triggers.GenerateTemplates(namespaces["cicd"])
+	templates := triggers.GenerateTemplates(namespaces["cicd"], saName)
 	for _, template := range templates {
 		outputs = append(outputs, template)
 	}
@@ -109,7 +112,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, createPipelines(namespaces, o.DeploymentPath))
 
 	// Create Event Listener
-	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"])
+	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"], saName)
 	outputs = append(outputs, eventListener)
 
 	// Create route
