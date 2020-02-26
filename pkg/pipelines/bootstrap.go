@@ -86,7 +86,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 
 	// Create trigger templates
-	templates := triggers.GenerateTemplates(namespaces["cicd"])
+	templates := triggers.GenerateTemplates(namespaces["cicd"], saName)
 	for _, template := range templates {
 		outputs = append(outputs, template)
 	}
@@ -101,7 +101,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, createPipelines(namespaces, o.DeploymentPath))
 
 	// Create Event Listener
-	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"])
+	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"], saName)
 	outputs = append(outputs, eventListener)
 
 	// Create route

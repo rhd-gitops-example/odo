@@ -8,6 +8,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	sName = "pipeline"
+)
+
 func TestGenerateEventListener(t *testing.T) {
 	validEventListener := triggersv1.EventListener{
 		TypeMeta: metav1.TypeMeta{
@@ -97,7 +101,7 @@ func TestGenerateEventListener(t *testing.T) {
 		},
 	}
 
-	eventListener := Generate("sample", "testing")
+	eventListener := Generate("sample", "testing", sName)
 	if diff := cmp.Diff(validEventListener, eventListener); diff != "" {
 		t.Fatalf("Generate() failed:\n%s", diff)
 	}
