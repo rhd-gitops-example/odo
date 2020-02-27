@@ -97,7 +97,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 
 	// Create trigger templates
-	templates := triggers.GenerateTemplates(namespaces["cicd"], saName)
+	templates := triggers.GenerateTemplates(namespaces["cicd"], saName, o.ImageRepo)
 	for _, template := range templates {
 		outputs = append(outputs, template)
 	}
