@@ -10,7 +10,7 @@ import (
 func Generate(ns string) routev1.Route {
     return routev1.Route{
         TypeMeta:   createRouteTypeMeta(),
-        ObjectMeta: createRouteObjectMeta("github-webhook-event-listener", ns),
+        ObjectMeta: createRouteObjectMeta(ns,"github-webhook-event-listener"),
         Spec: routev1.RouteSpec{
             To: creatRouteTargetReference(
                 "Service",
@@ -46,7 +46,7 @@ func createRouteTypeMeta() metav1.TypeMeta {
     }
 }
 
-func createRouteObjectMeta(name, ns string) metav1.ObjectMeta {
+func createRouteObjectMeta(ns,name string) metav1.ObjectMeta {
     return metav1.ObjectMeta{
         Name:      name,
         Namespace: ns,

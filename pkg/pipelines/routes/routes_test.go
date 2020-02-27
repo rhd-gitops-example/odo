@@ -82,7 +82,7 @@ func TestCreateRouteObjectMeta(t *testing.T) {
             "eventlistener":                "cicd-event-listener",
         },
     }
-    objectMeta := createRouteObjectMeta("sampleName", "cicd-environment")
+    objectMeta := createRouteObjectMeta("cicd-environment","sampleName")
     if diff := cmp.Diff(validObjectMeta, objectMeta); diff != "" {
         t.Fatalf("createRouteObjectMeta() failed:\n%s", diff)
     }
