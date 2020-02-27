@@ -108,7 +108,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, eventListener)
 
 	// Create route
-	route := routes.Generate()
+	route := routes.Generate(namespaces["cicd"])
 	outputs = append(outputs, route)
 
 	//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
