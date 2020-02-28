@@ -33,9 +33,11 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		isValid, _ := validateImageRepo(test.URL)
-		if diff := cmp.Diff(isValid, test.isValid); diff != "" {
-			t.Fatalf("validateImageRepo() failed:\n%s", diff)
-		}
+		t.Run(test.description, func(t *testing.T) {
+			isValid, _ := validateImageRepo(test.URL)
+			if diff := cmp.Diff(isValid, test.isValid); diff != "" {
+				t.Errorf("validateImageRepo() failed:\n%s", diff)
+			}
+		})
 	}
 }
