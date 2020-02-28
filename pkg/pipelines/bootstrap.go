@@ -20,7 +20,7 @@ import (
 
 var (
 	dockerSecretName     = "regcred"
-	saName               = "demo-sa"
+	saName               = "pipeline"
 	roleName             = "tekton-triggers-openshift-demo"
 	roleBindingName      = "tekton-triggers-openshift-binding"
 	devRoleBindingName   = "demo-sa-admin-dev"
