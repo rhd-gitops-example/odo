@@ -100,7 +100,6 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.Flags().StringVar(&o.githubToken, "github-token", "", "provide the Github token")
 	bootstrapCmd.MarkFlagRequired("github-token")
 	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "Docker configuration json filename")
-	bootstrapCmd.MarkFlagRequired("dockerconfigjson")
 	bootstrapCmd.Flags().StringVar(&o.gitRepo, "git-repo", "", "git repository in this form <username>/<repository>")
 	bootstrapCmd.MarkFlagRequired("git-repo")
 	bootstrapCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository>")

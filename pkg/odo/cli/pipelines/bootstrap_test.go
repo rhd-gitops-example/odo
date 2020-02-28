@@ -74,10 +74,6 @@ func TestBootstrapCommandWithMissingParams(t *testing.T) {
 			[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
 				flag("dockerconfigjson", "~/"), flag("image-repo", "foo/bar/bar"), flag("deployment-path", "foo")},
 			`Required flag(s) "git-repo" have/has not been set`},
-		{"Missing dockerconfigjson flag",
-			[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
-				flag("git-repo", "example/repo"), flag("image-repo", "foo/bar/bar"), flag("deployment-path", "foo")},
-			`Required flag(s) "dockerconfigjson" have/has not been set`},
 		{"Missing github-token flag",
 			[]keyValuePair{flag("quay-username", "example"), flag("dockerconfigjson", "~/"),
 				flag("git-repo", "example/repo"), flag("image-repo", "foo/bar/bar"), flag("deployment-path", "foo")},
@@ -90,13 +86,6 @@ func TestBootstrapCommandWithMissingParams(t *testing.T) {
 			[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
 				flag("dockerconfigjson", "~/"), flag("git-repo", "example/repo"), flag("deployment-path", "foo")},
 			`Required flag(s) "image-repo" have/has not been set`},
-		/*
-			{"Got everything",
-				[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
-					flag("dockerconfigjson", "~/"), flag("git-repo", "example/repo"), flag("deployment-path", "foo"),
-					flag("image-repo", "foo/bar/bar")},
-				`Required flag(s) "image-repo" have/has not been set`},
-		*/
 	}
 	for _, tt := range cmdTests {
 		t.Run(tt.desc, func(t *testing.T) {
