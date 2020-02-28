@@ -23,8 +23,8 @@ var (
 	saName               = "pipeline"
 	roleName             = "tekton-triggers-openshift-demo"
 	roleBindingName      = "tekton-triggers-openshift-binding"
-	devRoleBindingName   = "demo-sa-admin-dev"
-	stageRoleBindingName = "demo-sa-admin-stage"
+	devRoleBindingName   = "pipeline-admin-dev"
+	stageRoleBindingName = "pipeline-admin-stage"
 	// PolicyRules to be bound to service account
 	rules = []v1rbac.PolicyRule{
 		v1rbac.PolicyRule{
@@ -126,8 +126,8 @@ func createRoleBindings(ns map[string]string) []interface{} {
 	out = append(out, role)
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], roleBindingName), sa, role.Kind, role.Name))
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], "edit-clusterrole-binding"), sa, "ClusterRole", "edit"))
-	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], devRoleBindingName), sa, "ClusterRole", "edit"))
-	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], stageRoleBindingName), sa, "ClusterRole", "edit"))
+	out = append(out, createRoleBinding(meta.NamespacedName(ns["dev"], devRoleBindingName), sa, "ClusterRole", "edit"))
+	out = append(out, createRoleBinding(meta.NamespacedName(ns["stage"], stageRoleBindingName), sa, "ClusterRole", "edit"))
 
 	return out
 }
