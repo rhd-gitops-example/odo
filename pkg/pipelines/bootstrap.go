@@ -42,8 +42,8 @@ var (
 
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
-	ImageRepo        string
 	DeploymentPath   string
+	ImageRepo        string
 	GithubToken      string
 	GitRepo          string
 	Prefix           string
@@ -97,7 +97,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 
 	// Create trigger templates
-	templates := triggers.GenerateTemplates(namespaces["cicd"], saName)
+	templates := triggers.GenerateTemplates(namespaces["cicd"], saName, o.ImageRepo)
 	for _, template := range templates {
 		outputs = append(outputs, template)
 	}
