@@ -116,7 +116,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, eventListener)
 
 	// Create route
-	route := routes.Generate()
+	route := routes.Generate(namespaces["cicd"])
 	outputs = append(outputs, route)
 
 	//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
@@ -131,8 +131,8 @@ func createRoleBindings(ns map[string]string) []interface{} {
 	out = append(out, sa)
 	role := createRole(meta.NamespacedName(ns["cicd"], roleName), rules)
 	out = append(out, role)
-	out = append(out, createRoleBinding(meta.NamespacedName(roleBindingName, ns["cicd"]), sa, role.Kind, role.Name))
-	out = append(out, createRoleBinding(meta.NamespacedName("edit-clusterrole-binding", ""), sa, "ClusterRole", "edit"))
+	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], roleBindingName), sa, role.Kind, role.Name))
+	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], "edit-clusterrole-binding"), sa, "ClusterRole", "edit"))
 	return out
 }
 

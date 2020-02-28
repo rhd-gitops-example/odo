@@ -18,7 +18,7 @@ func TestCreateDevCDPipelineRun(t *testing.T) {
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: sName,
 			PipelineRef:        createPipelineRef("dev-cd-pipeline"),
-			Resources:          createDevResource(),
+			Resources:          createDevResource("REPLACE_IMAGE:$(params.gitref)"),
 		},
 	}
 	template := createDevCDPipelineRun(sName)
@@ -35,7 +35,11 @@ func TestCreateDevCIPipelineRun(t *testing.T) {
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: sName,
 			PipelineRef:        createPipelineRef("dev-ci-pipeline"),
-			Resources:          createDevResource(),
+			Params: []pipelinev1.Param{
+				createBindingParam("REPO", "$(params.fullname)"),
+				createBindingParam("COMMIT_SHA", "$(params.gitsha)"),
+			},
+			Resources: createDevResource("REPLACE_IMAGE:$(params.gitref)-$(params.gitsha)"),
 		},
 	}
 	template := createDevCIPipelineRun(sName)
@@ -44,13 +48,13 @@ func TestCreateDevCIPipelineRun(t *testing.T) {
 	}
 }
 
-func TestCreateStageCDPipelineRUn(t *testing.T) {
+func TestCreateStageCDPipelineRun(t *testing.T) {
 	validStageCDPipeline := pipelinev1.PipelineRun{
 		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: createObjectMeta("stage-cd-pipeline-run-$(uid)"),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: sName,
-			PipelineRef:        createPipelineRef("stage-ci-pipeline"),
+			PipelineRef:        createPipelineRef("stage-cd-pipeline"),
 			Resources:          createStageResources(),
 		},
 	}
