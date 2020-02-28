@@ -109,7 +109,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 
 	// Create Pipelines
-	outputs = append(outputs, createPipelines(namespaces, o.DeploymentPath))
+	outputs = append(outputs, createPipelines(namespaces, o.DeploymentPath)...)
 
 	// Create Event Listener
 	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"], saName)
@@ -120,7 +120,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, route)
 
 	//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
-	outputs = append(outputs, createRoleBindings(namespaces))
+	outputs = append(outputs, createRoleBindings(namespaces)...)
 
 	return marshalOutputs(os.Stdout, outputs)
 }
