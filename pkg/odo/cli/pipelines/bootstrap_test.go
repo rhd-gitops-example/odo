@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/spf13/cobra"
 )
 
@@ -78,10 +79,6 @@ func TestBootstrapCommandWithMissingParams(t *testing.T) {
 			[]keyValuePair{flag("quay-username", "example"), flag("dockerconfigjson", "~/"),
 				flag("git-repo", "example/repo"), flag("image-repo", "foo/bar/bar"), flag("deployment-path", "foo")},
 			`Required flag(s) "github-token" have/has not been set`},
-		{"Missing quay-username",
-			[]keyValuePair{flag("github-token", "abc123"), flag("dockerconfigjson", "~/"),
-				flag("git-repo", "example/repo"), flag("image-repo", "foo/bar/bar"), flag("deployment-path", "foo")},
-			`Required flag(s) "quay-username" have/has not been set`},
 		{"Missing image-repo",
 			[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
 				flag("dockerconfigjson", "~/"), flag("git-repo", "example/repo"), flag("deployment-path", "foo")},
@@ -121,6 +118,35 @@ func TestBypassChecks(t *testing.T) {
 		}
 	}
 
+}
+
+func TestOptionalRegistryParams(t *testing.T) {
+	tests := []struct {
+		desc     string
+		quay     string
+		quayAuth string
+		wantErr  string
+	}{
+		{
+			"Command with quay-username absent and dockerconfigjson present",
+			"",
+			"sample",
+			"failed due to missing quay-username",
+		},
+		{
+			"Command with quay-username present and dockerconfigjson absent",
+			"sample",
+			"",
+			"failed due to missing dockerconfigjson",
+		},
+	}
+	for _, test := range tests {
+		o := pipelines.BootstrapOptions{"deploy", "image", "token", "org/name", "pre", test.quayAuth, test.quay, false}
+		err := checkOptionalRegistryParams(o)
+		if err.Error() != test.wantErr {
+			t.Errorf("checkOptionalRegistryParams() failed:%s expected %v got %v", test.desc, test.wantErr, err.Error())
+		}
+	}
 }
 
 func executeCommand(cmd *cobra.Command, flags ...keyValuePair) (c *cobra.Command, output string, err error) {

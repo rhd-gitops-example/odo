@@ -209,7 +209,7 @@ func TestGenerateBuildahTask(t *testing.T) {
 			Name: "buildah-task",
 		},
 		Spec: pipelinev1.TaskSpec{
-			Inputs:  createInputsForBuildah(),
+			Inputs:  createInputsForBuildah(false),
 			Outputs: createOutputsForBuildah(),
 			TaskSpec: v1alpha2.TaskSpec{
 				Steps:   createStepsForBuildah(),
@@ -217,7 +217,7 @@ func TestGenerateBuildahTask(t *testing.T) {
 			},
 		},
 	}
-	buildahTask := generateBuildahTask("")
+	buildahTask := generateBuildahTask("", false)
 	if diff := cmp.Diff(validTask, buildahTask); diff != "" {
 		t.Fatalf("generateBuildahTask() failed:\n%s", diff)
 	}

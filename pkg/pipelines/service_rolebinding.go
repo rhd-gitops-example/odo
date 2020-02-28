@@ -7,17 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// createServiceAccount creates a ServiceAccount given name and secretName
-// func createServiceAccount(name types.NamespacedName, secretName string) *corev1.ServiceAccount {
-// 	return &corev1.ServiceAccount{
-// 		TypeMeta:   meta.TypeMeta("ServiceAccount", "v1"),
-// 		ObjectMeta: meta.ObjectMeta(name),
-// 		Secrets: []corev1.ObjectReference{
-// 			corev1.ObjectReference{Name: secretName},
-// 		},
-// 	}
-// }
-
 func createServiceAccount(name types.NamespacedName) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		TypeMeta:   meta.TypeMeta("ServiceAccount", "v1"),

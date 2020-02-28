@@ -20,12 +20,14 @@ import (
 )
 
 var (
-	dockerSecretName     = "regcred"
-	saName               = "pipeline"
-	roleName             = "tekton-triggers-openshift-demo"
-	roleBindingName      = "tekton-triggers-openshift-binding"
-	devRoleBindingName   = "pipeline-admin-dev"
-	stageRoleBindingName = "pipeline-admin-stage"
+	dockerSecretName       = "regcred"
+	saName                 = "pipeline"
+	roleName               = "tekton-triggers-openshift-demo"
+	roleBindingName        = "tekton-triggers-openshift-binding"
+	devRoleBindingName     = "pipeline-admin-dev"
+	stageRoleBindingName   = "pipeline-admin-stage"
+	internalRegistryDomain = "image-registry.openshift-image-registry.svc:5000"
+
 	// PolicyRules to be bound to service account
 	rules = []v1rbac.PolicyRule{
 		v1rbac.PolicyRule{
@@ -56,7 +58,10 @@ type BootstrapOptions struct {
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
 func Bootstrap(o *BootstrapOptions) error {
-	usingInternalRegistry := checkInternalRegistry(o.QuayUserName, o.QuayAuthFileName)
+
+	// Check if internal registry is used
+	usingInternalRegistry := checkInternalRegistry(o.ImageRepo)
+
 	if !o.SkipChecks {
 		installed, err := checkTektonInstall()
 		if err != nil {
@@ -94,7 +99,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 
 	// Create Tasks
-	tasks := tasks.Generate(githubAuth.GetName(), namespaces["cicd"])
+	tasks := tasks.Generate(githubAuth.GetName(), namespaces["cicd"], usingInternalRegistry)
 	for _, task := range tasks {
 		outputs = append(outputs, task)
 	}
@@ -125,7 +130,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	// Create Service Account
 	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
 
-	// Add secret to service account if internal registry is not used
+	// Add secret to service account if external registry is used
 	if !usingInternalRegistry {
 		outputs = append(outputs, addSecretToSA(sa, dockerSecretName))
 	} else {
@@ -144,8 +149,8 @@ func Bootstrap(o *BootstrapOptions) error {
 	return marshalOutputs(os.Stdout, outputs)
 }
 
-func checkInternalRegistry(username string, dockerconfigSecret string) bool {
-	if username == "" && dockerconfigSecret == "" {
+func checkInternalRegistry(url string) bool {
+	if domain := strings.Split(url, "/")[0]; domain == internalRegistryDomain {
 		return true
 	}
 	return false

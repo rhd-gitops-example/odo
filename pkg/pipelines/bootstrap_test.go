@@ -41,3 +41,30 @@ func TestValidateImageRepo(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckInternalRegistry(t *testing.T) {
+	tests := []struct {
+		Description string
+		URL         string
+		Result      bool
+	}{
+		{
+			"Valid internal registry URL",
+			"image-registry.openshift-image-registry.svc:5000/project/app",
+			true,
+		},
+		{
+			"Invalid internal registry URL",
+			"quay.io/project/app",
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.Description, func(t *testing.T) {
+			usingInternalRegistry := checkInternalRegistry(test.URL)
+			if usingInternalRegistry != test.Result {
+				t.Errorf("validateImageRepo() failed:%s, expected %v but got %v", test.Description, test.Result, usingInternalRegistry)
+			}
+		})
+	}
+}
