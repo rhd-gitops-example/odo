@@ -87,7 +87,8 @@ func TestServiceAccount(t *testing.T) {
 			},
 		},
 	}
-	servicetask := createServiceAccount(meta.NamespacedName("", "pipeline"), "regcred")
+	servicetask := createServiceAccount(meta.NamespacedName("", "pipeline"))
+	servicetask = addSecretToSA(servicetask, "regrecd")
 	if diff := cmp.Diff(servicetask, want); diff != "" {
 		t.Errorf("TestServiceAccount() failed:\n%s", diff)
 	}

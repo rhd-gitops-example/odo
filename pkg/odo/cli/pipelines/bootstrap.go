@@ -1,6 +1,7 @@
 package pipelines
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -77,7 +78,20 @@ func (bo *BootstrapOptions) Run() error {
 		QuayUserName:     bo.quayUsername,
 		SkipChecks:       bo.skipChecks,
 	}
+	if err := checkOptionalRegistryParams(options); err != nil {
+		return err
+	}
 	return pipelines.Bootstrap(&options)
+}
+
+func checkOptionalRegistryParams(options pipelines.BootstrapOptions) error {
+	if options.QuayAuthFileName != "" && options.QuayUserName == "" {
+		return errors.New("failed due to missing quay-username")
+	}
+	if options.QuayUserName != "" && options.QuayAuthFileName == "" {
+		return errors.New("failed due to missing dockerconfigjson")
+	}
+	return nil
 }
 
 // NewCmdBootstrap creates the project bootstrap command.
@@ -96,7 +110,7 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	bootstrapCmd.Flags().StringVar(&o.quayUsername, "quay-username", "", "image registry username")
-	bootstrapCmd.MarkFlagRequired("quay-username")
+	// bootstrapCmd.MarkFlagRequired("quay-username")
 	bootstrapCmd.Flags().StringVar(&o.githubToken, "github-token", "", "provide the Github token")
 	bootstrapCmd.MarkFlagRequired("github-token")
 	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "Docker configuration json filename")

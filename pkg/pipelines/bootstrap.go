@@ -56,7 +56,7 @@ type BootstrapOptions struct {
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
 func Bootstrap(o *BootstrapOptions) error {
-	// First, check for Tekton.  We proceed only if Tekton is installed
+	usingInternalRegistry := checkInternalRegistry(o.QuayUserName, o.QuayAuthFileName)
 	if !o.SkipChecks {
 		installed, err := checkTektonInstall()
 		if err != nil {
@@ -85,11 +85,13 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, githubAuth)
 
 	// Create Docker Secret
-	dockerSecret, err := createDockerSecret(o.QuayAuthFileName, namespaces["cicd"])
-	if err != nil {
-		return err
+	if !usingInternalRegistry {
+		dockerSecret, err := createDockerSecret(o.QuayAuthFileName, namespaces["cicd"])
+		if err != nil {
+			return err
+		}
+		outputs = append(outputs, dockerSecret)
 	}
-	outputs = append(outputs, dockerSecret)
 
 	// Create Tasks
 	tasks := tasks.Generate(githubAuth.GetName(), namespaces["cicd"])
@@ -120,16 +122,38 @@ func Bootstrap(o *BootstrapOptions) error {
 	route := routes.Generate(namespaces["cicd"])
 	outputs = append(outputs, route)
 
-	//  Create Service Account, Role, Role Bindings, and ClusterRole Bindings
-	outputs = append(outputs, createRoleBindings(namespaces)...)
+	// Create Service Account
+	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
+
+	// Add secret to service account if internal registry is not used
+	if !usingInternalRegistry {
+		outputs = append(outputs, addSecretToSA(sa, dockerSecretName))
+	} else {
+		outputs = append(outputs, sa)
+	}
+
+	//  Create Role, Role Bindings, and ClusterRole Bindings
+	outputs = append(outputs, createRoleBindings(namespaces, sa)...)
+
+	// Provide access to service account for using internal registry
+	if usingInternalRegistry {
+		internalRegistryNamespace := strings.Split(o.ImageRepo, "/")[1]
+		outputs = append(outputs, createRoleBinding(meta.NamespacedName(internalRegistryNamespace, "internal-registry-binding"), sa, "ClusterRole", "edit"))
+	}
 
 	return marshalOutputs(os.Stdout, outputs)
 }
 
-func createRoleBindings(ns map[string]string) []interface{} {
+func checkInternalRegistry(username string, dockerconfigSecret string) bool {
+	if username == "" && dockerconfigSecret == "" {
+		return true
+	}
+	return false
+}
+
+func createRoleBindings(ns map[string]string, sa *corev1.ServiceAccount) []interface{} {
 	out := make([]interface{}, 0)
-	sa := createServiceAccount(meta.NamespacedName(ns["cicd"], saName), dockerSecretName)
-	out = append(out, sa)
+
 	role := createRole(meta.NamespacedName(ns["cicd"], roleName), rules)
 	out = append(out, role)
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], roleBindingName), sa, role.Kind, role.Name))

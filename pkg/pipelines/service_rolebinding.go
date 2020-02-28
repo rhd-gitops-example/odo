@@ -8,14 +8,27 @@ import (
 )
 
 // createServiceAccount creates a ServiceAccount given name and secretName
-func createServiceAccount(name types.NamespacedName, secretName string) *corev1.ServiceAccount {
+// func createServiceAccount(name types.NamespacedName, secretName string) *corev1.ServiceAccount {
+// 	return &corev1.ServiceAccount{
+// 		TypeMeta:   meta.TypeMeta("ServiceAccount", "v1"),
+// 		ObjectMeta: meta.ObjectMeta(name),
+// 		Secrets: []corev1.ObjectReference{
+// 			corev1.ObjectReference{Name: secretName},
+// 		},
+// 	}
+// }
+
+func createServiceAccount(name types.NamespacedName) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		TypeMeta:   meta.TypeMeta("ServiceAccount", "v1"),
 		ObjectMeta: meta.ObjectMeta(name),
-		Secrets: []corev1.ObjectReference{
-			corev1.ObjectReference{Name: secretName},
-		},
+		Secrets:    []corev1.ObjectReference{},
 	}
+}
+
+func addSecretToSA(sa *corev1.ServiceAccount, secretName string) *corev1.ServiceAccount {
+	sa.Secrets = append(sa.Secrets, corev1.ObjectReference{Name: secretName})
+	return sa
 }
 
 // createRoleBinding creates a RoleBinding given name, sa, roleKind, and roleName
