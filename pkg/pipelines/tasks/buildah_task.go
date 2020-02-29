@@ -16,12 +16,12 @@ var (
 	}
 )
 
-func generateBuildahTask(ns string, usingIntReg bool) pipelinev1.Task {
+func generateBuildahTask(ns string, usingInternalRegistry bool) pipelinev1.Task {
 	return pipelinev1.Task{
 		TypeMeta:   createTaskTypeMeta(),
 		ObjectMeta: meta.CreateObjectMeta(ns, "buildah-task"),
 		Spec: pipelinev1.TaskSpec{
-			Inputs:  createInputsForBuildah(usingIntReg),
+			Inputs:  createInputsForBuildah(usingInternalRegistry),
 			Outputs: createOutputsForBuildah(),
 			TaskSpec: v1alpha2.TaskSpec{
 				Steps:   createStepsForBuildah(),
@@ -62,14 +62,16 @@ func createOutputsForBuildah() *pipelinev1.Outputs {
 	}
 }
 
-func setTLS(usingIntReg bool) string {
-	if usingIntReg {
+// Returns string value for TLSVERIFY parameter based on usingInternalRegistry boolean
+// If internal registry is used, we need to disable TLS verification
+func getTLSVerify(usingInternalRegistry bool) string {
+	if usingInternalRegistry {
 		return "false"
 	}
 	return "true"
 }
 
-func createInputsForBuildah(usingIntReg bool) *pipelinev1.Inputs {
+func createInputsForBuildah(usingInternalRegistry bool) *pipelinev1.Inputs {
 
 	return &pipelinev1.Inputs{
 		Params: []pipelinev1.ParamSpec{
@@ -89,7 +91,7 @@ func createInputsForBuildah(usingIntReg bool) *pipelinev1.Inputs {
 				"TLSVERIFY",
 				"Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)",
 				pipelinev1.ParamTypeString,
-				setTLS(usingIntReg),
+				getTLSVerify(usingInternalRegistry),
 			),
 		},
 		Resources: []pipelinev1.TaskResource{

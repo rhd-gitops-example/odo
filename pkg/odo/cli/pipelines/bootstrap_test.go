@@ -105,17 +105,19 @@ func TestBypassChecks(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		o := BootstrapOptions{skipChecks: test.skipChecks}
+		t.Run(test.description, func(t *testing.T) {
+			o := BootstrapOptions{skipChecks: test.skipChecks}
 
-		err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
+			err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
 
-		if err != nil {
-			t.Errorf("Complete() %#v failed: ", err)
-		}
+			if err != nil {
+				t.Errorf("Complete() %#v failed: ", err)
+			}
 
-		if o.skipChecks != test.wantedBypassChecks {
-			t.Errorf("Complete() %#v bypassChecks flag: got %v, want %v", test.description, o.skipChecks, test.wantedBypassChecks)
-		}
+			if o.skipChecks != test.wantedBypassChecks {
+				t.Errorf("Complete() %#v bypassChecks flag: got %v, want %v", test.description, o.skipChecks, test.wantedBypassChecks)
+			}
+		})
 	}
 
 }
@@ -141,11 +143,22 @@ func TestOptionalRegistryParams(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		o := pipelines.BootstrapOptions{"deploy", "image", "token", "org/name", "pre", test.quayAuth, test.quay, false}
-		err := checkOptionalRegistryParams(o)
-		if err.Error() != test.wantErr {
-			t.Errorf("checkOptionalRegistryParams() failed:%s expected %v got %v", test.desc, test.wantErr, err.Error())
-		}
+		t.Run(test.desc, func(t *testing.T) {
+			o := pipelines.BootstrapOptions{
+				DeploymentPath:   "deploy",
+				ImageRepo:        "image",
+				GithubToken:      "token",
+				GitRepo:          "org/name",
+				Prefix:           "pre",
+				QuayAuthFileName: test.quayAuth,
+				QuayUserName:     test.quay,
+				SkipChecks:       false,
+			}
+			err := checkOptionalRegistryParams(o)
+			if err.Error() != test.wantErr {
+				t.Errorf("checkOptionalRegistryParams() failed:%s expected %v got %v", test.desc, test.wantErr, err.Error())
+			}
+		})
 	}
 }
 

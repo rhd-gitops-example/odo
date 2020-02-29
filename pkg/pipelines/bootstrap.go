@@ -59,9 +59,6 @@ type BootstrapOptions struct {
 // configured with a basic configuration.
 func Bootstrap(o *BootstrapOptions) error {
 
-	// Check if internal registry is used
-	usingInternalRegistry := checkInternalRegistry(o.ImageRepo)
-
 	if !o.SkipChecks {
 		installed, err := checkTektonInstall()
 		if err != nil {
@@ -89,14 +86,8 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 	outputs = append(outputs, githubAuth)
 
-	// Create Docker Secret
-	if !usingInternalRegistry {
-		dockerSecret, err := createDockerSecret(o.QuayAuthFileName, namespaces["cicd"])
-		if err != nil {
-			return err
-		}
-		outputs = append(outputs, dockerSecret)
-	}
+	// Check if internal registry is used
+	usingInternalRegistry := checkInternalRegistry(o.ImageRepo)
 
 	// Create Tasks
 	tasks := tasks.Generate(githubAuth.GetName(), namespaces["cicd"], usingInternalRegistry)
@@ -130,21 +121,23 @@ func Bootstrap(o *BootstrapOptions) error {
 	// Create Service Account
 	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
 
-	// Add secret to service account if external registry is used
 	if !usingInternalRegistry {
+		// Add secret to service account if external registry is used
+		dockerSecret, err := createDockerSecret(o.QuayAuthFileName, namespaces["cicd"])
+		if err != nil {
+			return err
+		}
+		outputs = append(outputs, dockerSecret)
 		outputs = append(outputs, addSecretToSA(sa, dockerSecretName))
 	} else {
 		outputs = append(outputs, sa)
+		// Provide access to service account for using internal registry
+		internalRegistryNamespace := strings.Split(o.ImageRepo, "/")[1]
+		outputs = append(outputs, createRoleBinding(meta.NamespacedName(internalRegistryNamespace, "internal-registry-binding"), sa, "ClusterRole", "edit"))
 	}
 
 	//  Create Role, Role Bindings, and ClusterRole Bindings
 	outputs = append(outputs, createRoleBindings(namespaces, sa)...)
-
-	// Provide access to service account for using internal registry
-	if usingInternalRegistry {
-		internalRegistryNamespace := strings.Split(o.ImageRepo, "/")[1]
-		outputs = append(outputs, createRoleBinding(meta.NamespacedName(internalRegistryNamespace, "internal-registry-binding"), sa, "ClusterRole", "edit"))
-	}
 
 	return marshalOutputs(os.Stdout, outputs)
 }
