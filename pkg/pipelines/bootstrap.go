@@ -18,13 +18,16 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	DockerSecretName     = "regcred"
+	SaName               = "pipeline"
+	RoleName             = "tekton-triggers-openshift-demo"
+	RoleBindingName      = "tekton-triggers-openshift-binding"
+	DevRoleBindingName   = "pipeline-edit-dev"
+	StageRoleBindingName = "pipeline-edit-stage"
+)
+
 var (
-	dockerSecretName     = "regcred"
-	saName               = "pipeline"
-	roleName             = "tekton-triggers-openshift-demo"
-	roleBindingName      = "tekton-triggers-openshift-binding"
-	devRoleBindingName   = "pipeline-admin-dev"
-	stageRoleBindingName = "pipeline-admin-stage"
 	// PolicyRules to be bound to service account
 	rules = []v1rbac.PolicyRule{
 		v1rbac.PolicyRule{
@@ -90,7 +93,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	}
 
 	// Create trigger templates
-	templates := triggers.GenerateTemplates(namespaces["cicd"], saName)
+	templates := triggers.GenerateTemplates(namespaces["cicd"], SaName)
 	for _, template := range templates {
 		outputs = append(outputs, template)
 	}
@@ -105,7 +108,7 @@ func Bootstrap(o *BootstrapOptions) error {
 	outputs = append(outputs, createPipelines(namespaces, o.DeploymentPath)...)
 
 	// Create Event Listener
-	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"], saName)
+	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"], SaName)
 	outputs = append(outputs, eventListener)
 
 	// Create route
@@ -120,14 +123,14 @@ func Bootstrap(o *BootstrapOptions) error {
 
 func createRoleBindings(ns map[string]string) []interface{} {
 	out := make([]interface{}, 0)
-	sa := createServiceAccount(meta.NamespacedName(ns["cicd"], saName), dockerSecretName)
+	sa := createServiceAccount(meta.NamespacedName(ns["cicd"], SaName), DockerSecretName)
 	out = append(out, sa)
-	role := createRole(meta.NamespacedName(ns["cicd"], roleName), rules)
+	role := createRole(meta.NamespacedName(ns["cicd"], RoleName), rules)
 	out = append(out, role)
-	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], roleBindingName), sa, role.Kind, role.Name))
+	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], RoleBindingName), sa, role.Kind, role.Name))
 	out = append(out, createRoleBinding(meta.NamespacedName(ns["cicd"], "edit-clusterrole-binding"), sa, "ClusterRole", "edit"))
-	out = append(out, createRoleBinding(meta.NamespacedName(ns["dev"], devRoleBindingName), sa, "ClusterRole", "edit"))
-	out = append(out, createRoleBinding(meta.NamespacedName(ns["stage"], stageRoleBindingName), sa, "ClusterRole", "edit"))
+	out = append(out, createRoleBinding(meta.NamespacedName(ns["dev"], DevRoleBindingName), sa, "ClusterRole", "edit"))
+	out = append(out, createRoleBinding(meta.NamespacedName(ns["stage"], StageRoleBindingName), sa, "ClusterRole", "edit"))
 
 	return out
 }
@@ -156,7 +159,7 @@ func createDockerSecret(quayIOAuthFilename, ns string) (*corev1.Secret, error) {
 	}
 	defer f.Close()
 
-	dockerSecret, err := createDockerConfigSecret(meta.NamespacedName(ns, dockerSecretName), f)
+	dockerSecret, err := createDockerConfigSecret(meta.NamespacedName(ns, DockerSecretName), f)
 	if err != nil {
 		return nil, err
 	}
