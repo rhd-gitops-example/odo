@@ -21,8 +21,8 @@ import (
 const (
 	DockerSecretName     = "regcred"
 	SaName               = "pipeline"
-	RoleName             = "tekton-triggers-openshift-demo"
-	RoleBindingName      = "tekton-triggers-openshift-binding"
+	RoleName             = "pipelines-service-role"
+	RoleBindingName      = "pipelines-service-role-binding"
 	DevRoleBindingName   = "pipeline-edit-dev"
 	StageRoleBindingName = "pipeline-edit-stage"
 )
