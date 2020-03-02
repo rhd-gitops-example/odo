@@ -29,14 +29,15 @@ var (
 // BootstrapOptions encapsulates the options for the odo pipelines bootstrap
 // command.
 type BootstrapOptions struct {
-	deploymentPath     string
-	quayUsername       string
-	gitRepo            string // e.g. tekton/triggers
-	prefix             string // used to generate the environments in a shared cluster
-	githubToken        string
-	quayIOAuthFilename string
-	imageRepo          string
-	skipChecks         bool
+	deploymentPath           string
+	githubToken              string
+	gitRepo                  string // e.g. tekton/triggers
+	imageRepo                string
+	internalRegistryHostname string
+	prefix                   string // used to generate the environments in a shared cluster
+	quayIOAuthFilename       string
+	quayUsername             string
+	skipChecks               bool
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -69,14 +70,15 @@ func (bo *BootstrapOptions) Validate() error {
 // Run runs the project bootstrap command.
 func (bo *BootstrapOptions) Run() error {
 	options := pipelines.BootstrapOptions{
-		DeploymentPath:   bo.deploymentPath,
-		GithubToken:      bo.githubToken,
-		GitRepo:          bo.gitRepo,
-		ImageRepo:        bo.imageRepo,
-		Prefix:           bo.prefix,
-		QuayAuthFileName: bo.quayIOAuthFilename,
-		QuayUserName:     bo.quayUsername,
-		SkipChecks:       bo.skipChecks,
+		DeploymentPath:           bo.deploymentPath,
+		GithubToken:              bo.githubToken,
+		GitRepo:                  bo.gitRepo,
+		ImageRepo:                bo.imageRepo,
+		InternalRegistryHostname: bo.internalRegistryHostname,
+		Prefix:                   bo.prefix,
+		QuayAuthFileName:         bo.quayIOAuthFilename,
+		QuayUserName:             bo.quayUsername,
+		SkipChecks:               bo.skipChecks,
 	}
 	if err := checkOptionalRegistryParams(options); err != nil {
 		return err
@@ -115,10 +117,12 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "Docker configuration json filename")
 	bootstrapCmd.Flags().StringVar(&o.gitRepo, "git-repo", "", "git repository in this form <username>/<repository>")
 	bootstrapCmd.MarkFlagRequired("git-repo")
-	bootstrapCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository>")
+	bootstrapCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
 	bootstrapCmd.MarkFlagRequired("image-repo")
 	bootstrapCmd.Flags().StringVar(&o.deploymentPath, "deployment-path", "", "deployment folder path name")
 	bootstrapCmd.MarkFlagRequired("deployment-path")
 	bootstrapCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
+	bootstrapCmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
+
 	return bootstrapCmd
 }

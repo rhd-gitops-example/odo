@@ -65,6 +65,7 @@ func TestValidateBootstrapOptions(t *testing.T) {
 		}
 	}
 }
+
 func TestBootstrapCommandWithMissingParams(t *testing.T) {
 	cmdTests := []struct {
 		desc    string
