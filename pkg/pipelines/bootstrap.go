@@ -124,6 +124,19 @@ func Bootstrap(o *BootstrapOptions) error {
 		outputs = append(outputs, sa)
 		// Provide access to service account for using internal registry
 		internalRegistryNamespace := strings.Split(imageRepo, "/")[1]
+
+		clientSet, err := getClientSet()
+		if err != nil {
+			return err
+		}
+		namespaceExists, err := checkNamespace(clientSet, internalRegistryNamespace)
+		if err != nil {
+			return err
+		}
+		if !namespaceExists {
+			outputs = append(outputs, createNamespace(internalRegistryNamespace))
+		}
+
 		outputs = append(outputs, createRoleBinding(meta.NamespacedName(internalRegistryNamespace, "internal-registry-binding"), sa, "ClusterRole", "edit"))
 	} else {
 		// Add secret to service account if external registry is used
