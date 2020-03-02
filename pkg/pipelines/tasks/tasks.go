@@ -10,7 +10,6 @@ import (
 func Generate(secretName, ns string, usingInternalRegistry bool) []pipelinev1.Task {
 	return []pipelinev1.Task{
 		generateBuildahTask(ns, usingInternalRegistry),
-		generateGithubStatusTask(secretName, ns),
 		generateDeployFromSourceTask(ns),
 		generateDeployUsingKubectlTask(ns),
 	}
