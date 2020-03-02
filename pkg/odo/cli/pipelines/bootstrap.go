@@ -1,7 +1,6 @@
 package pipelines
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -35,8 +34,7 @@ type BootstrapOptions struct {
 	imageRepo                string
 	internalRegistryHostname string
 	prefix                   string // used to generate the environments in a shared cluster
-	quayIOAuthFilename       string
-	quayUsername             string
+	dockerConfigJSONFileName string
 	skipChecks               bool
 	// generic context options common to all commands
 	*genericclioptions.Context
@@ -76,24 +74,11 @@ func (bo *BootstrapOptions) Run() error {
 		ImageRepo:                bo.imageRepo,
 		InternalRegistryHostname: bo.internalRegistryHostname,
 		Prefix:                   bo.prefix,
-		QuayAuthFileName:         bo.quayIOAuthFilename,
-		QuayUserName:             bo.quayUsername,
+		DockerConfigJSONFileName: bo.dockerConfigJSONFileName,
 		SkipChecks:               bo.skipChecks,
 	}
-	if err := checkOptionalRegistryParams(options); err != nil {
-		return err
-	}
-	return pipelines.Bootstrap(&options)
-}
 
-func checkOptionalRegistryParams(options pipelines.BootstrapOptions) error {
-	if options.QuayAuthFileName != "" && options.QuayUserName == "" {
-		return errors.New("failed due to missing quay-username")
-	}
-	if options.QuayUserName != "" && options.QuayAuthFileName == "" {
-		return errors.New("failed due to missing dockerconfigjson")
-	}
-	return nil
+	return pipelines.Bootstrap(&options)
 }
 
 // NewCmdBootstrap creates the project bootstrap command.
@@ -111,10 +96,9 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	}
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	bootstrapCmd.Flags().StringVar(&o.quayUsername, "quay-username", "", "image registry username")
 	bootstrapCmd.Flags().StringVar(&o.githubToken, "github-token", "", "provide the Github token")
 	bootstrapCmd.MarkFlagRequired("github-token")
-	bootstrapCmd.Flags().StringVar(&o.quayIOAuthFilename, "dockerconfigjson", "", "Docker configuration json filename")
+	bootstrapCmd.Flags().StringVar(&o.dockerConfigJSONFileName, "dockerconfigjson", "", "Docker configuration json filename")
 	bootstrapCmd.Flags().StringVar(&o.gitRepo, "git-repo", "", "git repository in this form <username>/<repository>")
 	bootstrapCmd.MarkFlagRequired("git-repo")
 	bootstrapCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")

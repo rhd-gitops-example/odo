@@ -79,6 +79,26 @@ func TestValidateImageRepo(t *testing.T) {
 			"",
 		},
 		{
+			"Invalid image registry URL with whitespaces in between",
+			BootstrapOptions{
+				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
+				ImageRepo:                "quay.io/sam\tple-user/",
+			},
+			fmt.Sprintf(errorMsg, "quay.io/sam\tple-user/"),
+			false,
+			"",
+		},
+		{
+			"Invalid image registry URL with leading whitespaces",
+			BootstrapOptions{
+				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
+				ImageRepo:                "quay.io/ sample-user/",
+			},
+			fmt.Sprintf(errorMsg, "quay.io/ sample-user/"),
+			false,
+			"",
+		},
+		{
 			"Valid internal registry URL",
 			BootstrapOptions{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",

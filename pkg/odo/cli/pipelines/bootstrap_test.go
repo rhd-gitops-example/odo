@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/spf13/cobra"
 )
 
@@ -51,7 +50,7 @@ func TestValidateBootstrapOptions(t *testing.T) {
 	}
 
 	for _, tt := range optionTests {
-		o := BootstrapOptions{quayUsername: "testing", gitRepo: tt.gitRepo, prefix: "test"}
+		o := BootstrapOptions{gitRepo: tt.gitRepo, prefix: "test"}
 
 		err := o.Validate()
 
@@ -73,15 +72,15 @@ func TestBootstrapCommandWithMissingParams(t *testing.T) {
 		wantErr string
 	}{
 		{"Missing git-repo flag",
-			[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
+			[]keyValuePair{flag("github-token", "abc123"),
 				flag("dockerconfigjson", "~/"), flag("image-repo", "foo/bar/bar"), flag("deployment-path", "foo")},
 			`Required flag(s) "git-repo" have/has not been set`},
 		{"Missing github-token flag",
-			[]keyValuePair{flag("quay-username", "example"), flag("dockerconfigjson", "~/"),
+			[]keyValuePair{flag("dockerconfigjson", "~/"),
 				flag("git-repo", "example/repo"), flag("image-repo", "foo/bar/bar"), flag("deployment-path", "foo")},
 			`Required flag(s) "github-token" have/has not been set`},
 		{"Missing image-repo",
-			[]keyValuePair{flag("quay-username", "example"), flag("github-token", "abc123"),
+			[]keyValuePair{flag("github-token", "abc123"),
 				flag("dockerconfigjson", "~/"), flag("git-repo", "example/repo"), flag("deployment-path", "foo")},
 			`Required flag(s) "image-repo" have/has not been set`},
 	}
@@ -121,46 +120,6 @@ func TestBypassChecks(t *testing.T) {
 		})
 	}
 
-}
-
-func TestOptionalRegistryParams(t *testing.T) {
-	tests := []struct {
-		desc     string
-		quay     string
-		quayAuth string
-		wantErr  string
-	}{
-		{
-			"Command with quay-username absent and dockerconfigjson present",
-			"",
-			"sample",
-			"failed due to missing quay-username",
-		},
-		{
-			"Command with quay-username present and dockerconfigjson absent",
-			"sample",
-			"",
-			"failed due to missing dockerconfigjson",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.desc, func(t *testing.T) {
-			o := pipelines.BootstrapOptions{
-				DeploymentPath:   "deploy",
-				ImageRepo:        "image",
-				GithubToken:      "token",
-				GitRepo:          "org/name",
-				Prefix:           "pre",
-				QuayAuthFileName: test.quayAuth,
-				QuayUserName:     test.quay,
-				SkipChecks:       false,
-			}
-			err := checkOptionalRegistryParams(o)
-			if err.Error() != test.wantErr {
-				t.Errorf("checkOptionalRegistryParams() failed:%s expected %v got %v", test.desc, test.wantErr, err.Error())
-			}
-		})
-	}
 }
 
 func executeCommand(cmd *cobra.Command, flags ...keyValuePair) (c *cobra.Command, output string, err error) {

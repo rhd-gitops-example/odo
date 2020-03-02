@@ -50,8 +50,7 @@ type BootstrapOptions struct {
 	InternalRegistryHostname string
 	ImageRepo                string
 	Prefix                   string
-	QuayAuthFileName         string
-	QuayUserName             string
+	DockerConfigJSONFileName string
 	SkipChecks               bool
 }
 
@@ -69,7 +68,6 @@ func Bootstrap(o *BootstrapOptions) error {
 		}
 	}
 
-	// Validate image repo
 	isInternalRegistry, imageRepo, err := validateImageRepo(o)
 	if err != nil {
 		return err
@@ -119,35 +117,12 @@ func Bootstrap(o *BootstrapOptions) error {
 	// Create Service Account
 	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
 
-	if isInternalRegistry {
-		// add sa to outputs
-		outputs = append(outputs, sa)
-		// Provide access to service account for using internal registry
-		internalRegistryNamespace := strings.Split(imageRepo, "/")[1]
-
-		clientSet, err := getClientSet()
-		if err != nil {
-			return err
-		}
-		namespaceExists, err := checkNamespace(clientSet, internalRegistryNamespace)
-		if err != nil {
-			return err
-		}
-		if !namespaceExists {
-			outputs = append(outputs, createNamespace(internalRegistryNamespace))
-		}
-
-		outputs = append(outputs, createRoleBinding(meta.NamespacedName(internalRegistryNamespace, "internal-registry-binding"), sa, "ClusterRole", "edit"))
-	} else {
-		// Add secret to service account if external registry is used
-		dockerSecret, err := createDockerSecret(o.QuayAuthFileName, namespaces["cicd"])
-		if err != nil {
-			return err
-		}
-		outputs = append(outputs, dockerSecret)
-		// add secret and sa to outputs
-		outputs = append(outputs, addSecretToSA(sa, dockerSecretName))
+	// Create decret, role binding, namespaces for using image repo
+	manifests, err := createManifestsForImageRepo(sa, isInternalRegistry, imageRepo, o, namespaces)
+	if err != nil {
+		return err
 	}
+	outputs = append(outputs, manifests...)
 
 	//  Create Role, Role Bindings, and ClusterRole Bindings
 	outputs = append(outputs, createRoleBindings(namespaces, sa)...)
@@ -168,6 +143,43 @@ func createRoleBindings(ns map[string]string, sa *corev1.ServiceAccount) []inter
 	return out
 }
 
+// createManifestsForImageRepo creates manifects like namespaces, secret, and role bindng for using image repo
+func createManifestsForImageRepo(sa *corev1.ServiceAccount, isInternalRegistry bool, imageRepo string, o *BootstrapOptions, namespaces map[string]string) ([]interface{}, error) {
+	out := make([]interface{}, 0)
+
+	if isInternalRegistry {
+		// add sa to outputs
+		out = append(out, sa)
+		// Provide access to service account for using internal registry
+		internalRegistryNamespace := strings.Split(imageRepo, "/")[1]
+
+		clientSet, err := getClientSet()
+		if err != nil {
+			return nil, err
+		}
+		namespaceExists, err := checkNamespace(clientSet, internalRegistryNamespace)
+		if err != nil {
+			return nil, err
+		}
+		if !namespaceExists {
+			out = append(out, createNamespace(internalRegistryNamespace))
+		}
+
+		out = append(out, createRoleBinding(meta.NamespacedName(internalRegistryNamespace, "internal-registry-binding"), sa, "ClusterRole", "edit"))
+	} else {
+		// Add secret to service account if external registry is used
+		dockerSecret, err := createDockerSecret(o.DockerConfigJSONFileName, namespaces["cicd"])
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, dockerSecret)
+		// add secret and sa to outputs
+		out = append(out, addSecretToSA(sa, dockerSecretName))
+	}
+
+	return out, nil
+}
+
 func createPipelines(ns map[string]string, deploymentPath string) []interface{} {
 	out := make([]interface{}, 0)
 	out = append(out, createDevCIPipeline(meta.NamespacedName(ns["cicd"], "dev-ci-pipeline")))
@@ -179,9 +191,12 @@ func createPipelines(ns map[string]string, deploymentPath string) []interface{} 
 }
 
 // createDockerSecret creates Docker secret
-func createDockerSecret(quayIOAuthFilename, ns string) (*corev1.Secret, error) {
+func createDockerSecret(dockerConfigJSONFileName, ns string) (*corev1.Secret, error) {
+	if dockerConfigJSONFileName == "" {
+		return nil, errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")
+	}
 
-	authJSONPath, err := homedir.Expand(quayIOAuthFilename)
+	authJSONPath, err := homedir.Expand(dockerConfigJSONFileName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate path to file: %w", err)
 	}
@@ -245,16 +260,20 @@ func validateImageRepo(o *BootstrapOptions) (bool, string, error) {
 		return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
 	}
 
-	// check for spaces
 	for _, v := range components {
+		// check for empty components
 		if strings.TrimSpace(v) == "" {
+			return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
+		}
+		// check for white spaces
+		if len(v) > len(strings.TrimSpace(v)) {
 			return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
 		}
 	}
 
 	if len(components) == 2 {
 		if components[0] == "docker.io" || components[0] == "quay.io" {
-			// we recconize docker.io and quay.io.  It is missing one component
+			// we recognize docker.io and quay.io.  It is missing one component
 			return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
 		}
 		// We have format like <project>/<app> which is an internal registry.
