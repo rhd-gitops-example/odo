@@ -26,7 +26,6 @@ var (
 	roleBindingName      = "tekton-triggers-openshift-binding"
 	devRoleBindingName   = "pipeline-admin-dev"
 	stageRoleBindingName = "pipeline-admin-stage"
-
 	// PolicyRules to be bound to service account
 	rules = []v1rbac.PolicyRule{
 		v1rbac.PolicyRule{
