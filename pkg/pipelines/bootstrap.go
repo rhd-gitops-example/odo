@@ -113,10 +113,8 @@ func Bootstrap(o *BootstrapParameters) error {
 	route := routes.Generate(namespaces["cicd"])
 	outputs = append(outputs, route)
 
-	// Create Service Account
+	// Create secret, role binding, namespaces for using image repo
 	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
-
-	// Create decret, role binding, namespaces for using image repo
 	manifests, err := createManifestsForImageRepo(sa, isInternalRegistry, imageRepo, o, namespaces)
 	if err != nil {
 		return err
@@ -142,7 +140,7 @@ func createRoleBindings(ns map[string]string, sa *corev1.ServiceAccount) []inter
 	return out
 }
 
-// createManifestsForImageRepo creates manifects like namespaces, secret, and role bindng for using image repo
+// createManifestsForImageRepo creates manifests like namespaces, secret, and role bindng for using image repo
 func createManifestsForImageRepo(sa *corev1.ServiceAccount, isInternalRegistry bool, imageRepo string, o *BootstrapParameters, namespaces map[string]string) ([]interface{}, error) {
 	out := make([]interface{}, 0)
 
