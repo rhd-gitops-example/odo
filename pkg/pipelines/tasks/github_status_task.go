@@ -10,7 +10,7 @@ import (
 func generateGithubStatusTask(secretName, ns string) pipelinev1.Task {
 	task := pipelinev1.Task{
 		TypeMeta:   createTaskTypeMeta(),
-		ObjectMeta: meta.CreateObjectMeta(ns, "create-github-status-task"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "create-github-status-task")),
 		Spec: pipelinev1.TaskSpec{
 			Inputs: createInputsForGithubStatusTask(),
 			TaskSpec: v1alpha2.TaskSpec{
