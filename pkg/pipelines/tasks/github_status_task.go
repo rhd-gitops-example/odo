@@ -3,7 +3,6 @@ package tasks
 import (
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -13,9 +12,7 @@ func generateGithubStatusTask(secretName, ns string) pipelinev1.Task {
 		ObjectMeta: meta.CreateObjectMeta(ns, "create-github-status-task"),
 		Spec: pipelinev1.TaskSpec{
 			Inputs: createInputsForGithubStatusTask(),
-			TaskSpec: v1alpha2.TaskSpec{
-				Steps: createStepsForGithubStatusTask(secretName),
-			},
+			Steps:  createStepsForGithubStatusTask(secretName),
 		},
 	}
 	return task
