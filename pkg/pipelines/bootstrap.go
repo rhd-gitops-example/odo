@@ -42,8 +42,8 @@ var (
 	}
 )
 
-// BootstrapOptions is a struct that provides the optional flags
-type BootstrapOptions struct {
+// BootstrapParameters is a struct that provides the optional flags
+type BootstrapParameters struct {
 	DeploymentPath           string
 	GithubToken              string
 	GitRepo                  string
@@ -56,7 +56,7 @@ type BootstrapOptions struct {
 
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
-func Bootstrap(o *BootstrapOptions) error {
+func Bootstrap(o *BootstrapParameters) error {
 
 	if !o.SkipChecks {
 		installed, err := checkTektonInstall()
@@ -144,7 +144,7 @@ func createRoleBindings(ns map[string]string, sa *corev1.ServiceAccount) []inter
 }
 
 // createManifestsForImageRepo creates manifects like namespaces, secret, and role bindng for using image repo
-func createManifestsForImageRepo(sa *corev1.ServiceAccount, isInternalRegistry bool, imageRepo string, o *BootstrapOptions, namespaces map[string]string) ([]interface{}, error) {
+func createManifestsForImageRepo(sa *corev1.ServiceAccount, isInternalRegistry bool, imageRepo string, o *BootstrapParameters, namespaces map[string]string) ([]interface{}, error) {
 	out := make([]interface{}, 0)
 
 	if isInternalRegistry {
@@ -251,30 +251,29 @@ func marshalOutputs(out io.Writer, outputs []interface{}) error {
 
 // validateImageRepo validates the input image repo.  It determines if it is
 // for internal registry and prepend internal registry hostname if neccessary.
-func validateImageRepo(o *BootstrapOptions) (bool, string, error) {
+func validateImageRepo(o *BootstrapParameters) (bool, string, error) {
 	components := strings.Split(o.ImageRepo, "/")
-	errorMsg := "failed to parse image repo:%s, expected image repository in the form <registry>/<username>/<repository> or <project>/<app> for internal registry"
 
 	// repo url has minimum of 2 components
 	if len(components) < 2 {
-		return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
+		return false, "", imageRepoValidationError(o.ImageRepo)
 	}
 
 	for _, v := range components {
 		// check for empty components
 		if strings.TrimSpace(v) == "" {
-			return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
+			return false, "", imageRepoValidationError(o.ImageRepo)
 		}
 		// check for white spaces
 		if len(v) > len(strings.TrimSpace(v)) {
-			return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
+			return false, "", imageRepoValidationError(o.ImageRepo)
 		}
 	}
 
 	if len(components) == 2 {
 		if components[0] == "docker.io" || components[0] == "quay.io" {
 			// we recognize docker.io and quay.io.  It is missing one component
-			return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
+			return false, "", imageRepoValidationError(o.ImageRepo)
 		}
 		// We have format like <project>/<app> which is an internal registry.
 		// We prepend the internal registry hostname.
@@ -287,5 +286,9 @@ func validateImageRepo(o *BootstrapOptions) (bool, string, error) {
 	}
 
 	// > 3 components.  invalid repo
-	return false, "", fmt.Errorf(errorMsg, o.ImageRepo)
+	return false, "", imageRepoValidationError(o.ImageRepo)
+}
+
+func imageRepoValidationError(imageRepo string) error {
+	return fmt.Errorf("failed to parse image repo:%s, expected image repository in the form <registry>/<username>/<repository> or <project>/<app> for internal registry", imageRepo)
 }

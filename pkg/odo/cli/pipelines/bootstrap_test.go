@@ -13,7 +13,7 @@ type keyValuePair struct {
 	value string
 }
 
-func TestCompleteBootstrapOptions(t *testing.T) {
+func TestCompleteBootstrapParameters(t *testing.T) {
 	completeTests := []struct {
 		name       string
 		prefix     string
@@ -25,7 +25,7 @@ func TestCompleteBootstrapOptions(t *testing.T) {
 	}
 
 	for _, tt := range completeTests {
-		o := BootstrapOptions{prefix: tt.prefix}
+		o := BootstrapParameters{prefix: tt.prefix}
 
 		err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
 
@@ -39,7 +39,7 @@ func TestCompleteBootstrapOptions(t *testing.T) {
 	}
 }
 
-func TestValidateBootstrapOptions(t *testing.T) {
+func TestValidateBootstrapParameters(t *testing.T) {
 	optionTests := []struct {
 		name    string
 		gitRepo string
@@ -50,7 +50,7 @@ func TestValidateBootstrapOptions(t *testing.T) {
 	}
 
 	for _, tt := range optionTests {
-		o := BootstrapOptions{gitRepo: tt.gitRepo, prefix: "test"}
+		o := BootstrapParameters{gitRepo: tt.gitRepo, prefix: "test"}
 
 		err := o.Validate()
 
@@ -106,7 +106,7 @@ func TestBypassChecks(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			o := BootstrapOptions{skipChecks: test.skipChecks}
+			o := BootstrapParameters{skipChecks: test.skipChecks}
 
 			err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
 

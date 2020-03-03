@@ -13,14 +13,14 @@ func TestValidateImageRepo(t *testing.T) {
 
 	tests := []struct {
 		description                string
-		options                    BootstrapOptions
+		options                    BootstrapParameters
 		expectedError              string
 		expectedIsInternalRegistry bool
 		expectedImageRepo          string
 	}{
 		{
 			"Valid image regsitry URL",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "quay.io/sample-user/sample-repo",
 			},
@@ -30,7 +30,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Valid image regsitry URL random registry",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "random.io/sample-user/sample-repo",
 			},
@@ -40,7 +40,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Valid image regsitry URL docker.io",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "docker.io/sample-user/sample-repo",
 			},
@@ -50,7 +50,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid image registry URL with missing repo name",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "quay.io/sample-user",
 			},
@@ -60,7 +60,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid image registry URL with missing repo name docker.io",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "docker.io/sample-user",
 			},
@@ -70,7 +70,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid image registry URL with whitespaces",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "quay.io/sample-user/ ",
 			},
@@ -80,7 +80,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid image registry URL with whitespaces in between",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "quay.io/sam\tple-user/",
 			},
@@ -90,7 +90,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid image registry URL with leading whitespaces",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "quay.io/ sample-user/",
 			},
@@ -100,7 +100,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Valid internal registry URL",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "image-registry.openshift-image-registry.svc:5000/project/app",
 			},
@@ -110,7 +110,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid internal registry URL implicit starts with '/'",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "/project/app",
 			},
@@ -120,7 +120,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Valid internal registry URL implicit",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "project/app",
 			},
@@ -130,7 +130,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid too many URL components docker",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "docker.io/foo/project/app",
 			},
@@ -140,7 +140,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid too many URL components internal",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "image-registry.openshift-image-registry.svc:5000/project/app/foo",
 			},
@@ -150,7 +150,7 @@ func TestValidateImageRepo(t *testing.T) {
 		},
 		{
 			"Invalid not enough URL components, no slash",
-			BootstrapOptions{
+			BootstrapParameters{
 				InternalRegistryHostname: "image-registry.openshift-image-registry.svc:5000",
 				ImageRepo:                "docker.io",
 			},

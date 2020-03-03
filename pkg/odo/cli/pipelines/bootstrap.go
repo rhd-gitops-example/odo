@@ -25,9 +25,9 @@ var (
 	bootstrapShortDesc = `Bootstrap pipelines`
 )
 
-// BootstrapOptions encapsulates the options for the odo pipelines bootstrap
+// BootstrapParameters encapsulates the paratmeters for the odo pipelines bootstrap
 // command.
-type BootstrapOptions struct {
+type BootstrapParameters struct {
 	deploymentPath           string
 	githubToken              string
 	gitRepo                  string // e.g. tekton/triggers
@@ -40,24 +40,24 @@ type BootstrapOptions struct {
 	*genericclioptions.Context
 }
 
-// NewBootstrapOptions bootstraps a BootstrapOptions instance.
-func NewBootstrapOptions() *BootstrapOptions {
-	return &BootstrapOptions{}
+// NewBootstrapParameters bootstraps a BootstrapParameters instance.
+func NewBootstrapParameters() *BootstrapParameters {
+	return &BootstrapParameters{}
 }
 
-// Complete completes BootstrapOptions after they've been created.
+// Complete completes BootstrapParameters after they've been created.
 //
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
-func (bo *BootstrapOptions) Complete(name string, cmd *cobra.Command, args []string) error {
+func (bo *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []string) error {
 	if bo.prefix != "" && !strings.HasSuffix(bo.prefix, "-") {
 		bo.prefix = bo.prefix + "-"
 	}
 	return nil
 }
 
-// Validate validates the parameters of the BootstrapOptions.
-func (bo *BootstrapOptions) Validate() error {
+// Validate validates the parameters of the BootstrapParameters.
+func (bo *BootstrapParameters) Validate() error {
 	// TODO: this won't work with GitLab as the repo can have more path elements.
 	if len(strings.Split(bo.gitRepo, "/")) != 2 {
 		return fmt.Errorf("repo must be org/repo: %s", bo.gitRepo)
@@ -66,8 +66,8 @@ func (bo *BootstrapOptions) Validate() error {
 }
 
 // Run runs the project bootstrap command.
-func (bo *BootstrapOptions) Run() error {
-	options := pipelines.BootstrapOptions{
+func (bo *BootstrapParameters) Run() error {
+	options := pipelines.BootstrapParameters{
 		DeploymentPath:           bo.deploymentPath,
 		GithubToken:              bo.githubToken,
 		GitRepo:                  bo.gitRepo,
@@ -83,7 +83,7 @@ func (bo *BootstrapOptions) Run() error {
 
 // NewCmdBootstrap creates the project bootstrap command.
 func NewCmdBootstrap(name, fullName string) *cobra.Command {
-	o := NewBootstrapOptions()
+	o := NewBootstrapParameters()
 
 	bootstrapCmd := &cobra.Command{
 		Use:     name,
