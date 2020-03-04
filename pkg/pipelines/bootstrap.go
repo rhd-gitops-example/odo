@@ -116,6 +116,15 @@ func Bootstrap(o *BootstrapParameters) error {
 	route := routes.Generate(namespaces["cicd"])
 	outputs = append(outputs, route)
 
+	// Create scc for using privileged container in Buildah task
+	scc, err := newSCC()
+	if err != nil {
+		return err
+	}
+	if err = scc.addSCCToUser("privileged", namespaces["cicd"], saName); err != nil {
+		return err
+	}
+
 	// Create secret, role binding, namespaces for using image repo
 	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
 	manifests, err := createManifestsForImageRepo(sa, isInternalRegistry, imageRepo, o, namespaces)
