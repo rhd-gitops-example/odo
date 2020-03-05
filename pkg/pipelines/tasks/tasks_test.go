@@ -62,7 +62,7 @@ func TestDeployUsingKubectlTask(t *testing.T) {
 					pipelinev1.Step{
 						Container: corev1.Container{
 							Name:       "replace-image",
-							Image:      "mikefarah/yq",
+							Image:      "quay.io/redhat-developer/yq",
 							WorkingDir: "/workspace/source",
 							Command:    []string{"yq"},
 							Args:       argsForReplaceImageStep,

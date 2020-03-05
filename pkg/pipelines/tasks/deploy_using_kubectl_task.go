@@ -40,7 +40,7 @@ func createStepsForDeployKubectlTask() []pipelinev1.Step {
 		pipelinev1.Step{
 			Container: createContainer(
 				"replace-image",
-				"mikefarah/yq",
+				"quay.io/redhat-developer/yq",
 				"/workspace/source",
 				[]string{"yq"},
 				argsForReplaceImageStep,
