@@ -7,9 +7,8 @@ import (
 )
 
 // Generate will return a slice of tasks
-func Generate(secretName, ns string, usingInternalRegistry bool) []pipelinev1.Task {
+func Generate(secretName, ns string) []pipelinev1.Task {
 	return []pipelinev1.Task{
-		generateBuildahTask(ns, usingInternalRegistry),
 		generateDeployFromSourceTask(ns),
 		generateDeployUsingKubectlTask(ns),
 	}
@@ -72,5 +71,22 @@ func createContainer(name string, image string, workingDir string, cmd []string,
 		WorkingDir: workingDir,
 		Command:    cmd,
 		Args:       args,
+	}
+}
+
+func createVolumeMounts() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
+		corev1.VolumeMount{
+			Name:      "varlibcontainers",
+			MountPath: "/var/lib/containers",
+		},
+	}
+}
+
+func createVolumes(name string) []corev1.Volume {
+	return []corev1.Volume{
+		corev1.Volume{
+			Name: name,
+		},
 	}
 }
