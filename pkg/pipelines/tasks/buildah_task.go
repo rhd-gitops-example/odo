@@ -3,7 +3,6 @@ package tasks
 import (
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -19,14 +18,12 @@ var (
 func generateBuildahTask(ns string, usingInternalRegistry bool) pipelinev1.Task {
 	return pipelinev1.Task{
 		TypeMeta:   createTaskTypeMeta(),
-		ObjectMeta: meta.CreateObjectMeta(ns, "buildah-task"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "buildah-task")),
 		Spec: pipelinev1.TaskSpec{
 			Inputs:  createInputsForBuildah(usingInternalRegistry),
 			Outputs: createOutputsForBuildah(),
-			TaskSpec: v1alpha2.TaskSpec{
-				Steps:   createStepsForBuildah(),
-				Volumes: createVolumes("varlibcontainers"),
-			},
+			Steps:   createStepsForBuildah(),
+			Volumes: createVolumes("varlibcontainers"),
 		},
 	}
 }

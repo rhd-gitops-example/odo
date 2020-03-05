@@ -21,8 +21,9 @@ func TestRoleBinding(t *testing.T) {
 		},
 		Subjects: []v1rbac.Subject{
 			v1rbac.Subject{
-				Kind: "ServiceAccount",
-				Name: "pipeline",
+				Kind:      "ServiceAccount",
+				Name:      "pipeline",
+				Namespace: "testing",
 			},
 		},
 		RoleRef: v1rbac.RoleRef{
@@ -33,7 +34,7 @@ func TestRoleBinding(t *testing.T) {
 	}
 	sa := &corev1.ServiceAccount{
 		TypeMeta:   meta.TypeMeta("ServiceAccount", "v1"),
-		ObjectMeta: meta.CreateObjectMeta("testing", "pipeline"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testing", "pipeline")),
 	}
 	roleBindingTask := createRoleBinding(
 		meta.NamespacedName("", roleBindingName),
