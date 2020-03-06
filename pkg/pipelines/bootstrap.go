@@ -116,7 +116,7 @@ func Bootstrap(o *BootstrapParameters) error {
 	route := routes.Generate(namespaces["cicd"])
 	outputs = append(outputs, route)
 
-	// Create secret, role binding, namespaces for using image repo
+	// Don't add this service account to outputs as this is the default service account created by Pipeline Operator
 	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
 
 	manifests, err := createManifestsForImageRepo(sa, isInternalRegistry, imageRepo, o, namespaces)
