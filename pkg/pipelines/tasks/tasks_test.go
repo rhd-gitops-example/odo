@@ -156,15 +156,3 @@ func TestCreateEnvFromSecret(t *testing.T) {
 		t.Fatalf("createEnvFromSecret() failed:\n%s", diff)
 	}
 }
-
-func TestCreateVolumes(t *testing.T) {
-	validVolume := []corev1.Volume{
-		corev1.Volume{
-			Name: "sample",
-		},
-	}
-	volume := createVolumes("sample")
-	if diff := cmp.Diff(validVolume, volume); diff != "" {
-		t.Fatalf("createVolumes() failed:\n%s", diff)
-	}
-}

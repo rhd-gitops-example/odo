@@ -73,20 +73,3 @@ func createContainer(name string, image string, workingDir string, cmd []string,
 		Args:       args,
 	}
 }
-
-func createVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
-		corev1.VolumeMount{
-			Name:      "varlibcontainers",
-			MountPath: "/var/lib/containers",
-		},
-	}
-}
-
-func createVolumes(name string) []corev1.Volume {
-	return []corev1.Volume{
-		corev1.Volume{
-			Name: name,
-		},
-	}
-}
