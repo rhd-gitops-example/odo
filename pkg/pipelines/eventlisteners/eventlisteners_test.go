@@ -36,7 +36,7 @@ func TestGenerateEventListener(t *testing.T) {
 					},
 					Bindings: []*triggersv1.EventListenerBinding{
 						&triggersv1.EventListenerBinding{
-							Name: "dev-ci-build-from-pr-binding",
+							Name: "ci-build-from-pr-binding",
 						},
 					},
 					Template: triggersv1.EventListenerTemplate{
@@ -54,7 +54,7 @@ func TestGenerateEventListener(t *testing.T) {
 					},
 					Bindings: []*triggersv1.EventListenerBinding{
 						&triggersv1.EventListenerBinding{
-							Name: "dev-cd-deploy-from-master-binding",
+							Name: "cd-deploy-from-push-binding",
 						},
 					},
 					Template: triggersv1.EventListenerTemplate{
@@ -72,7 +72,7 @@ func TestGenerateEventListener(t *testing.T) {
 					},
 					Bindings: []*triggersv1.EventListenerBinding{
 						&triggersv1.EventListenerBinding{
-							Name: "stage-ci-dryrun-from-pr-binding",
+							Name: "ci-build-from-pr-binding",
 						},
 					},
 					Template: triggersv1.EventListenerTemplate{
@@ -90,7 +90,7 @@ func TestGenerateEventListener(t *testing.T) {
 					},
 					Bindings: []*triggersv1.EventListenerBinding{
 						&triggersv1.EventListenerBinding{
-							Name: "stage-cd-deploy-from-push-binding",
+							Name: "cd-deploy-from-push-binding",
 						},
 					},
 					Template: triggersv1.EventListenerTemplate{
