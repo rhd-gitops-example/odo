@@ -18,7 +18,7 @@ func TestCreateDevCDPipelineRun(t *testing.T) {
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: sName,
 			PipelineRef:        createPipelineRef("dev-cd-pipeline"),
-			Resources:          createDevResource("example.com:5000/testing/testing:$(params.gitreftag)", "$(params.gitreftag)"),
+			Resources:          createDevResource("example.com:5000/testing/testing:$(params.gitsha)", "$(params.gitsha)"),
 		},
 	}
 	template := createDevCDPipelineRun(sName, "example.com:5000/testing/testing")

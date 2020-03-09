@@ -25,7 +25,7 @@ func GenerateBindings(ns string) []triggersv1.TriggerBinding {
 func createPRBinding(ns string) triggersv1.TriggerBinding {
 	return triggersv1.TriggerBinding{
 		TypeMeta:   triggerBindingTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "ci-build-from-pr-binding")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "github-pr-binding")),
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
 				createBindingParam("gitref", "$(body.pull_request.head.ref)"),
@@ -40,12 +40,11 @@ func createPRBinding(ns string) triggersv1.TriggerBinding {
 func createPushBinding(ns string) triggersv1.TriggerBinding {
 	return triggersv1.TriggerBinding{
 		TypeMeta:   triggerBindingTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "cd-deploy-from-push-binding")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "github-push-binding")),
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
 				createBindingParam("gitref", "$(body.ref)"),
-				createBindingParam("gitreftag", "$(body.head_commit.id)"),
-				createBindingParam("gitsha", "$(body.commits[0].id)"),
+				createBindingParam("gitsha", "$(body.head_commit.id)"),
 				createBindingParam("gitrepositoryurl", "$(body.repository.clone_url)"),
 			},
 		},

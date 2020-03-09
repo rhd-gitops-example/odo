@@ -19,7 +19,7 @@ func createDevCDPipelineRun(saName, imageRepo string) pipelinev1.PipelineRun {
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: saName,
 			PipelineRef:        createPipelineRef("dev-cd-pipeline"),
-			Resources:          createDevResource(imageRepo+":$(params.gitreftag)", "$(params.gitreftag)"),
+			Resources:          createDevResource(imageRepo+":$(params.gitsha)", "$(params.gitsha)"),
 		},
 	}
 }

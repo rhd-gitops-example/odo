@@ -16,7 +16,7 @@ func TestCreatePRBinding(t *testing.T) {
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "ci-build-from-pr-binding",
+			Name:      "github-pr-binding",
 			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
@@ -65,7 +65,7 @@ func TestCreatePushBinding(t *testing.T) {
 			APIVersion: "tekton.dev/v1alpha1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "cd-deploy-from-push-binding",
+			Name:      "github-push-binding",
 			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
@@ -78,16 +78,9 @@ func TestCreatePushBinding(t *testing.T) {
 					},
 				},
 				pipelinev1.Param{
-					Name: "gitreftag",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.head_commit.id)",
-						Type:      pipelinev1.ParamTypeString,
-					},
-				},
-				pipelinev1.Param{
 					Name: "gitsha",
 					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.commits[0].id)",
+						StringVal: "$(body.head_commit.id)",
 						Type:      pipelinev1.ParamTypeString,
 					},
 				},
