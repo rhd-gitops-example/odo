@@ -4,44 +4,41 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/meta"
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/openshift/odo/pkg/pipelines/meta"
 )
 
-const (
+var (
 	serviceAccName = "pipeline"
 )
 
 func TestCreateDevCDDeployTemplate(t *testing.T) {
 	validDevCDTemplate := triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "app-cd-template")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "dev-cd-deploy-from-master-template")),
 		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []triggersv1.ParamSpec{
-				{
+			Params: []pipelinev1.ParamSpec{
+				pipelinev1.ParamSpec{
 					Name:        "gitsha",
 					Description: "The specific commit SHA.",
 				},
-				{
+				pipelinev1.ParamSpec{
 					Name:        "gitrepositoryurl",
 					Description: "The git repository url",
 				},
 			},
 
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: createDevCDResourceTemplate(serviceAccName),
-					},
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createDevCDResourcetemplate(serviceAccName, "example.com:5000/testing/testing"),
 				},
 			},
 		},
 	}
 
-	template := CreateDevCDDeployTemplate("testns", serviceAccName)
+	template := createDevCDDeployTemplate("testns", serviceAccName, "example.com:5000/testing/testing")
 	if diff := cmp.Diff(validDevCDTemplate, template); diff != "" {
 		t.Fatalf("CreateDevCDDeployTemplate failed:\n%s", diff)
 	}
@@ -50,111 +47,104 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 func TestCreateDevCIBuildPRTemplate(t *testing.T) {
 	validdevCIPRTemplate := triggersv1.TriggerTemplate{
 		TypeMeta: triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "app-ci-template"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "dev-ci-build-from-pr-template"),
 			statusTrackerAnnotations("dev-ci-build-from-pr", "Dev CI Build")),
 		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []triggersv1.ParamSpec{
-				{
+			Params: []pipelinev1.ParamSpec{
+				pipelinev1.ParamSpec{
 					Name:        "gitref",
-					Description: "The git branch for this PR.",
+					Description: "The git branch for this PR",
 				},
-				{
+				pipelinev1.ParamSpec{
 					Name:        "gitsha",
 					Description: "the specific commit SHA.",
 				},
-				{
+				pipelinev1.ParamSpec{
 					Name:        "gitrepositoryurl",
-					Description: "The git repository URL.",
+					Description: "The git repository url",
 				},
-				{
+
+				pipelinev1.ParamSpec{
 					Name:        "fullname",
 					Description: "The GitHub repository for this PullRequest.",
 				},
-				{
-					Name:        "imageRepo",
-					Description: "The repository to push built images to.",
-				},
-				{
-					Name:        "tlsVerify",
-					Description: "Enable image repostiory TLS certification verification.",
-				},
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: createDevCIResourceTemplate(serviceAccName),
-					},
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createDevCIResourceTemplate(serviceAccName, "example.com:5000/testing/testing"),
 				},
 			},
 		},
 	}
-	template := CreateDevCIBuildPRTemplate("testns", serviceAccName)
+	template := createDevCIBuildPRTemplate("testns", serviceAccName, "example.com:5000/testing/testing")
 	if diff := cmp.Diff(validdevCIPRTemplate, template); diff != "" {
 		t.Fatalf("CreatedevCIBuildPRTemplate failed:\n%s", diff)
 	}
 }
 
-func TestCreateCDPushTemplate(t *testing.T) {
+func TestCreateStageCDPushTemplate(t *testing.T) {
 	ValidStageCDPushTemplate := triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "cd-deploy-from-push-template")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "stage-cd-deploy-from-push-template")),
 		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []triggersv1.ParamSpec{
-				{
+			Params: []pipelinev1.ParamSpec{
+				pipelinev1.ParamSpec{
 					Name:        "gitref",
 					Description: "The git revision",
-					Default:     strPtr("master"),
+					Default: &pipelinev1.ArrayOrString{
+						StringVal: "master",
+						Type:      pipelinev1.ParamTypeString,
+					},
 				},
-				{
+				pipelinev1.ParamSpec{
 					Name:        "gitrepositoryurl",
 					Description: "The git repository url",
 				},
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: createCDResourceTemplate(serviceAccName),
-					},
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createStageCDResourceTemplate(serviceAccName),
 				},
 			},
 		},
 	}
-	template := CreateCDPushTemplate("testns", serviceAccName)
+	template := createStageCDPushTemplate("testns", serviceAccName)
 	if diff := cmp.Diff(ValidStageCDPushTemplate, template); diff != "" {
-		t.Fatalf("createCDPushTemplate failed:\n%s", diff)
+		t.Fatalf("createStageCDPushTemplate failed:\n%s", diff)
 	}
 }
 
-func TestCreateCIDryRunTemplate(t *testing.T) {
+func TestCreateStageCIDryRunTemplate(t *testing.T) {
 	validStageCIDryRunTemplate := triggersv1.TriggerTemplate{
 		TypeMeta: triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "ci-dryrun-from-pr-template"),
-			statusTrackerAnnotations("ci-dryrun-from-pr-pipeline", "Stage CI Dry Run")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "stage-ci-dryrun-from-pr-template"),
+			statusTrackerAnnotations("stage-ci-dryrun-from-pr", "Stage CI Dry Run")),
 
 		Spec: triggersv1.TriggerTemplateSpec{
-			Params: []triggersv1.ParamSpec{
-				{
+			Params: []pipelinev1.ParamSpec{
+				pipelinev1.ParamSpec{
 					Name:        "gitref",
 					Description: "The git revision",
-					Default:     strPtr("master"),
+					Default: &pipelinev1.ArrayOrString{
+						StringVal: "master",
+						Type:      pipelinev1.ParamTypeString,
+					},
 				},
-				{
+				pipelinev1.ParamSpec{
 					Name:        "gitrepositoryurl",
 					Description: "The git repository url",
 				},
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: createCIResourceTemplate(serviceAccName),
-					},
+				triggersv1.TriggerResourceTemplate{
+					RawMessage: createStageCIResourceTemplate(serviceAccName),
 				},
 			},
 		},
 	}
-	template := CreateCIDryRunTemplate("testns", serviceAccName)
+	template := createStageCIDryRunTemplate("testns", serviceAccName)
 	if diff := cmp.Diff(validStageCIDryRunTemplate, template); diff != "" {
-		t.Fatalf("createCIdryrunptemplate failed:\n%s", diff)
+		t.Fatalf("createStageCIdryrunptemplate failed:\n%s", diff)
 	}
 
 }
