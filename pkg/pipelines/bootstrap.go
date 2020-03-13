@@ -57,6 +57,26 @@ type BootstrapParameters struct {
 	SkipChecks               bool
 }
 
+// InitialiseParameters is a struct that provides flags for initialize command
+type InitialiseParameters struct {
+	GitOpsRepo               string
+	Output                   string
+	AppGithubSecret          string
+	AppGithubRepo            string
+	AppImageRepo             string
+	Prefix                   string
+	InternalRegistryHostname string
+	DockerConfigJSONFileName string
+	GithubToken              string
+	SkipChecks               bool
+}
+
+func Initialise(o *InitialiseParameters) error {
+	// Clone the repo in the output directory and create a new branch dev
+	// Add the new directory structure in dev branch
+	return nil
+}
+
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
 func Bootstrap(o *BootstrapParameters) error {
