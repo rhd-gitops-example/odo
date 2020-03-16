@@ -13,7 +13,7 @@ type keyValuePair struct {
 	value string
 }
 
-func TestCompleteBootstrapParameters(t *testing.T) {
+func TestCompleteInitialiseParameters(t *testing.T) {
 	completeTests := []struct {
 		name       string
 		prefix     string
@@ -25,7 +25,7 @@ func TestCompleteBootstrapParameters(t *testing.T) {
 	}
 
 	for _, tt := range completeTests {
-		o := BootstrapParameters{prefix: tt.prefix}
+		o := InitialiseParameters{prefix: tt.prefix}
 
 		err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
 
@@ -39,7 +39,7 @@ func TestCompleteBootstrapParameters(t *testing.T) {
 	}
 }
 
-func TestValidateBootstrapParameters(t *testing.T) {
+func TestValidateInitialiseParameters(t *testing.T) {
 	optionTests := []struct {
 		name    string
 		gitRepo string
@@ -50,7 +50,7 @@ func TestValidateBootstrapParameters(t *testing.T) {
 	}
 
 	for _, tt := range optionTests {
-		o := BootstrapParameters{gitRepo: tt.gitRepo, prefix: "test"}
+		o := InitialiseParameters{gitOpsRepo: tt.gitRepo, prefix: "test"}
 
 		err := o.Validate()
 
@@ -65,26 +65,24 @@ func TestValidateBootstrapParameters(t *testing.T) {
 	}
 }
 
-func TestBootstrapCommandWithMissingParams(t *testing.T) {
+func TestInitialiseCommandWithMissingParams(t *testing.T) {
 	cmdTests := []struct {
 		desc    string
 		flags   []keyValuePair
 		wantErr string
 	}{
-		{"Missing git-repo flag",
-			[]keyValuePair{flag("status-tracker-token", "abc123"),
-				flag("dockerconfigjson", "~/"), flag("image-repo", "foo/bar/bar"), flag("deployment-path", "foo"),
-				flag("github-webhook-secret", "secret")},
-			`Required flag(s) "git-repo" have/has not been set`},
-		{"Missing image-repo",
-			[]keyValuePair{flag("status-tracker-token", "abc123"),
-				flag("dockerconfigjson", "~/"), flag("git-repo", "example/repo"), flag("deployment-path", "foo"),
-				flag("github-webhook-secret", "secret")},
-			`Required flag(s) "image-repo" have/has not been set`},
+		{"Missing gitops-repo flag",
+			[]keyValuePair{flag("output", "~/output"),
+				flag("dockerconfigjson", "~/"), flag("app-image-repo", "foo/bar/bar"), flag("app-git-repo", "foo")},
+			`Required flag(s) "gitops-repo" have/has not been set`},
+		{"Missing output flag",
+			[]keyValuePair{flag("gitops-repo", "example/test"),
+				flag("dockerconfigjson", "~/"), flag("app-git-repo", "example/repo")},
+			`Required flag(s) "output" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
 		t.Run(tt.desc, func(t *testing.T) {
-			_, _, err := executeCommand(NewCmdBootstrap("bootstrap", "odo pipelines bootstrap"), tt.flags...)
+			_, _, err := executeCommand(NewCmdInitialise("initialise", "odo pipelines initialise"), tt.flags...)
 			if err.Error() != tt.wantErr {
 				t.Errorf("got %s, want %s", err, tt.wantErr)
 			}

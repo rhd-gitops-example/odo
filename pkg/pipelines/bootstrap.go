@@ -57,26 +57,6 @@ type BootstrapParameters struct {
 	SkipChecks               bool
 }
 
-// InitialiseParameters is a struct that provides flags for initialize command
-type InitialiseParameters struct {
-	GitOpsRepo               string
-	Output                   string
-	AppGithubSecret          string
-	AppGithubRepo            string
-	AppImageRepo             string
-	Prefix                   string
-	InternalRegistryHostname string
-	DockerConfigJSONFileName string
-	GithubToken              string
-	SkipChecks               bool
-}
-
-func Initialise(o *InitialiseParameters) error {
-	// Clone the repo in the output directory and create a new branch dev
-	// Add the new directory structure in dev branch
-	return nil
-}
-
 // Bootstrap is the main driver for getting OpenShift pipelines for GitOps
 // configured with a basic configuration.
 func Bootstrap(o *BootstrapParameters) error {
@@ -253,15 +233,6 @@ func createDockerSecret(dockerConfigJSONFileName, ns string) (*corev1.Secret, er
 
 	return dockerSecret, nil
 
-}
-
-// create and invoke a Tekton Checker
-func checkTektonInstall() (bool, error) {
-	tektonChecker, err := newTektonChecker()
-	if err != nil {
-		return false, err
-	}
-	return tektonChecker.checkInstall()
 }
 
 func values(m map[string]string) []string {

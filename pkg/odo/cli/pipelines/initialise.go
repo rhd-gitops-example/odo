@@ -25,18 +25,17 @@ var (
 	initialiseShortDesc = `Initialise pipelines`
 )
 
-// InitialiseParameters encapsulates the paratmeters for the odo pipelines bootstrap
+// InitialiseParameters encapsulates the paratmeters for the odo pipelines initialise
 // command.
 type InitialiseParameters struct {
 	gitOpsRepo               string
 	output                   string
 	appGithubSecret          string
-	appGithubRepo            string
+	appGitRepo               string
 	appImageRepo             string
 	prefix                   string
 	internalRegistryHostname string
 	dockerConfigJSONFileName string
-	githubToken              string
 	skipChecks               bool
 	// generic context options common to all commands
 	*genericclioptions.Context
@@ -47,7 +46,7 @@ func NewInitialiseParameters() *InitialiseParameters {
 	return &InitialiseParameters{}
 }
 
-// Complete completes BootstrapParameters after they've been created.
+// Complete completes InitialiseParameters after they've been created.
 //
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
@@ -70,9 +69,15 @@ func (io *InitialiseParameters) Validate() error {
 // Run runs the project bootstrap command.
 func (io *InitialiseParameters) Run() error {
 	options := pipelines.InitialiseParameters{
-		GitOpsRepo: io.gitOpsRepo,
-		Prefix:     io.prefix,
-		Output:     io.output,
+		GitOpsRepo:               io.gitOpsRepo,
+		Prefix:                   io.prefix,
+		Output:                   io.output,
+		AppGitRepo:               io.appGitRepo,
+		AppGithubSecret:          io.appGithubSecret,
+		AppImageRepo:             io.appImageRepo,
+		InternalRegistryHostname: io.internalRegistryHostname,
+		DockerConfigJSONFileName: io.dockerConfigJSONFileName,
+		SkipChecks:               io.skipChecks,
 	}
 
 	return pipelines.Initialise(&options)
@@ -92,16 +97,17 @@ func NewCmdInitialise(name, fullName string) *cobra.Command {
 		},
 	}
 
-	initialiseCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	initialiseCmd.Flags().StringVarP(&o.githubToken, "status-tracker-token", "", "", "provide the Github token")
-	initialiseCmd.Flags().StringVar(&o.dockerConfigJSONFileName, "dockerconfigjson", "", "Docker configuration json filename")
 	initialiseCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "git repository in this form <username>/<repository>")
 	initialiseCmd.MarkFlagRequired("gitops-repo")
-	initialiseCmd.Flags().StringVar(&o.appImageRepo, "app-image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
 	initialiseCmd.Flags().StringVar(&o.output, "output", "output", "folder path to add resources")
 	initialiseCmd.MarkFlagRequired("output")
-	initialiseCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
+	initialiseCmd.Flags().StringVarP(&o.appGithubSecret, "app-github-secret", "", "", "provide the Github secret")
+	initialiseCmd.Flags().StringVar(&o.appGitRepo, "app-git-repo", "", "git repository in this form <username>/<repository>")
+	initialiseCmd.Flags().StringVar(&o.appImageRepo, "app-image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
+	initialiseCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	initialiseCmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
+	initialiseCmd.Flags().StringVar(&o.dockerConfigJSONFileName, "dockerconfigjson", "", "Docker configuration json filename")
+	initialiseCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
 
 	return initialiseCmd
 }
