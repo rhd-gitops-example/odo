@@ -4,6 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+)
+
+var (
+	kustomize = "kustomization.yaml"
 )
 
 // InitialiseParameters is a struct that provides flags for initialize command
@@ -19,6 +24,78 @@ type InitialiseParameters struct {
 	SkipChecks               bool
 }
 
+// repo represents gitops directory struct
+type repo struct {
+	path     string
+	isDir    bool
+	contents []*repo
+}
+
+// validate the existing gitops dir
+func (r *repo) validate() error {
+	if exists, err := isExisting(r.path); !exists {
+		return err
+	}
+	for _, a := range r.contents {
+		if err := a.validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// create the required gitops files and dirs
+func (r *repo) create() error {
+	if r.isDir {
+		if err := createDir(r.path); err != nil {
+			return err
+		}
+	} else {
+		if err := createFile(r.path); err != nil {
+			return err
+		}
+	}
+	for _, a := range r.contents {
+		if err := a.create(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// getRepoStruct() returns gitops dir structure
+func getRepoStruct(path string) *repo {
+	envPath := filepath.Join(path, "env")
+	appsPath := filepath.Join(path, "apps")
+	basePath := filepath.Join(envPath, "base")
+	return &repo{
+		path:  path,
+		isDir: true,
+		contents: []*repo{
+			&repo{
+				path:  envPath,
+				isDir: true,
+				contents: []*repo{
+					&repo{
+						path:  basePath,
+						isDir: true,
+						contents: []*repo{
+							&repo{
+								path:  filepath.Join(basePath, kustomize),
+								isDir: false,
+							},
+						},
+					},
+				},
+			},
+			&repo{
+				path:  appsPath,
+				isDir: true,
+			},
+		},
+	}
+}
+
 // Initialise function will initialise the gitops directory
 func Initialise(o *InitialiseParameters) error {
 
@@ -32,29 +109,36 @@ func Initialise(o *InitialiseParameters) error {
 		}
 	}
 
-	exists, err := isExistingDir(o.Output)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		// Clone GitOps repo
-		cloneRepository(o.GitOpsRepo, o.Output)
+	repo := getRepoStruct(o.Output)
 
+	// check if the dir already exists
+	exists, _ := isExisting(o.Output)
+	if !exists {
+		if err := repo.create(); err != nil {
+			return err
+		}
+	}
+
+	// validate existing dir
+	if err := repo.validate(); err != nil {
+		return err
 	}
 	fmt.Println("gitops initialised")
 	return nil
 }
 
-func cloneRepository(repo string, output string) error {
+func createDir(path string) error {
+	return os.Mkdir(path, os.ModePerm)
+}
 
-	// _, err := git.PlainClone(output, false, &git.CloneOptions{
-	// 	URL:      repo,
-	// 	Progress: os.Stdout,
-	// })
+func createFile(path string) error {
+	if _, err := os.Create(path); err != nil {
+		return err
+	}
 	return nil
 }
 
-func isExistingDir(path string) (bool, error) {
+func isExisting(path string) (bool, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false, err
 	}
