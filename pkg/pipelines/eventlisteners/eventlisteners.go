@@ -67,10 +67,13 @@ func createEventInterceptor(filter string, repoName string) *triggersv1.EventInt
 		},
 		GitHub: &triggersv1.GitHubInterceptor{
 			SecretRef: &triggersv1.SecretRef{
-				SecretName: "hook-secret",
-				SecretKey:  "github-hook",
+				SecretName: "github-hook",
+				SecretKey:  "token",
 			},
-			EventTypes: []string{},
+			EventTypes: []string{
+				"pull_request",
+				"push",
+			},
 		},
 	}
 }
