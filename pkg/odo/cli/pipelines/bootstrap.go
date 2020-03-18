@@ -99,7 +99,7 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	bootstrapCmd.Flags().StringVarP(&o.githubToken, "status-tracker-token", "", "", "provide the Github token")
-	bootstrapCmd.Flags().StringVar(&o.githubHookSecret, "github-webhook-secret-key", "", "Add the github hook secret")
+	bootstrapCmd.Flags().StringVar(&o.githubHookSecret, "github-webhook-secret", "", "Add the github hook secret")
 	bootstrapCmd.MarkFlagRequired("github-webhook-secret-key")
 	bootstrapCmd.Flags().StringVar(&o.dockerConfigJSONFileName, "dockerconfigjson", "", "Docker configuration json filename")
 	bootstrapCmd.Flags().StringVar(&o.gitRepo, "git-repo", "", "git repository in this form <username>/<repository>")
