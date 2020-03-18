@@ -83,7 +83,7 @@ func Bootstrap(o *BootstrapParameters) error {
 	}
 
 	if o.GithubToken != "" {
-		githubAuth, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], "github-auth"), o.GithubToken)
+		githubAuth, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], "github-auth"), o.GithubToken, "token")
 		if err != nil {
 			return fmt.Errorf("failed to generate path to file: %w", err)
 		}
@@ -92,7 +92,7 @@ func Bootstrap(o *BootstrapParameters) error {
 	}
 
 	if o.GithubHookSecret != "" {
-		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], "github-hook"), o.GithubHookSecret)
+		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], "github-webhook-secret"), o.GithubHookSecret, "webhook-secret-key")
 		if err != nil {
 			return fmt.Errorf("failed to generate path to file: %w", err)
 		}

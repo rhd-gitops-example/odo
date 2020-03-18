@@ -65,10 +65,15 @@ func createEventInterceptor(filter string, repoName string) *triggersv1.EventInt
 		CEL: &triggersv1.CELInterceptor{
 			Filter: fmt.Sprintf(filter, repoName),
 		},
+	}
+}
+
+func createGithubInterceptor() *triggersv1.EventInterceptor {
+	return &triggersv1.EventInterceptor{
 		GitHub: &triggersv1.GitHubInterceptor{
 			SecretRef: &triggersv1.SecretRef{
-				SecretName: "github-hook",
-				SecretKey:  "token",
+				SecretName: "github-webhook-secret",
+				SecretKey:  "webhook-secret-key",
 			},
 			EventTypes: []string{
 				"pull_request",
@@ -83,6 +88,7 @@ func createListenerTrigger(name string, filter string, repoName string, binding 
 		Name: name,
 		Interceptors: []*triggersv1.EventInterceptor{
 			createEventInterceptor(filter, repoName),
+			createGithubInterceptor(),
 		},
 		Bindings: []*triggersv1.EventListenerBinding{
 			createListenerBinding(binding),
