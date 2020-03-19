@@ -5,50 +5,103 @@ import (
 	"path/filepath"
 )
 
-func createRepositoryLayout(path string) error {
-	envPath := filepath.Join(path, "env")
-	appsPath := filepath.Join(path, "apps")
-	basePath := filepath.Join(envPath, "base")
-	if err := createDir(path); err != nil {
+var (
+	kustomize = "kustomization.yaml"
+)
+
+// folder represents the directory struct
+type folder struct {
+	path    string
+	isDir   bool
+	folders []*folder
+}
+
+// validate the existing gitops dir
+func (f *folder) validate() error {
+	if exists, err := isExisting(f.path); !exists {
 		return err
 	}
-	if err := createDir(envPath); err != nil {
-		return err
-	}
-	if err := createDir(appsPath); err != nil {
-		return err
-	}
-	if err := createDir(basePath); err != nil {
-		return err
-	}
-	if err := createFile(filepath.Join(basePath, kustomize)); err != nil {
-		return err
+	for _, folder := range f.folders {
+		if err := folder.validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// check if the existing dir complies to the gitops repo layout
-func validateRepositoryLayout(path string) error {
-
-	envPath := filepath.Join(path, "env")
-	appsPath := filepath.Join(path, "apps")
-	basePath := filepath.Join(envPath, "base")
-	if exists, err := isExisting(path); !exists {
-		return err
+// create the required gitops files and dirs
+func (f *folder) create() error {
+	if f.isDir {
+		if err := createDir(f.path); err != nil {
+			return err
+		}
+	} else {
+		if err := createFile(f.path); err != nil {
+			return err
+		}
 	}
-	if exists, err := isExisting(envPath); !exists {
-		return err
-	}
-	if exists, err := isExisting(appsPath); !exists {
-		return err
-	}
-	if exists, err := isExisting(filepath.Join(envPath, "base")); !exists {
-		return err
-	}
-	if exists, err := isExisting(filepath.Join(basePath, kustomize)); !exists {
-		return err
+	for _, dir := range f.folders {
+		if err := dir.create(); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+// getGitopsFolder() returns an initialised gitops folder struct
+func getGitopsFolder(path, prefix string) *folder {
+	envs := filepath.Join(path, "envs")
+	apps := filepath.Join(path, "apps")
+	base := filepath.Join(envs, "base")
+	cicd := filepath.Join(envs, addPrefix(prefix, "cicd-environment"))
+	pipeline := filepath.Join(cicd, "pipelines")
+	return &folder{
+		path:  path,
+		isDir: true,
+		folders: []*folder{
+			&folder{
+				path:  envs,
+				isDir: true,
+				folders: []*folder{
+					&folder{
+						path:    base,
+						isDir:   true,
+						folders: []*folder{addKustomize(base)},
+					},
+					&folder{
+						path:  cicd,
+						isDir: true,
+						folders: []*folder{
+							&folder{
+								path:  pipeline,
+								isDir: true,
+								folders: []*folder{
+									addKustomize(pipeline),
+								},
+							},
+							addKustomize(cicd),
+						},
+					},
+				},
+			},
+			&folder{path: apps, isDir: true},
+		},
+	}
+}
+
+func addKustomize(path string) *folder {
+	return &folder{
+		path:    filepath.Join(path, kustomize),
+		isDir:   false,
+		folders: []*folder{},
+	}
+}
+
+func addPrefix(prefix, name string) string {
+	if prefix != "" {
+		return prefix + name
+	}
+	return name
 }
 
 func createDir(path string) error {

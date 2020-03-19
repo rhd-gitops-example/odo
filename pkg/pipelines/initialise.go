@@ -3,10 +3,8 @@ package pipelines
 import (
 	"errors"
 	"fmt"
-)
-
-var (
-	kustomize = "kustomization.yaml"
+	"path/filepath"
+	"strings"
 )
 
 // InitialiseParameters is a struct that provides flags for initialize command
@@ -35,18 +33,24 @@ func Initialise(o *InitialiseParameters) error {
 		}
 	}
 
-	// check if the dir already exists
-	exists, _ := isExisting(o.Output)
+	gitopsPath := filepath.Join(o.Output, getGitopsRepoName(o.GitOpsRepo))
+	gitopsFolder := getGitopsFolder(gitopsPath, o.Prefix)
+
+	// check if the gitops dir already exists
+	exists, _ := isExisting(gitopsPath)
 	if !exists {
-		if err := createRepositoryLayout(o.Output); err != nil {
+		if err := gitopsFolder.create(); err != nil {
 			return err
 		}
 	}
 
-	// validate existing dir
-	if err := validateRepositoryLayout(o.Output); err != nil {
+	// validate existing gitops dir
+	if err := gitopsFolder.validate(); err != nil {
 		return err
 	}
+
+	// create the required resources here
+
 	fmt.Println("Gitops initialised")
 	return nil
 }
@@ -58,4 +62,8 @@ func checkTektonInstall() (bool, error) {
 		return false, err
 	}
 	return tektonChecker.checkInstall()
+}
+
+func getGitopsRepoName(repo string) string {
+	return strings.Split(repo, "/")[1]
 }

@@ -99,8 +99,7 @@ func NewCmdInitialise(name, fullName string) *cobra.Command {
 
 	initialiseCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "git repository in this form <username>/<repository>")
 	initialiseCmd.MarkFlagRequired("gitops-repo")
-	initialiseCmd.Flags().StringVar(&o.output, "output", "output", "folder path to add resources")
-	initialiseCmd.MarkFlagRequired("output")
+	initialiseCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add resources")
 	initialiseCmd.Flags().StringVarP(&o.appGithubSecret, "app-github-secret", "", "", "provide the Github secret")
 	initialiseCmd.Flags().StringVar(&o.appGitRepo, "app-git-repo", "", "git repository in this form <username>/<repository>")
 	initialiseCmd.Flags().StringVar(&o.appImageRepo, "app-image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
