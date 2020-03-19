@@ -1,9 +1,9 @@
 package tasks
 
 import (
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Generate will return a slice of tasks
@@ -14,12 +14,7 @@ func Generate(ns string) []pipelinev1.Task {
 	}
 }
 
-func createTaskTypeMeta() metav1.TypeMeta {
-	return metav1.TypeMeta{
-		Kind:       "Task",
-		APIVersion: "tekton.dev/v1alpha1",
-	}
-}
+var createTaskTypeMeta = meta.TypeMeta("Task", "tekton.dev/v1alpha1")
 
 func createTaskResource(name string, resourceType string) pipelinev1.TaskResource {
 	return pipelinev1.TaskResource{

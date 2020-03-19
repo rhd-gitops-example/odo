@@ -3,16 +3,12 @@ package pipelines
 import (
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
 	// PipelineTypeMeta Pipeline TypeMeta
-	PipelineTypeMeta = v1.TypeMeta{
-		Kind:       "Pipeline",
-		APIVersion: "tekton.dev/v1alpha1",
-	}
+	PipelineTypeMeta = meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1")
 )
 
 // createCIPipeline creates the dev-ci-pipeline.

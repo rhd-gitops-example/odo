@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,10 +15,7 @@ var (
 
 func TestGenerateEventListener(t *testing.T) {
 	validEventListener := triggersv1.EventListener{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "EventListener",
-			APIVersion: "tekton.dev/v1alpha1",
-		},
+		TypeMeta: meta.TypeMeta("EventListener", "tekton.dev/v1alpha1"),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cicd-event-listener",
 			Namespace: "testing",

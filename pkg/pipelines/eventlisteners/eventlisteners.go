@@ -3,6 +3,7 @@ package eventlisteners
 import (
 	"fmt"
 
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -22,7 +23,7 @@ const (
 func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
 	githubStageRepo := githubRepo + "-stage-config"
 	return triggersv1.EventListener{
-		TypeMeta:   createListenerTypeMeta(),
+		TypeMeta:   createListenerTypeMeta,
 		ObjectMeta: createListenerObjectMeta("cicd-event-listener", ns),
 		Spec: triggersv1.EventListenerSpec{
 			ServiceAccountName: saName,
@@ -93,12 +94,7 @@ func createListenerBinding(name string) *triggersv1.EventListenerBinding {
 	}
 }
 
-func createListenerTypeMeta() metav1.TypeMeta {
-	return metav1.TypeMeta{
-		Kind:       "EventListener",
-		APIVersion: "tekton.dev/v1alpha1",
-	}
-}
+var createListenerTypeMeta = meta.TypeMeta("EventListener", "tekton.dev/v1alpha1")
 
 func createListenerObjectMeta(name, ns string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
