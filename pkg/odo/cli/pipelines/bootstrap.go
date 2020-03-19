@@ -29,7 +29,7 @@ var (
 // command.
 type BootstrapParameters struct {
 	deploymentPath           string
-	githubHookSecret         string
+	githubWebHookSecret      string
 	githubToken              string
 	gitRepo                  string // e.g. tekton/triggers
 	imageRepo                string
@@ -70,7 +70,7 @@ func (bo *BootstrapParameters) Validate() error {
 func (bo *BootstrapParameters) Run() error {
 	options := pipelines.BootstrapParameters{
 		DeploymentPath:           bo.deploymentPath,
-		GithubHookSecret:         bo.githubHookSecret,
+		GithubHookSecret:         bo.githubWebHookSecret,
 		GithubToken:              bo.githubToken,
 		GitRepo:                  bo.gitRepo,
 		ImageRepo:                bo.imageRepo,
@@ -99,7 +99,7 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 
 	bootstrapCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	bootstrapCmd.Flags().StringVarP(&o.githubToken, "status-tracker-token", "", "", "provide the Github token")
-	bootstrapCmd.Flags().StringVar(&o.githubHookSecret, "github-webhook-secret", "", "Add the github hook secret")
+	bootstrapCmd.Flags().StringVar(&o.githubWebHookSecret, "github-webhook-secret", "", "Provide the github web hook secret")
 	bootstrapCmd.MarkFlagRequired("github-webhook-secret-key")
 	bootstrapCmd.Flags().StringVar(&o.dockerConfigJSONFileName, "dockerconfigjson", "", "Docker configuration json filename")
 	bootstrapCmd.Flags().StringVar(&o.gitRepo, "git-repo", "", "git repository in this form <username>/<repository>")
