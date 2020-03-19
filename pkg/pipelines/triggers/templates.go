@@ -18,8 +18,8 @@ func GenerateTemplates(ns, saName, imageRepo string) []triggersv1.TriggerTemplat
 	return []triggersv1.TriggerTemplate{
 		createDevCDDeployTemplate(ns, saName, imageRepo),
 		createDevCIBuildPRTemplate(ns, saName, imageRepo),
-		createStageCDPushTemplate(ns, saName),
-		createStageCIDryRunTemplate(ns, saName),
+		CreateStageCDPushTemplate(ns, saName),
+		CreateStageCIDryRunTemplate(ns, saName),
 	}
 }
 
@@ -64,10 +64,10 @@ func createDevCIBuildPRTemplate(ns, saName, imageRepo string) triggersv1.Trigger
 
 }
 
-func createStageCDPushTemplate(ns, saName string) triggersv1.TriggerTemplate {
+func CreateStageCDPushTemplate(ns, saName string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "stage-cd-deploy-from-push-template")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "cd-deploy-from-push-template")),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 
@@ -83,11 +83,11 @@ func createStageCDPushTemplate(ns, saName string) triggersv1.TriggerTemplate {
 	}
 }
 
-func createStageCIDryRunTemplate(ns, saName string) triggersv1.TriggerTemplate {
+func CreateStageCIDryRunTemplate(ns, saName string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta: triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "stage-ci-dryrun-from-pr-template"),
-			statusTrackerAnnotations("stage-ci-dryrun-from-pr", "Stage CI Dry Run")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "ci-dryrun-from-pr-template"),
+			statusTrackerAnnotations("ci-dryrun-from-pr-pipeline", "Stage CI Dry Run")),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 

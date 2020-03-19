@@ -108,7 +108,7 @@ func TestCreateStageCDPushTemplate(t *testing.T) {
 			},
 		},
 	}
-	template := createStageCDPushTemplate("testns", serviceAccName)
+	template := CreateStageCDPushTemplate("testns", serviceAccName)
 	if diff := cmp.Diff(ValidStageCDPushTemplate, template); diff != "" {
 		t.Fatalf("createStageCDPushTemplate failed:\n%s", diff)
 	}
@@ -142,7 +142,7 @@ func TestCreateStageCIDryRunTemplate(t *testing.T) {
 			},
 		},
 	}
-	template := createStageCIDryRunTemplate("testns", serviceAccName)
+	template := CreateStageCIDryRunTemplate("testns", serviceAccName)
 	if diff := cmp.Diff(validStageCIDryRunTemplate, template); diff != "" {
 		t.Fatalf("createStageCIdryrunptemplate failed:\n%s", diff)
 	}

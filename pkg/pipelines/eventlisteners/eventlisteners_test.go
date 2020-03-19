@@ -23,7 +23,7 @@ func TestGenerateEventListener(t *testing.T) {
 			ServiceAccountName: "pipeline",
 			Triggers: []triggersv1.EventListenerTrigger{
 				triggersv1.EventListenerTrigger{
-					Name: "dev-ci-build-from-pr",
+					Name: "stage-ci-dryrun-from-pr",
 					Interceptors: []*triggersv1.EventInterceptor{
 						&triggersv1.EventInterceptor{
 							CEL: &triggersv1.CELInterceptor{
@@ -48,11 +48,11 @@ func TestGenerateEventListener(t *testing.T) {
 						},
 					},
 					Template: triggersv1.EventListenerTemplate{
-						Name: "dev-ci-build-from-pr-template",
+						Name: "ci-dryrun-from-pr-template",
 					},
 				},
 				triggersv1.EventListenerTrigger{
-					Name: "dev-cd-deploy-from-master",
+					Name: "stage-cd-deploy-from-push",
 					Interceptors: []*triggersv1.EventInterceptor{
 						&triggersv1.EventInterceptor{
 							CEL: &triggersv1.CELInterceptor{
@@ -77,65 +77,7 @@ func TestGenerateEventListener(t *testing.T) {
 						},
 					},
 					Template: triggersv1.EventListenerTemplate{
-						Name: "dev-cd-deploy-from-master-template",
-					},
-				},
-				triggersv1.EventListenerTrigger{
-					Name: "stage-ci-dryrun-from-pr",
-					Interceptors: []*triggersv1.EventInterceptor{
-						&triggersv1.EventInterceptor{
-							CEL: &triggersv1.CELInterceptor{
-								Filter: "(header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize') && body.pull_request.head.repo.full_name == 'sample-stage-config'",
-							},
-						},
-						&triggersv1.EventInterceptor{
-							GitHub: &triggersv1.GitHubInterceptor{
-								SecretRef: &triggersv1.SecretRef{
-									SecretName: GithubWebHookSecret,
-									SecretKey:  WebhookSecretKey,
-								},
-								EventTypes: []string{
-									"pull_request",
-								},
-							},
-						},
-					},
-					Bindings: []*triggersv1.EventListenerBinding{
-						&triggersv1.EventListenerBinding{
-							Name: "github-pr-binding",
-						},
-					},
-					Template: triggersv1.EventListenerTemplate{
-						Name: "stage-ci-dryrun-from-pr-template",
-					},
-				},
-				triggersv1.EventListenerTrigger{
-					Name: "stage-cd-deploy-from-push",
-					Interceptors: []*triggersv1.EventInterceptor{
-						&triggersv1.EventInterceptor{
-							CEL: &triggersv1.CELInterceptor{
-								Filter: "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == 'sample-stage-config') && body.ref.startsWith('refs/heads/master')",
-							},
-						},
-						&triggersv1.EventInterceptor{
-							GitHub: &triggersv1.GitHubInterceptor{
-								SecretRef: &triggersv1.SecretRef{
-									SecretName: GithubWebHookSecret,
-									SecretKey:  WebhookSecretKey,
-								},
-								EventTypes: []string{
-									"push",
-								},
-							},
-						},
-					},
-					Bindings: []*triggersv1.EventListenerBinding{
-						&triggersv1.EventListenerBinding{
-							Name: "github-push-binding",
-						},
-					},
-					Template: triggersv1.EventListenerTemplate{
-						Name: "stage-cd-deploy-from-push-template",
+						Name: "cd-deploy-from-push-template",
 					},
 				},
 			},

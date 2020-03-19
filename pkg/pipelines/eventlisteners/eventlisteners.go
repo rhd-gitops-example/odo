@@ -29,7 +29,6 @@ var (
 
 // Generate will create the required eventlisteners.
 func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
-	githubStageRepo := githubRepo + "-stage-config"
 	return triggersv1.EventListener{
 		TypeMeta:   eventListenerTypeMeta,
 		ObjectMeta: createListenerObjectMeta("cicd-event-listener", ns),
@@ -37,35 +36,19 @@ func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
 			ServiceAccountName: saName,
 			Triggers: []triggersv1.EventListenerTrigger{
 				createListenerTrigger(
-					"dev-ci-build-from-pr",
-					devCIBuildFilters,
-					githubRepo,
-					"github-pr-binding",
-					"dev-ci-build-from-pr-template",
-					"pull_request",
-				),
-				createListenerTrigger(
-					"dev-cd-deploy-from-master",
-					devCDDeployFilters,
-					githubRepo,
-					"github-push-binding",
-					"dev-cd-deploy-from-master-template",
-					"push",
-				),
-				createListenerTrigger(
 					"stage-ci-dryrun-from-pr",
 					stageCIDryRunFilters,
-					githubStageRepo,
+					githubRepo,
 					"github-pr-binding",
-					"stage-ci-dryrun-from-pr-template",
+					"ci-dryrun-from-pr-template",
 					"pull_request",
 				),
 				createListenerTrigger(
 					"stage-cd-deploy-from-push",
 					stageCDDeployFilters,
-					githubStageRepo,
+					githubRepo,
 					"github-push-binding",
-					"stage-cd-deploy-from-push-template",
+					"cd-deploy-from-push-template",
 					"push",
 				),
 			},

@@ -13,7 +13,7 @@ var (
 // Generate will return a slice of tasks
 func Generate(ns string) []pipelinev1.Task {
 	return []pipelinev1.Task{
-		generateDeployFromSourceTask(ns),
+		GenerateDeployFromSourceTask(ns, "deploy"),
 		generateDeployUsingKubectlTask(ns),
 	}
 }
