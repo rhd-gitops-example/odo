@@ -26,8 +26,6 @@ const (
 	roleBindingName      = "pipelines-service-role-binding"
 	devRoleBindingName   = "pipeline-edit-dev"
 	stageRoleBindingName = "pipeline-edit-stage"
-	githubWebHookSecret  = "github-webhook-secret"
-	webhookSecretKey     = "webhook-secret-key"
 )
 
 // PolicyRules to be bound to service account
@@ -94,7 +92,7 @@ func Bootstrap(o *BootstrapParameters) error {
 	}
 
 	if o.GithubHookSecret != "" {
-		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], githubWebHookSecret), o.GithubHookSecret, webhookSecretKey)
+		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebHookSecret), o.GithubHookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return fmt.Errorf("failed to generate path to file: %w", err)
 		}
