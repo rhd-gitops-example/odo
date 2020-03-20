@@ -87,14 +87,9 @@ func TestCreateRole(t *testing.T) {
 		},
 		Rules: []v1rbac.PolicyRule{
 			v1rbac.PolicyRule{
-				APIGroups: []string{"tekton.dev"},
-				Resources: []string{"eventlisteners", "triggerbindings", "triggertemplates", "tasks", "taskruns"},
-				Verbs:     []string{"get"},
-			},
-			v1rbac.PolicyRule{
-				APIGroups: []string{"tekton.dev"},
-				Resources: []string{"pipelineruns", "pipelineresources", "taskruns"},
-				Verbs:     []string{"create"},
+				APIGroups: []string{""},
+				Resources: []string{"namespace"},
+				Verbs:     []string{"patch"},
 			},
 		},
 	}

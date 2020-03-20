@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/routes"
 	"github.com/openshift/odo/pkg/pipelines/tasks"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
+	v1rbac "k8s.io/api/rbac/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -28,6 +29,17 @@ type InitialiseParameters struct {
 	DockerConfigJSONFileName string
 	SkipChecks               bool
 }
+
+// PolicyRules to be bound to service account
+var (
+	rules = []v1rbac.PolicyRule{
+		v1rbac.PolicyRule{
+			APIGroups: []string{""},
+			Resources: []string{"namespace"},
+			Verbs:     []string{"patch"},
+		},
+	}
+)
 
 var (
 	pipelineDir = "pipelines"
@@ -107,7 +119,7 @@ func Initialise(o *InitialiseParameters) error {
 		return err
 	}
 
-	fmt.Println("\n\nGitops initialised\n\n")
+	fmt.Println("\n\nGitops initialised")
 	return nil
 }
 

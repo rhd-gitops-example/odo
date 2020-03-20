@@ -28,17 +28,6 @@ const (
 	stageRoleBindingName = "pipeline-edit-stage"
 )
 
-// PolicyRules to be bound to service account
-var (
-	rules = []v1rbac.PolicyRule{
-		v1rbac.PolicyRule{
-			APIGroups: []string{""},
-			Resources: []string{"namespace"},
-			Verbs:     []string{"patch"},
-		},
-	}
-)
-
 // BootstrapParameters is a struct that provides the optional flags
 type BootstrapParameters struct {
 	DeploymentPath           string
