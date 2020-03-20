@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	InitialiseRecommendedCommandName = "initialise"
+	InitialiseRecommendedCommandName = "init"
 )
 
 var (

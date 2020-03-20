@@ -10,31 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func writeResources(prefix string, files map[string][]interface{}) ([]string, error) {
-	filenames := make([]string, len(files))
-	for filename, items := range files {
-		err := marshalItemsToFile(filepath.Join(prefix, filename), items)
-		if err != nil {
-			return err
-		}
-		filenames = append(filenames, filename)
-	}
-	return filenames, nil
-}
-
-func marshalItemsToFile(filename string, items []interface{}) error {
-	err := os.MkdirAll(filepath.Dir(filename), 0755)
-	if err != nil {
-		return fmt.Errorf("failed to MkDirAll for %s: %v", filename, err)
-	}
-	f, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to Create file %s: %v", filename, err)
-	}
-	defer f.Close()
-	return marshalOutputs(f, items)
-}
-
 func TestWriteResources(t *testing.T) {
 	tmpDir, cleanUp := makeTempDir(t)
 	defer cleanUp()
@@ -43,7 +18,7 @@ func TestWriteResources(t *testing.T) {
 		"02_tasks/buildah_task.yaml":   []interface{}{fakeYamlDoc(1), fakeYamlDoc(2)},
 	}
 
-	err := writeResources(tmpDir, resources)
+	_, err := writeResources(tmpDir, "", resources)
 	if err != nil {
 		t.Fatalf("failed to writeResources: %v", err)
 	}
@@ -60,37 +35,6 @@ func assertFileContents(t *testing.T, filename string, want []byte) {
 
 	if diff := cmp.Diff(body, want); diff != "" {
 		t.Fatalf("file %s diff = \n%s\n", filename, diff)
-	}
-}
-
-func TestWriteResourcesToFile(t *testing.T) {
-	tmpDir, cleanUp := makeTempDir(t)
-	defer cleanUp()
-
-	gitopsPath := filepath.Join(tmpDir, "gitops")
-	resources := []string{"test1", "test2"}
-	outputs := map[string]interface{}{
-		"test1": fakeYamlDoc(1),
-		"test2": fakeYamlDoc(2),
-	}
-	err := writeResourcesToFile(resources, gitopsPath, "", outputs)
-	if err != nil {
-		t.Fatalf("writeResourcesToFile() failed:\n%v", err)
-	}
-	assertRepositoryLayout(t, []string{filepath.Join(gitopsPath, "01-test1.yaml"),
-		filepath.Join(gitopsPath, "02-test2.yaml")})
-}
-
-func TestCreatePipelineResource(t *testing.T) {
-	namespaces := namespaceNames("")
-	outputs := createPipelineResources(namespaces, "gitops", "gitops", "")
-	wantedResources := getOrderedResources()
-	validResult := true
-	for _, resource := range wantedResources {
-		_, exists := outputs[resource]
-		if diff := cmp.Diff(exists, validResult); diff != "" {
-			t.Fatalf("resource %v not found", resource)
-		}
 	}
 }
 
