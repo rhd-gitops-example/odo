@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	// PipelineTypeMeta Pipeline TypeMeta
-	PipelineTypeMeta = meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1")
+	// pipelineTypeMeta Pipeline TypeMeta
+	pipelineTypeMeta = meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1")
 )
 
 // createCIPipeline creates the dev-ci-pipeline.
 func createDevCIPipeline(name types.NamespacedName, isInternalRegistry bool) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   PipelineTypeMeta,
+		TypeMeta:   pipelineTypeMeta,
 		ObjectMeta: meta.ObjectMeta(name),
 		Spec: pipelinev1.PipelineSpec{
 			Params: []pipelinev1.ParamSpec{
@@ -36,7 +36,7 @@ func createDevCIPipeline(name types.NamespacedName, isInternalRegistry bool) *pi
 // createStageCIPipeline creates the stage-ci-pipeline
 func createStageCIPipeline(name types.NamespacedName, stageNamespace string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   PipelineTypeMeta,
+		TypeMeta:   pipelineTypeMeta,
 		ObjectMeta: meta.ObjectMeta(name),
 		Spec: pipelinev1.PipelineSpec{
 
@@ -54,7 +54,7 @@ func createStageCIPipeline(name types.NamespacedName, stageNamespace string) *pi
 // createDevCDPipeline creates the dev-cd-pipeline
 func createDevCDPipeline(name types.NamespacedName, deploymentPath, devNamespace string, isInternalRegistry bool) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   PipelineTypeMeta,
+		TypeMeta:   pipelineTypeMeta,
 		ObjectMeta: meta.ObjectMeta(name),
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
@@ -72,7 +72,7 @@ func createDevCDPipeline(name types.NamespacedName, deploymentPath, devNamespace
 // createStageCDPipeline creates the stage-cd-pipeline
 func createStageCDPipeline(name types.NamespacedName, stageNamespace string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
-		TypeMeta:   PipelineTypeMeta,
+		TypeMeta:   pipelineTypeMeta,
 		ObjectMeta: meta.ObjectMeta(name),
 		Spec: pipelinev1.PipelineSpec{
 			Resources: []pipelinev1.PipelineDeclaredResource{
