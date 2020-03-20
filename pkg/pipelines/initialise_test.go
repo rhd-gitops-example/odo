@@ -10,52 +10,74 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestValidRepository(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "test")
-	if err != nil {
-		t.Fatalf("failed to create a temp directory:\n%v", err)
-	}
+func TestWriteResourcesToFile(t *testing.T) {
+	t.Helper()
+	tmpDir, cleanUp := makeTempDir(t)
+	defer cleanUp()
 	gitopsPath := filepath.Join(tmpDir, "gitops")
-	defer os.RemoveAll(tmpDir)
-	folder := getGitopsFolder(gitopsPath, "test")
-	if err := folder.create(); err != nil {
-		t.Fatalf("create() failed:\n%v", err)
+	resources := []string{"test1", "test2"}
+	outputs := map[string]interface{}{
+		"test1": fakeYamlDoc(1),
+		"test2": fakeYamlDoc(2),
 	}
-	if err := folder.validate(); err != nil {
-		t.Fatalf("validate() failed:\n%v", err)
+	err := writeResourcesToFile(resources, gitopsPath, "", outputs)
+	if err != nil {
+		t.Fatalf("writeResourcesToFile() failed:\n%v", err)
+	}
+	AssertRepositoryLayout(t, []string{filepath.Join(gitopsPath, "01-test1.yaml"),
+		filepath.Join(gitopsPath, "02-test2.yaml")})
+}
+
+func TestCreatePipelineResource(t *testing.T) {
+	t.Helper()
+	namespaces := namespaceNames("")
+	outputs := createPipelineResources(namespaces, "gitops", "gitops", "")
+	wantedResources := getOrderedResources()
+	validResult := true
+	for _, resource := range wantedResources {
+		_, exists := outputs[resource]
+		if diff := cmp.Diff(exists, validResult); diff != "" {
+			t.Fatalf("resource %v not found", resource)
+		}
 	}
 }
 
-func TestInvalidRepository(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "test")
-	if err != nil {
-		t.Fatalf("failed to create a temp directory:\n%v", err)
-	}
-	gitopsPath := filepath.Join(tmpDir, "gitops")
-	defer os.RemoveAll(tmpDir)
-	folder := getGitopsFolder(gitopsPath, "test")
-	if err := folder.create(); err != nil {
-		t.Fatalf("create() failed:\n%v", err)
-	}
-	envs := filepath.Join(folder.path, "envs")
-	// alter gitops dir structure
-	os.RemoveAll(envs)
-
-	validErrMsg := fmt.Sprintf("stat %s: no such file or directory", envs)
-	err = folder.validate()
-	if diff := cmp.Diff(err.Error(), validErrMsg); diff != "" {
-		t.Fatalf("validate() failed:\n%v", err)
+func AssertRepositoryLayout(t *testing.T, paths []string) {
+	t.Helper()
+	for _, path := range paths {
+		if exists, err := isExisting(path); !exists {
+			assertNoError(t, err)
+		}
 	}
 }
 
-func TestAddKusomize(t *testing.T) {
-	validDir := folder{
-		path:    "test/kustomization.yaml",
-		isDir:   false,
-		folders: []*folder{},
+func makeTempDir(t *testing.T) (string, func()) {
+	t.Helper()
+	dir, err := ioutil.TempDir(os.TempDir(), "test")
+	assertNoError(t, err)
+	return dir, func() {
+		err := os.RemoveAll(dir)
+		assertNoError(t, err)
 	}
-	dir := addKustomize("test")
-	if diff := cmp.Diff(validDir, *dir, cmp.AllowUnexported(validDir, *dir)); diff != "" {
-		t.Fatalf("addKustomize() failed:\n%v", diff)
+}
+
+func assertNoError(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestFileNameCreation(t *testing.T) {
+	validFileName := "01-test-foo.yaml"
+	name := fileName(1, "test-", "foo")
+	if diff := cmp.Diff(validFileName, name); diff != "" {
+		t.Fatalf("fileName() failed:\n%v", diff)
+	}
+}
+
+func fakeYamlDoc(n int) map[string]string {
+	return map[string]string{
+		fmt.Sprintf("key%d", n): fmt.Sprintf("value%d", n),
 	}
 }

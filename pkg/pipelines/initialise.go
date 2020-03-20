@@ -111,7 +111,7 @@ func Initialise(o *InitialiseParameters) error {
 
 	pipelinesPath := getPipelinesDir(gitopsPath, o.Prefix)
 
-	if err := writeResourcesToFile(pipelinesPath, o.Prefix, outputs); err != nil {
+	if err := writeResourcesToFile(getOrderedResources(), pipelinesPath, o.Prefix, outputs); err != nil {
 		return err
 	}
 
@@ -184,18 +184,18 @@ func getKustomizePaths(rootPath, prefix string) []string {
 	}
 }
 
-func writeResourcesToFile(path string, prefix string, outputs map[string]interface{}) error {
+func writeResourcesToFile(resources []string, path string, prefix string, outputs map[string]interface{}) error {
 
 	// MkdirAll() creates necessary parent directories
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return fmt.Errorf("failed to create dir: %w", err)
 	}
 
-	for index, resource := range getOrderedResources() {
+	for index, resource := range resources {
 		if resource == cicdNamespace {
 			resource = prefix + resource
 		}
-		filePath := filepath.Join(path, fileName(index, prefix, resource))
+		filePath := filepath.Join(path, fileName(index+1, prefix, resource))
 
 		// marshal data from interface{} to []byte
 		data, err := yaml.Marshal(outputs[resource])
@@ -221,6 +221,7 @@ func createFile(path string) error {
 	return nil
 }
 
+// generate file name in the format index-prefix-filename.yaml
 func fileName(index int, prefix, name string) string {
 	return fmt.Sprintf("%02d-%v%v.yaml", index, prefix, name)
 }
