@@ -19,11 +19,15 @@ const (
 	stageCDDeployFilters = "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == '%s') && body.ref.startsWith('refs/heads/master')"
 )
 
+var (
+	eventListenerTypeMeta = meta.TypeMeta("EventListener", "tekton.dev/v1alpha1")
+)
+
 // Generate will create the required eventlisteners.
 func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
 	githubStageRepo := githubRepo + "-stage-config"
 	return triggersv1.EventListener{
-		TypeMeta:   createListenerTypeMeta,
+		TypeMeta:   eventListenerTypeMeta,
 		ObjectMeta: createListenerObjectMeta("cicd-event-listener", ns),
 		Spec: triggersv1.EventListenerSpec{
 			ServiceAccountName: saName,
@@ -93,8 +97,6 @@ func createListenerBinding(name string) *triggersv1.EventListenerBinding {
 		Name: name,
 	}
 }
-
-var createListenerTypeMeta = meta.TypeMeta("EventListener", "tekton.dev/v1alpha1")
 
 func createListenerObjectMeta(name, ns string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{

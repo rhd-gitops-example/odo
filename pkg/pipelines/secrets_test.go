@@ -20,7 +20,7 @@ func TestCreateOpaqueSecret(t *testing.T) {
 	}
 
 	want := &corev1.Secret{
-		TypeMeta: meta.TypeMeta("Secret", "v1"),
+		TypeMeta: secretTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "github-auth",
 			Namespace: "cicd",
@@ -52,7 +52,7 @@ func TestCreateDockerConfigSecret(t *testing.T) {
 	}
 
 	want := &corev1.Secret{
-		TypeMeta: meta.TypeMeta("Secret", "v1"),
+		TypeMeta: secretTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "regcred",
 			Namespace: "cicd",

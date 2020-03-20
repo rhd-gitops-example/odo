@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +13,7 @@ const testNS = "testing-ns"
 
 func TestDeployFromSourceTask(t *testing.T) {
 	wantedTask := pipelinev1.Task{
-		TypeMeta: meta.TypeMeta("Task", "tekton.dev/v1alpha1"),
+		TypeMeta: taskTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "deploy-from-source-task",
 			Namespace: testNS,
@@ -42,7 +41,7 @@ func TestDeployFromSourceTask(t *testing.T) {
 
 func TestDeployUsingKubectlTask(t *testing.T) {
 	validTask := pipelinev1.Task{
-		TypeMeta: meta.TypeMeta("Task", "tekton.dev/v1alpha1"),
+		TypeMeta: taskTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "deploy-using-kubectl-task",
 			Namespace: testNS,

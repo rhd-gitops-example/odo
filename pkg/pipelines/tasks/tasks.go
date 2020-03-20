@@ -6,6 +6,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+var (
+	taskTypeMeta = meta.TypeMeta("Task", "tekton.dev/v1alpha1")
+)
+
 // Generate will return a slice of tasks
 func Generate(ns string) []pipelinev1.Task {
 	return []pipelinev1.Task{
@@ -13,8 +17,6 @@ func Generate(ns string) []pipelinev1.Task {
 		generateDeployUsingKubectlTask(ns),
 	}
 }
-
-var createTaskTypeMeta = meta.TypeMeta("Task", "tekton.dev/v1alpha1")
 
 func createTaskResource(name string, resourceType string) pipelinev1.TaskResource {
 	return pipelinev1.TaskResource{

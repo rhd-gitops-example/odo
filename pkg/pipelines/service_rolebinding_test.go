@@ -12,7 +12,7 @@ import (
 
 func TestRoleBinding(t *testing.T) {
 	want := &v1rbac.RoleBinding{
-		TypeMeta: meta.TypeMeta("RoleBinding", "rbac.authorization.k8s.io/v1"),
+		TypeMeta: roleBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name: roleBindingName,
 		},
@@ -30,7 +30,7 @@ func TestRoleBinding(t *testing.T) {
 		},
 	}
 	sa := &corev1.ServiceAccount{
-		TypeMeta:   meta.TypeMeta("ServiceAccount", "v1"),
+		TypeMeta:   serviceAccountTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testing", "pipeline")),
 	}
 	roleBindingTask := createRoleBinding(
@@ -44,7 +44,7 @@ func TestRoleBinding(t *testing.T) {
 
 func TestRoleBindingForSubjects(t *testing.T) {
 	want := &v1rbac.RoleBinding{
-		TypeMeta: meta.TypeMeta("RoleBinding", "rbac.authorization.k8s.io/v1"),
+		TypeMeta: roleBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      roleBindingName,
 			Namespace: "testns",
@@ -81,7 +81,7 @@ func TestRoleBindingForSubjects(t *testing.T) {
 
 func TestCreateRole(t *testing.T) {
 	want := &v1rbac.Role{
-		TypeMeta: meta.TypeMeta("Role", "rbac.authorization.k8s.io/v1"),
+		TypeMeta: roleTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name: roleName,
 		},
@@ -106,7 +106,7 @@ func TestCreateRole(t *testing.T) {
 
 func TestServiceAccount(t *testing.T) {
 	want := &corev1.ServiceAccount{
-		TypeMeta: meta.TypeMeta("ServiceAccount", "v1"),
+		TypeMeta: serviceAccountTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name: "pipeline",
 		},
@@ -125,7 +125,7 @@ func TestServiceAccount(t *testing.T) {
 
 func TestAddSecretToSA(t *testing.T) {
 	validSA := &corev1.ServiceAccount{
-		TypeMeta: meta.TypeMeta("ServiceAccount", "v1"),
+		TypeMeta: serviceAccountTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name: "pipeline",
 		},

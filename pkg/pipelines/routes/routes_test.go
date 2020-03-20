@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/odo/pkg/pipelines/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -14,7 +13,7 @@ func TestGenerateRoute(t *testing.T) {
 	var weight int32
 	weight = 100
 	validRoute := routev1.Route{
-		TypeMeta: meta.TypeMeta("Route", "route.openshift.io/v1"),
+		TypeMeta: routeTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "github-webhook-event-listener",
 			Namespace: "cicd-environment",

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,7 +11,7 @@ import (
 
 func TestCreatePRBinding(t *testing.T) {
 	validPRBinding := triggersv1.TriggerBinding{
-		TypeMeta: meta.TypeMeta("TriggerBinding", "tekton.dev/v1alpha1"),
+		TypeMeta: triggerBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "github-pr-binding",
 			Namespace: "testns",
@@ -58,7 +57,7 @@ func TestCreatePRBinding(t *testing.T) {
 
 func TestCreatePushBinding(t *testing.T) {
 	validPushBinding := triggersv1.TriggerBinding{
-		TypeMeta: meta.TypeMeta("TriggerBinding", "tekton.dev/v1alpha1"),
+		TypeMeta: triggerBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "github-push-binding",
 			Namespace: "testns",

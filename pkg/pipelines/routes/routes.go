@@ -7,10 +7,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+var (
+	routeTypeMeta = meta.TypeMeta("Route", "route.openshift.io/v1")
+)
+
 // Generate creates a route for event listener
 func Generate(ns string) routev1.Route {
 	return routev1.Route{
-		TypeMeta:   createRouteTypeMeta,
+		TypeMeta:   routeTypeMeta,
 		ObjectMeta: createRouteObjectMeta(ns, "github-webhook-event-listener"),
 		Spec: routev1.RouteSpec{
 			To: creatRouteTargetReference(
@@ -39,8 +43,6 @@ func creatRouteTargetReference(kind string, name string, weight int32) routev1.R
 		Weight: &weight,
 	}
 }
-
-var createRouteTypeMeta = meta.TypeMeta("Route", "route.openshift.io/v1")
 
 func createRouteObjectMeta(ns, name string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{

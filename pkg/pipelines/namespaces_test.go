@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openshift/odo/pkg/pipelines/meta"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -13,7 +12,7 @@ import (
 func TestCreateNamespace(t *testing.T) {
 	ns := createNamespace("test-environment")
 	want := &corev1.Namespace{
-		TypeMeta: meta.TypeMeta("Namespace", "v1"),
+		TypeMeta: namespaceTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-environment",
 		},

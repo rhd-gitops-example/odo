@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	// pipelineTypeMeta Pipeline TypeMeta
 	pipelineTypeMeta = meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1")
 )
 
