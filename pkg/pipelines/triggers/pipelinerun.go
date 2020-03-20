@@ -44,7 +44,7 @@ func createStageCDPipelineRun(saName string) pipelinev1.PipelineRun {
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", "cd-deploy-from-push-pipeline-$(uid)")),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: saName,
-			PipelineRef:        createPipelineRef("stage-cd-pipeline"),
+			PipelineRef:        createPipelineRef("cd-deploy-from-push-pipeline"),
 			Resources:          createStageResources(),
 		},
 	}
@@ -56,7 +56,7 @@ func createStageCIPipelineRun(saName string) pipelinev1.PipelineRun {
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", "ci-dryrun-from-pr-pipeline-$(uid)")),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: saName,
-			PipelineRef:        createPipelineRef("stage-ci-pipeline"),
+			PipelineRef:        createPipelineRef("ci-dryrun-from-pr-pipeline"),
 			Resources:          createStageResources(),
 		},
 	}
