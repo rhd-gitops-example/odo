@@ -34,8 +34,18 @@ var (
 	rules = []v1rbac.PolicyRule{
 		v1rbac.PolicyRule{
 			APIGroups: []string{""},
-			Resources: []string{"namespace"},
+			Resources: []string{"namespaces"},
 			Verbs:     []string{"patch"},
+		},
+		v1rbac.PolicyRule{
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"clusterroles"},
+			Verbs:     []string{"bind", "patch"},
+		},
+		v1rbac.PolicyRule{
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"rolebindings"},
+			Verbs:     []string{"get", "patch"},
 		},
 	}
 )
@@ -49,7 +59,7 @@ const (
 	kustomize         = "kustomization.yaml"
 	namespacesPath    = "01-namespaces/cicd-environment.yaml"
 	rolesPath         = "02-rolebindings/pipeline-service-role.yaml"
-	rolebindingsPath  = "02-rolebindings/pipeline-service-role-binding.yaml"
+	rolebindingsPath  = "02-rolebindings/pipeline-service-rolebinding.yaml"
 	tasksPath         = "03-tasks/deploy-from-source-task.yaml"
 	ciPipelinesPath   = "04-pipelines/ci-dryrun-from-pr-pipeline.yaml"
 	cdPipelinesPath   = "04-pipelines/cd-deploy-from-push-pipeline.yaml"
@@ -127,7 +137,7 @@ func createPipelineResources(namespaces map[string]string, gitopsRepo, prefix st
 	outputs[namespacesPath] = append(outputs[namespacesPath], createNamespace(namespaces["cicd"]))
 
 	// create roles and rolebindings for pipeline service account
-	role := createRole(meta.NamespacedName(namespaces["cicd"], roleName), rules)
+	role := createClusterRole(meta.NamespacedName("", clusterRoleName), rules)
 	outputs[rolesPath] = append(outputs[rolesPath], role)
 
 	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
@@ -142,7 +152,7 @@ func createPipelineResources(namespaces map[string]string, gitopsRepo, prefix st
 	ciPipeline := createStageCIPipeline(meta.NamespacedName(namespaces["cicd"], "ci-dryrun-from-pr-pipeline"), namespaces["cicd"])
 	outputs[ciPipelinesPath] = append(outputs[ciPipelinesPath], ciPipeline)
 
-	cdPipeline := createStageCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["stage"])
+	cdPipeline := createStageCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["cicd"])
 	outputs[cdPipelinesPath] = append(outputs[cdPipelinesPath], cdPipeline)
 
 	// create trigger bindings

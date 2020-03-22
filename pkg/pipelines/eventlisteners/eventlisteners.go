@@ -36,7 +36,7 @@ func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
 			ServiceAccountName: saName,
 			Triggers: []triggersv1.EventListenerTrigger{
 				createListenerTrigger(
-					"stage-ci-dryrun-from-pr",
+					"ci-dryrun-from-pr",
 					stageCIDryRunFilters,
 					githubRepo,
 					"github-pr-binding",
@@ -44,7 +44,7 @@ func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
 					"pull_request",
 				),
 				createListenerTrigger(
-					"stage-cd-deploy-from-push",
+					"cd-deploy-from-push",
 					stageCDDeployFilters,
 					githubRepo,
 					"github-push-binding",

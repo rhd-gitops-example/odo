@@ -85,13 +85,7 @@ func TestCreateRole(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name: roleName,
 		},
-		Rules: []v1rbac.PolicyRule{
-			v1rbac.PolicyRule{
-				APIGroups: []string{""},
-				Resources: []string{"namespace"},
-				Verbs:     []string{"patch"},
-			},
-		},
+		Rules: rules,
 	}
 	roleTask := createRole(meta.NamespacedName("", roleName), rules)
 	if diff := cmp.Diff(roleTask, want); diff != "" {
@@ -133,5 +127,19 @@ func TestAddSecretToSA(t *testing.T) {
 	sa := addSecretToSA(validSA, "regcred")
 	if diff := cmp.Diff(sa.Secrets, validSecrets); diff != "" {
 		t.Errorf("addSecretToSA() failed:\n%s", diff)
+	}
+}
+
+func TestCreateClusterRole(t *testing.T) {
+	validClusterRole := &v1rbac.ClusterRole{
+		TypeMeta: clusterRoleTypeMeta,
+		ObjectMeta: v1.ObjectMeta{
+			Name: clusterRoleName,
+		},
+		Rules: rules,
+	}
+	clusterRole := createClusterRole(meta.NamespacedName("", clusterRoleName), rules)
+	if diff := cmp.Diff(validClusterRole, clusterRole); diff != "" {
+		t.Fatalf("createClusterRole() failed:\n%v", diff)
 	}
 }

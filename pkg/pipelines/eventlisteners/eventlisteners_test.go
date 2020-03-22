@@ -23,7 +23,7 @@ func TestGenerateEventListener(t *testing.T) {
 			ServiceAccountName: "pipeline",
 			Triggers: []triggersv1.EventListenerTrigger{
 				triggersv1.EventListenerTrigger{
-					Name: "stage-ci-dryrun-from-pr",
+					Name: "ci-dryrun-from-pr",
 					Interceptors: []*triggersv1.EventInterceptor{
 						&triggersv1.EventInterceptor{
 							CEL: &triggersv1.CELInterceptor{
@@ -52,7 +52,7 @@ func TestGenerateEventListener(t *testing.T) {
 					},
 				},
 				triggersv1.EventListenerTrigger{
-					Name: "stage-cd-deploy-from-push",
+					Name: "cd-deploy-from-push",
 					Interceptors: []*triggersv1.EventInterceptor{
 						&triggersv1.EventInterceptor{
 							CEL: &triggersv1.CELInterceptor{
