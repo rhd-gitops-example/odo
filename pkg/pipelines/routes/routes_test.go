@@ -36,6 +36,7 @@ func TestGenerateRoute(t *testing.T) {
 			},
 			WildcardPolicy: routev1.WildcardPolicyNone,
 		},
+		Status: createRouteStatus(),
 	}
 	route := Generate("cicd-environment")
 	if diff := cmp.Diff(validRoute, route); diff != "" {

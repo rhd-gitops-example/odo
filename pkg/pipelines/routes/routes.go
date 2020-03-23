@@ -25,6 +25,22 @@ func Generate(ns string) routev1.Route {
 			Port:           createRoutePort(8080),
 			WildcardPolicy: routev1.WildcardPolicyNone,
 		},
+		Status: createRouteStatus(),
+	}
+}
+
+func createRouteStatus() routev1.RouteStatus {
+	return routev1.RouteStatus{
+		Ingress: []routev1.RouteIngress{
+			routev1.RouteIngress{
+				Conditions: []routev1.RouteIngressCondition{
+					routev1.RouteIngressCondition{
+						Type:   "Admitted",
+						Status: "True",
+					},
+				},
+			},
+		},
 	}
 }
 

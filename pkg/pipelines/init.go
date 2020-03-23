@@ -16,17 +16,13 @@ import (
 	v1rbac "k8s.io/api/rbac/v1"
 )
 
-// InitialiseParameters is a struct that provides flags for initialise command
-type InitialiseParameters struct {
-	GitOpsRepo               string
-	Output                   string
-	AppGithubSecret          string
-	AppGitRepo               string
-	AppImageRepo             string
-	Prefix                   string
-	InternalRegistryHostname string
-	DockerConfigJSONFileName string
-	SkipChecks               bool
+// InitParameters is a struct that provides flags for initialise command
+type InitParameters struct {
+	GitOpsRepo       string
+	Output           string
+	GithubHookSecret string
+	Prefix           string
+	SkipChecks       bool
 }
 
 // PolicyRules to be bound to service account
@@ -60,19 +56,20 @@ const (
 	namespacesPath    = "01-namespaces/cicd-environment.yaml"
 	rolesPath         = "02-rolebindings/pipeline-service-role.yaml"
 	rolebindingsPath  = "02-rolebindings/pipeline-service-rolebinding.yaml"
-	tasksPath         = "03-tasks/deploy-from-source-task.yaml"
-	ciPipelinesPath   = "04-pipelines/ci-dryrun-from-pr-pipeline.yaml"
-	cdPipelinesPath   = "04-pipelines/cd-deploy-from-push-pipeline.yaml"
-	prBindingPath     = "05-bindings/github-pr-binding.yaml"
-	pushBindingPath   = "05-bindings/github-push-binding.yaml"
-	prTemplatePath    = "06-templates/ci-dryrun-from-pr-template.yaml"
-	pushTemplatePath  = "06-templates/cd-deploy-from-push-template.yaml"
-	eventListenerPath = "07-eventlisteners/cicd-event-listener.yaml"
-	routePath         = "08-routes/github-webhook-event-listener.yaml"
+	secretsPath       = "03-secrets/github-webhook-secret.yaml"
+	tasksPath         = "04-tasks/deploy-from-source-task.yaml"
+	ciPipelinesPath   = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
+	cdPipelinesPath   = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
+	prBindingPath     = "06-bindings/github-pr-binding.yaml"
+	pushBindingPath   = "06-bindings/github-push-binding.yaml"
+	prTemplatePath    = "07-templates/ci-dryrun-from-pr-template.yaml"
+	pushTemplatePath  = "07-templates/cd-deploy-from-push-template.yaml"
+	eventListenerPath = "08-eventlisteners/cicd-event-listener.yaml"
+	routePath         = "09-routes/github-webhook-event-listener.yaml"
 )
 
-// Initialise function will initialise the gitops directory
-func Initialise(o *InitialiseParameters) error {
+// Init function will initialise the gitops directory
+func Init(o *InitParameters) error {
 
 	if !o.SkipChecks {
 		installed, err := checkTektonInstall()
@@ -95,12 +92,25 @@ func Initialise(o *InitialiseParameters) error {
 		return fmt.Errorf("%s already exists at %s", gitopsName, gitopsPath)
 	}
 
+	// key: path of the resource
+	// value: YAML content of the resource
+	outputs := map[string][]interface{}{}
+
+	if o.GithubHookSecret != "" {
+		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebHookSecret), o.GithubHookSecret, eventlisteners.WebhookSecretKey)
+		if err != nil {
+			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
+		}
+
+		outputs[secretsPath] = append(outputs[secretsPath], githubSecret)
+	}
+
 	// create gitops pipeline
-	files := createPipelineResources(namespaces, o.GitOpsRepo, o.Prefix)
+	files := createPipelineResources(outputs, namespaces, o.GitOpsRepo, o.Prefix)
 
 	pipelinesPath := getPipelinesDir(gitopsPath, o.Prefix)
 
-	fileNames, err := writeResources(pipelinesPath, o.Prefix, files)
+	fileNames, err := writeResources(pipelinesPath, files)
 	if err != nil {
 		return err
 	}
@@ -127,11 +137,7 @@ func getCICDDir(path, prefix string) string {
 	return filepath.Join(path, envsDir, addPrefix(prefix, cicdDir))
 }
 
-func createPipelineResources(namespaces map[string]string, gitopsRepo, prefix string) map[string][]interface{} {
-
-	// key: path of the resource
-	// value: YAML content of the resource
-	outputs := make(map[string][]interface{}, 0)
+func createPipelineResources(outputs map[string][]interface{}, namespaces map[string]string, gitopsRepo, prefix string) map[string][]interface{} {
 
 	// create namespace
 	outputs[namespacesPath] = append(outputs[namespacesPath], createNamespace(namespaces["cicd"]))
@@ -179,14 +185,14 @@ func createPipelineResources(namespaces map[string]string, gitopsRepo, prefix st
 	return outputs
 }
 
-func writeResources(path string, prefix string, files map[string][]interface{}) ([]string, error) {
+func writeResources(path string, files map[string][]interface{}) ([]string, error) {
 	filenames := make([]string, 0)
 	for filename, items := range files {
-		err := marshalItemsToFile(filepath.Join(path, filepath.Dir(filename), addPrefix(prefix, filepath.Base(filename))), items)
+		err := marshalItemsToFile(filepath.Join(path, filename), items)
 		if err != nil {
 			return nil, err
 		}
-		filenames = append(filenames, filepath.Join(filepath.Dir(filename), addPrefix(prefix, filepath.Base(filename))))
+		filenames = append(filenames, filename)
 	}
 	return filenames, nil
 }

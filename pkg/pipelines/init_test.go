@@ -18,7 +18,7 @@ func TestWriteResources(t *testing.T) {
 		"02_tasks/buildah_task.yaml":   []interface{}{fakeYamlDoc(1), fakeYamlDoc(2)},
 	}
 
-	_, err := writeResources(tmpDir, "", resources)
+	_, err := writeResources(tmpDir, resources)
 	if err != nil {
 		t.Fatalf("failed to writeResources: %v", err)
 	}

@@ -13,7 +13,7 @@ type keyValuePair struct {
 	value string
 }
 
-func TestCompleteInitialiseParameters(t *testing.T) {
+func TestCompleteInitParameters(t *testing.T) {
 	completeTests := []struct {
 		name       string
 		prefix     string
@@ -25,7 +25,7 @@ func TestCompleteInitialiseParameters(t *testing.T) {
 	}
 
 	for _, tt := range completeTests {
-		o := InitialiseParameters{prefix: tt.prefix}
+		o := InitParameters{prefix: tt.prefix}
 
 		err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
 
@@ -39,7 +39,7 @@ func TestCompleteInitialiseParameters(t *testing.T) {
 	}
 }
 
-func TestValidateInitialiseParameters(t *testing.T) {
+func TestValidateInitParameters(t *testing.T) {
 	optionTests := []struct {
 		name    string
 		gitRepo string
@@ -50,7 +50,7 @@ func TestValidateInitialiseParameters(t *testing.T) {
 	}
 
 	for _, tt := range optionTests {
-		o := InitialiseParameters{gitOpsRepo: tt.gitRepo, prefix: "test"}
+		o := InitParameters{gitOpsRepo: tt.gitRepo, prefix: "test"}
 
 		err := o.Validate()
 
@@ -65,7 +65,7 @@ func TestValidateInitialiseParameters(t *testing.T) {
 	}
 }
 
-func TestInitialiseCommandWithMissingParams(t *testing.T) {
+func TestInitCommandWithMissingParams(t *testing.T) {
 	cmdTests := []struct {
 		desc    string
 		flags   []keyValuePair
@@ -73,12 +73,16 @@ func TestInitialiseCommandWithMissingParams(t *testing.T) {
 	}{
 		{"Missing gitops-repo flag",
 			[]keyValuePair{flag("output", "~/output"),
-				flag("dockerconfigjson", "~/"), flag("app-image-repo", "foo/bar/bar"), flag("output", "/tmp"), flag("skip-checks", "true")},
+				flag("output", "/tmp"), flag("github-webhook-secret","123"),flag("skip-checks", "true")},
 			`Required flag(s) "gitops-repo" have/has not been set`},
+		{"Missing github-webhook-secret flag",
+			[]keyValuePair{flag("gitops-repo","org/sample"),flag("output", "~/output"),
+				flag("output", "/tmp"), flag("skip-checks", "true")},
+			`Required flag(s) "github-webhook-secret" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
 		t.Run(tt.desc, func(t *testing.T) {
-			_, _, err := executeCommand(NewCmdInitialise("initialise", "odo pipelines initialise"), tt.flags...)
+			_, _, err := executeCommand(NewCmdInit("init", "odo pipelines init"), tt.flags...)
 			if err.Error() != tt.wantErr {
 				t.Errorf("got %s, want %s", err, tt.wantErr)
 			}
@@ -98,7 +102,7 @@ func TestBypassChecks(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			o := BootstrapParameters{skipChecks: test.skipChecks}
+			o := InitParameters{skipChecks: test.skipChecks}
 
 			err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
 
