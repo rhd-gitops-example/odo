@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	// InitRecommendedCommandName the recommended command name
 	InitRecommendedCommandName = "init"
 )
 
@@ -28,9 +29,9 @@ var (
 // InitParameters encapsulates the parameters for the odo pipelines initialise
 // command.
 type InitParameters struct {
+	gitHubWebhookSecret string // used to create Github's shared webhook secret
 	gitOpsRepo          string // repo to store Gitops resources e.g. org/repo
 	output              string // path to add Gitops resources
-	githubWebHookSecret string // used to create Github's shared webhook secret
 	prefix              string // used to generate the environments in a shared cluster
 	skipChecks          bool   // skip Tekton installation checks
 	// generic context options common to all commands
@@ -65,11 +66,11 @@ func (io *InitParameters) Validate() error {
 // Run runs the project bootstrap command.
 func (io *InitParameters) Run() error {
 	options := pipelines.InitParameters{
-		GitOpsRepo:       io.gitOpsRepo,
-		Prefix:           io.prefix,
-		Output:           io.output,
-		GithubHookSecret: io.githubWebHookSecret,
-		SkipChecks:       io.skipChecks,
+		GitHubWebhookSecret: io.gitHubWebhookSecret,
+		GitOpsRepo:          io.gitOpsRepo,
+		Output:              io.output,
+		Prefix:              io.prefix,
+		SkipChecks:          io.skipChecks,
 	}
 
 	return pipelines.Init(&options)
@@ -91,7 +92,7 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 
 	initCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
 	initCmd.MarkFlagRequired("gitops-repo")
-	initCmd.Flags().StringVar(&o.githubWebHookSecret, "github-webhook-secret", "", "provide the GitHub webhook secret")
+	initCmd.Flags().StringVar(&o.gitHubWebhookSecret, "github-webhook-secret", "", "provide the GitHub webhook secret")
 	initCmd.MarkFlagRequired("github-webhook-secret")
 	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")

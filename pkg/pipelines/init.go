@@ -18,11 +18,11 @@ import (
 
 // InitParameters is a struct that provides flags for initialise command
 type InitParameters struct {
-	GitOpsRepo       string
-	Output           string
-	GithubHookSecret string
-	Prefix           string
-	SkipChecks       bool
+	GitHubWebhookSecret string
+	GitOpsRepo          string
+	Output              string
+	Prefix              string
+	SkipChecks          bool
 }
 
 // PolicyRules to be bound to service account
@@ -96,8 +96,8 @@ func Init(o *InitParameters) error {
 	// value: YAML content of the resource
 	outputs := map[string][]interface{}{}
 
-	if o.GithubHookSecret != "" {
-		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebHookSecret), o.GithubHookSecret, eventlisteners.WebhookSecretKey)
+	if o.GitHubWebhookSecret != "" {
+		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebhookSecret), o.GitHubWebhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
 		}
