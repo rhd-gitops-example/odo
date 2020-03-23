@@ -73,12 +73,8 @@ func TestInitialiseCommandWithMissingParams(t *testing.T) {
 	}{
 		{"Missing gitops-repo flag",
 			[]keyValuePair{flag("output", "~/output"),
-				flag("dockerconfigjson", "~/"), flag("app-image-repo", "foo/bar/bar"), flag("app-git-repo", "foo")},
+				flag("dockerconfigjson", "~/"), flag("app-image-repo", "foo/bar/bar"), flag("output", "/tmp"), flag("skip-checks", "true")},
 			`Required flag(s) "gitops-repo" have/has not been set`},
-		{"Missing output flag",
-			[]keyValuePair{flag("gitops-repo", "example/test"),
-				flag("dockerconfigjson", "~/"), flag("app-git-repo", "example/repo")},
-			`Required flag(s) "output" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
 		t.Run(tt.desc, func(t *testing.T) {

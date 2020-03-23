@@ -97,11 +97,11 @@ func NewCmdInitialise(name, fullName string) *cobra.Command {
 		},
 	}
 
-	initialiseCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "git repository in this form <username>/<repository>")
+	initialiseCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
 	initialiseCmd.MarkFlagRequired("gitops-repo")
 	initialiseCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add resources")
 	initialiseCmd.Flags().StringVarP(&o.appGithubSecret, "app-github-secret", "", "", "provide the Github secret")
-	initialiseCmd.Flags().StringVar(&o.appGitRepo, "app-git-repo", "", "git repository in this form <username>/<repository>")
+	initialiseCmd.Flags().StringVar(&o.appGitRepo, "app-git-repo", "", "application git repository in this form <username>/<repository>")
 	initialiseCmd.Flags().StringVar(&o.appImageRepo, "app-image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
 	initialiseCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	initialiseCmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
