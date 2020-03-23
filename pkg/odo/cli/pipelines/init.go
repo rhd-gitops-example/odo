@@ -38,7 +38,7 @@ type InitParameters struct {
 	*genericclioptions.Context
 }
 
-// NewInitParameters bootstraps a BootstrapParameters instance.
+// NewInitParameters bootstraps a InitParameters instance.
 func NewInitParameters() *InitParameters {
 	return &InitParameters{}
 }
@@ -54,7 +54,7 @@ func (io *InitParameters) Complete(name string, cmd *cobra.Command, args []strin
 	return nil
 }
 
-// Validate validates the parameters of the BootstrapParameters.
+// Validate validates the parameters of the InitParameters.
 func (io *InitParameters) Validate() error {
 	// TODO: this won't work with GitLab as the repo can have more path elements.
 	if len(strings.Split(io.gitOpsRepo, "/")) != 2 {
