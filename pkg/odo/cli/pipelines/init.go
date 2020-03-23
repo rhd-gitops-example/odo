@@ -26,8 +26,7 @@ var (
 	initShortDesc = `Initialise pipelines`
 )
 
-// InitParameters encapsulates the parameters for the odo pipelines initialise
-// command.
+// InitParameters encapsulates the parameters for the odo pipelines init command.
 type InitParameters struct {
 	gitHubWebhookSecret string // used to create Github's shared webhook secret
 	gitOpsRepo          string // repo to store Gitops resources e.g. org/repo
@@ -43,7 +42,7 @@ func NewInitParameters() *InitParameters {
 	return &InitParameters{}
 }
 
-// Complete completes InitialiseParameters after they've been created.
+// Complete completes InitParameters after they've been created.
 //
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
@@ -76,7 +75,7 @@ func (io *InitParameters) Run() error {
 	return pipelines.Init(&options)
 }
 
-// NewCmdInit creates the project initialise command.
+// NewCmdInit creates the project init command.
 func NewCmdInit(name, fullName string) *cobra.Command {
 	o := NewInitParameters()
 
