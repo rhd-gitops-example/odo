@@ -129,7 +129,6 @@ func Init(o *InitParameters) error {
 		return err
 	}
 
-	fmt.Println("\nGitops initialised")
 	return nil
 }
 
