@@ -28,7 +28,7 @@ var (
 
 // InitParameters encapsulates the parameters for the odo pipelines init command.
 type InitParameters struct {
-	gitHubWebhookSecret string // used to create Github's shared webhook secret
+	gitOpsWebhookSecret string // used to create Github's shared webhook secret for gitops repo
 	gitOpsRepo          string // repo to store Gitops resources e.g. org/repo
 	output              string // path to add Gitops resources
 	prefix              string // used to generate the environments in a shared cluster
@@ -65,7 +65,7 @@ func (io *InitParameters) Validate() error {
 // Run runs the project bootstrap command.
 func (io *InitParameters) Run() error {
 	options := pipelines.InitParameters{
-		GitHubWebhookSecret: io.gitHubWebhookSecret,
+		GitOpsWebhookSecret: io.gitOpsWebhookSecret,
 		GitOpsRepo:          io.gitOpsRepo,
 		Output:              io.output,
 		Prefix:              io.prefix,
@@ -91,7 +91,7 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 
 	initCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
 	initCmd.MarkFlagRequired("gitops-repo")
-	initCmd.Flags().StringVar(&o.gitHubWebhookSecret, "github-webhook-secret", "", "provide the GitHub webhook secret")
+	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for gitops repository")
 	initCmd.MarkFlagRequired("github-webhook-secret")
 	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")

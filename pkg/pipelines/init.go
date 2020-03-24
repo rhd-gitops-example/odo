@@ -18,7 +18,7 @@ import (
 
 // InitParameters is a struct that provides flags for initialise command
 type InitParameters struct {
-	GitHubWebhookSecret string
+	GitOpsWebhookSecret string
 	GitOpsRepo          string
 	Output              string
 	Prefix              string
@@ -96,8 +96,8 @@ func Init(o *InitParameters) error {
 	// value: YAML content of the resource
 	outputs := map[string][]interface{}{}
 
-	if o.GitHubWebhookSecret != "" {
-		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebhookSecret), o.GitHubWebhookSecret, eventlisteners.WebhookSecretKey)
+	if o.GitOpsWebhookSecret != "" {
+		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebhookSecret), o.GitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
 		}
