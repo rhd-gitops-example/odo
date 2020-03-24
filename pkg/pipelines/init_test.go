@@ -38,15 +38,6 @@ func assertFileContents(t *testing.T, filename string, want []byte) {
 	}
 }
 
-func assertRepositoryLayout(t *testing.T, paths []string) {
-	t.Helper()
-	for _, path := range paths {
-		if exists, err := isExisting(path); !exists {
-			assertNoError(t, err)
-		}
-	}
-}
-
 func makeTempDir(t *testing.T) (string, func()) {
 	t.Helper()
 	dir, err := ioutil.TempDir(os.TempDir(), "test")

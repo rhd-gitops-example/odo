@@ -10,8 +10,7 @@ import (
 )
 
 func TestGenerateRoute(t *testing.T) {
-	var weight int32
-	weight = 100
+	weight := int32(100)
 	validRoute := routev1.Route{
 		TypeMeta: routeTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
@@ -57,8 +56,7 @@ func TestCreateRoutePort(t *testing.T) {
 }
 
 func TestCreatRouteTargetReference(t *testing.T) {
-	var weight int32
-	weight = 100
+	weight := int32(100)
 	validRouteTargetReference := routev1.RouteTargetReference{
 		Kind:   "Service",
 		Name:   "el-cicd-event-listener",

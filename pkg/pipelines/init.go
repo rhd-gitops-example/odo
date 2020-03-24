@@ -51,7 +51,6 @@ const (
 	cicdDir           = "cicd-environment"
 	envsDir           = "envs"
 	baseDir           = "base"
-	appsDir           = "apps"
 	kustomize         = "kustomization.yaml"
 	namespacesPath    = "01-namespaces/cicd-environment.yaml"
 	rolesPath         = "02-rolebindings/pipeline-service-role.yaml"
