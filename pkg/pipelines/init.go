@@ -3,263 +3,230 @@ package pipelines
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
-	"github.com/mitchellh/go-homedir"
-	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
-	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/meta"
-	"github.com/openshift/odo/pkg/pipelines/namespaces"
-	"github.com/openshift/odo/pkg/pipelines/pipelines"
-	"github.com/openshift/odo/pkg/pipelines/resources"
-	res "github.com/openshift/odo/pkg/pipelines/resources"
-	"github.com/openshift/odo/pkg/pipelines/roles"
 	"github.com/openshift/odo/pkg/pipelines/routes"
-	"github.com/openshift/odo/pkg/pipelines/scm"
-	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/tasks"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
-	"github.com/openshift/odo/pkg/pipelines/yaml"
-	"github.com/spf13/afero"
-
 	v1rbac "k8s.io/api/rbac/v1"
-
-	ssv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealed-secrets/v1alpha1"
 )
 
-// InitParameters is a struct that provides flags for the Init command.
+// InitParameters is a struct that provides flags for initialise command
 type InitParameters struct {
-	DockerConfigJSONFilename string
-	GitOpsRepoURL            string
-	GitOpsWebhookSecret      string
-	ImageRepo                string
-	InternalRegistryHostname string
-	OutputPath               string
-	Prefix                   string
+	GitOpsRepo          string
+	GitOpsWebhookSecret string
+	Output              string
+	Prefix              string
+	SkipChecks          bool
 }
 
 // PolicyRules to be bound to service account
 var (
-	Rules = []v1rbac.PolicyRule{
-		{
+	rules = []v1rbac.PolicyRule{
+		v1rbac.PolicyRule{
 			APIGroups: []string{""},
 			Resources: []string{"namespaces"},
 			Verbs:     []string{"patch"},
 		},
-		{
+		v1rbac.PolicyRule{
 			APIGroups: []string{"rbac.authorization.k8s.io"},
 			Resources: []string{"clusterroles"},
 			Verbs:     []string{"bind", "patch"},
 		},
-		{
+		v1rbac.PolicyRule{
 			APIGroups: []string{"rbac.authorization.k8s.io"},
-			Resources: []string{"clusterrolebindings"},
+			Resources: []string{"rolebindings"},
 			Verbs:     []string{"get", "patch"},
-		},
-		{
-			APIGroups: []string{"bitnami.com"},
-			Resources: []string{"sealedsecrets"},
-			Verbs:     []string{"get", "patch", "create"},
 		},
 	}
 )
 
 const (
-	pipelineDir = "pipelines"
-
-	baseDir = "base"
-
-	// Kustomize constants for kustomization.yaml
-	Kustomize = "kustomization.yaml"
-
-	namespacesPath           = "01-namespaces/cicd-environment.yaml"
-	rolesPath                = "02-rolebindings/pipeline-service-role.yaml"
-	rolebindingsPath         = "02-rolebindings/pipeline-service-rolebinding.yaml"
-	serviceAccountPath       = "02-rolebindings/pipeline-service-account.yaml"
-	secretsPath              = "03-secrets/gitops-webhook-secret.yaml"
-	dockerConfigPath         = "03-secrets/docker-config.yaml"
-	gitopsTasksPath          = "04-tasks/deploy-from-source-task.yaml"
-	appTaskPath              = "04-tasks/deploy-using-kubectl-task.yaml"
-	ciPipelinesPath          = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
-	appCiPipelinesPath       = "05-pipelines/app-ci-pipeline.yaml"
-	appCdPipelinesPath       = "05-pipelines/app-cd-pipeline.yaml"
-	cdPipelinesPath          = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
-	prBindingPath            = "06-bindings/github-pr-binding.yaml"
-	pushBindingPath          = "06-bindings/github-push-binding.yaml"
-	prTemplatePath           = "07-templates/ci-dryrun-from-pr-template.yaml"
-	pushTemplatePath         = "07-templates/cd-deploy-from-push-template.yaml"
-	appCIBuildPRTemplatePath = "07-templates/app-ci-build-pr-template.yaml"
-	appCDBuildPRTemplatePath = "07-templates/app-cd-build-pr-template.yaml"
-	eventListenerPath        = "08-eventlisteners/cicd-event-listener.yaml"
-	routePath                = "09-routes/gitops-webhook-event-listener.yaml"
-
-	dockerSecretName = "regcred"
-
-	saName          = "pipeline"
-	roleName        = "pipelines-service-role"
-	roleBindingName = "pipelines-service-role-binding"
+	pipelineDir       = "pipelines"
+	cicdDir           = "cicd-environment"
+	envsDir           = "envs"
+	baseDir           = "base"
+	kustomize         = "kustomization.yaml"
+	namespacesPath    = "01-namespaces/cicd-environment.yaml"
+	rolesPath         = "02-rolebindings/pipeline-service-role.yaml"
+	rolebindingsPath  = "02-rolebindings/pipeline-service-rolebinding.yaml"
+	secretsPath       = "03-secrets/gitops-webhook-secret.yaml"
+	tasksPath         = "04-tasks/deploy-from-source-task.yaml"
+	ciPipelinesPath   = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
+	cdPipelinesPath   = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
+	prBindingPath     = "06-bindings/github-pr-binding.yaml"
+	pushBindingPath   = "06-bindings/github-push-binding.yaml"
+	prTemplatePath    = "07-templates/ci-dryrun-from-pr-template.yaml"
+	pushTemplatePath  = "07-templates/cd-deploy-from-push-template.yaml"
+	eventListenerPath = "08-eventlisteners/cicd-event-listener.yaml"
+	routePath         = "09-routes/gitops-webhook-event-listener.yaml"
 )
 
-// Init bootstraps a GitOps pipelines and repository structure.
-func Init(o *InitParameters, fs afero.Fs) error {
+// Init function will initialise the gitops directory
+func Init(o *InitParameters) error {
 
-	exists, err := ioutils.IsExisting(fs, o.OutputPath)
+	if !o.SkipChecks {
+		installed, err := checkTektonInstall()
+		if err != nil {
+			return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
+		}
+		if !installed {
+			return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
+		}
+	}
+
+	namespaces := namespaceNames(o.Prefix)
+
+	gitopsName := getGitopsRepoName(o.GitOpsRepo)
+	gitopsPath := filepath.Join(o.Output, gitopsName)
+
+	// check if the gitops dir already exists
+	exists, _ := isExisting(gitopsPath)
 	if exists {
-		return err
-	}
-	gitOpsRepo, err := scm.NewRepository(o.GitOpsRepoURL)
-	if err != nil {
-		return err
+		return fmt.Errorf("%s already exists at %s", gitopsName, gitopsPath)
 	}
 
-	outputs, err := createInitialFiles(fs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename)
-	if err != nil {
-		return err
-	}
-	_, err = yaml.WriteResources(fs, o.OutputPath, outputs)
-	return err
-}
-
-// CreateDockerSecret creates Docker secret
-func CreateDockerSecret(fs afero.Fs, dockerConfigJSONFilename, ns string) (*ssv1alpha1.SealedSecret, error) {
-	if dockerConfigJSONFilename == "" {
-		return nil, errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")
-	}
-
-	authJSONPath, err := homedir.Expand(dockerConfigJSONFilename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate path to file: %w", err)
-	}
-	f, err := fs.Open(authJSONPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read docker file '%s' : %w", authJSONPath, err)
-	}
-	defer f.Close()
-
-	dockerSecret, err := secrets.CreateSealedDockerConfigSecret(meta.NamespacedName(ns, dockerSecretName), f)
-	if err != nil {
-		return nil, err
-	}
-
-	return dockerSecret, nil
-
-}
-
-func createInitialFiles(fs afero.Fs, repo scm.Repository, prefix, gitOpsWebhookSecret, dockerConfigPath string) (res.Resources, error) {
-	cicdEnv := &config.Environment{Name: prefix + "cicd", IsCICD: true}
-	pipelines := createManifest(repo, cicdEnv)
-	initialFiles := res.Resources{
-		pipelinesFile: pipelines,
-	}
-	resources, err := createCICDResources(fs, repo, cicdEnv, gitOpsWebhookSecret, dockerConfigPath)
-	if err != nil {
-		return nil, err
-	}
-
-	files := getResourceFiles(resources)
-	prefixedResources := addPrefixToResources(pipelinesPath(pipelines), resources)
-	initialFiles = res.Merge(prefixedResources, initialFiles)
-
-	cicdKustomizations := addPrefixToResources(cicdEnvironmentPath(pipelines), getCICDKustomization(files))
-	initialFiles = res.Merge(cicdKustomizations, initialFiles)
-
-	return initialFiles, nil
-}
-
-// createCICDResources creates resources assocated to pipelines.
-func createCICDResources(fs afero.Fs, repo scm.Repository, cicdEnv *config.Environment, gitOpsWebhookSecret, dockerConfigJSONPath string) (res.Resources, error) {
-	cicdNamespace := cicdEnv.Name
 	// key: path of the resource
 	// value: YAML content of the resource
 	outputs := map[string]interface{}{}
-	githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdNamespace, eventlisteners.GitOpsWebhookSecret),
-		gitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
+
+	if o.GitOpsWebhookSecret != "" {
+		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret), o.GitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
+		if err != nil {
+			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
+		}
+
+		outputs[secretsPath] = githubSecret
 	}
 
-	outputs[secretsPath] = githubSecret
-	outputs[namespacesPath] = namespaces.Create(cicdNamespace)
-	outputs[rolesPath] = roles.CreateClusterRole(meta.NamespacedName("", roles.ClusterRoleName), Rules)
+	// create gitops pipeline
+	files := createPipelineResources(outputs, namespaces, o.GitOpsRepo, o.Prefix)
 
-	sa := roles.CreateServiceAccount(meta.NamespacedName(cicdNamespace, saName))
+	pipelinesPath := getPipelinesDir(gitopsPath, o.Prefix)
 
-	if dockerConfigJSONPath != "" {
-		dockerSecret, err := CreateDockerSecret(fs, dockerConfigJSONPath, cicdNamespace)
+	fileNames, err := writeResources(pipelinesPath, files)
+	if err != nil {
+		return err
+	}
+
+	sort.Strings(fileNames)
+	// kustomize file should refer all the pipeline resources
+	if err := addKustomize("resources", fileNames, filepath.Join(pipelinesPath, kustomize)); err != nil {
+		return err
+	}
+
+	if err := addKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), kustomize)); err != nil {
+		return err
+	}
+
+	if err := addKustomize("bases", []string{}, filepath.Join(gitopsPath, envsDir, baseDir, kustomize)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getCICDDir(path, prefix string) string {
+	return filepath.Join(path, envsDir, addPrefix(prefix, cicdDir))
+}
+
+func createPipelineResources(outputs map[string]interface{}, namespaces map[string]string, gitopsRepo, prefix string) map[string]interface{} {
+
+	outputs[namespacesPath] = createNamespace(namespaces["cicd"])
+
+	outputs[rolesPath] = createClusterRole(meta.NamespacedName("", clusterRoleName), rules)
+
+	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
+
+	outputs[rolebindingsPath] = createRoleBinding(meta.NamespacedName(namespaces["cicd"], roleBindingName), sa, "ClusterRole", clusterRoleName)
+
+	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(namespaces["cicd"], getPipelinesDir("", prefix))
+
+	outputs[ciPipelinesPath] = createCIPipeline(meta.NamespacedName(namespaces["cicd"], "ci-dryrun-from-pr-pipeline"), namespaces["cicd"])
+
+	outputs[cdPipelinesPath] = createCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["cicd"])
+
+	outputs[prBindingPath] = triggers.CreatePRBinding(namespaces["cicd"])
+
+	outputs[pushBindingPath] = triggers.CreatePushBinding(namespaces["cicd"])
+
+	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(namespaces["cicd"], saName)
+
+	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(namespaces["cicd"], saName)
+
+	outputs[eventListenerPath] = eventlisteners.Generate(gitopsRepo, namespaces["cicd"], saName)
+
+	outputs[routePath] = routes.Generate(namespaces["cicd"])
+
+	return outputs
+}
+
+func writeResources(path string, files map[string]interface{}) ([]string, error) {
+	filenames := make([]string, 0)
+	for filename, item := range files {
+		err := marshalItemsToFile(filepath.Join(path, filename), list(item))
 		if err != nil {
 			return nil, err
 		}
-		outputs[dockerConfigPath] = dockerSecret
-
-		// add secret and sa to outputs
-		outputs[serviceAccountPath] = roles.AddSecretToSA(sa, dockerSecretName)
+		filenames = append(filenames, filename)
 	}
-
-	outputs[rolebindingsPath] = roles.CreateClusterRoleBinding(meta.NamespacedName("", roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
-	outputs[gitopsTasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, filepath.Join(config.PathForEnvironment(cicdEnv), "base"))
-	outputs[appTaskPath] = tasks.CreateDeployUsingKubectlTask(cicdNamespace)
-	outputs[ciPipelinesPath] = pipelines.CreateCIPipeline(meta.NamespacedName(cicdNamespace, "ci-dryrun-from-pr-pipeline"), cicdNamespace)
-	outputs[cdPipelinesPath] = pipelines.CreateCDPipeline(meta.NamespacedName(cicdNamespace, "cd-deploy-from-push-pipeline"), cicdNamespace)
-	outputs[appCiPipelinesPath] = pipelines.CreateAppCIPipeline(meta.NamespacedName(cicdNamespace, "app-ci-pipeline"))
-	outputs[prBindingPath], _ = repo.CreatePRBinding(cicdNamespace)
-	outputs[pushBindingPath], _ = repo.CreatePushBinding(cicdNamespace)
-	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(cicdNamespace, saName)
-	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(cicdNamespace, saName)
-	outputs[appCIBuildPRTemplatePath] = triggers.CreateDevCIBuildPRTemplate(cicdNamespace, saName)
-	outputs[eventListenerPath] = eventlisteners.Generate(repo, cicdNamespace, saName, eventlisteners.GitOpsWebhookSecret)
-	outputs[routePath] = routes.Generate(cicdNamespace)
-	return outputs, nil
+	return filenames, nil
 }
 
-func createManifest(gitOpsRepo scm.Repository, envs ...*config.Environment) *config.Manifest {
-	return &config.Manifest{
-		GitOpsURL:    gitOpsRepo.URL(),
-		Environments: envs,
+func marshalItemsToFile(filename string, items []interface{}) error {
+	err := os.MkdirAll(filepath.Dir(filename), 0755)
+	if err != nil {
+		return fmt.Errorf("failed to MkDirAll for %s: %v", filename, err)
 	}
-}
-
-func getCICDKustomization(files []string) res.Resources {
-	return res.Resources{
-		"base/kustomization.yaml": resources.Kustomization{
-			Bases: []string{"./pipelines"},
-		},
-		"overlays/kustomization.yaml": resources.Kustomization{
-			Bases: []string{"../base"},
-		},
-		"base/pipelines/kustomization.yaml": resources.Kustomization{
-			Resources: files,
-		},
+	f, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to Create file %s: %v", filename, err)
 	}
+	defer f.Close()
+	return marshalOutputs(f, items)
 }
 
-func pathForEnvironment(env *config.Environment) string {
-	return filepath.Join("environments", env.Name)
+func list(i interface{}) []interface{} {
+	return []interface{}{i}
 }
 
-func pipelinesPath(m *config.Manifest) string {
-	return filepath.Join(cicdEnvironmentPath(m), "base/pipelines")
+func getPipelinesDir(rootPath, prefix string) string {
+	return filepath.Join(rootPath, envsDir, addPrefix(prefix, cicdDir), pipelineDir)
 }
 
-func addPrefixToResources(prefix string, files res.Resources) map[string]interface{} {
-	updated := map[string]interface{}{}
-	for k, v := range files {
-		updated[filepath.Join(prefix, k)] = v
+func addKustomize(name string, items []string, path string) error {
+	content := make([]interface{}, 0)
+	content = append(content, map[string]interface{}{name: items})
+	return marshalItemsToFile(path, content)
+}
+
+func checkTektonInstall() (bool, error) {
+	tektonChecker, err := newTektonChecker()
+	if err != nil {
+		return false, err
 	}
-	return updated
+	return tektonChecker.checkInstall()
 }
 
-// TODO: this should probably use the .FindCICDEnvironment on the pipelines.
-func cicdEnvironmentPath(m *config.Manifest) string {
-	return pathForEnvironment(m.Environments[0])
+func getGitopsRepoName(repo string) string {
+	return strings.Split(repo, "/")[1]
 }
 
-func getResourceFiles(res res.Resources) []string {
-	files := []string{}
-	for k := range res {
-		files = append(files, k)
+func addPrefix(prefix, name string) string {
+	if prefix != "" {
+		return prefix + name
 	}
-	sort.Strings(files)
-	return files
+	return name
+}
+
+func isExisting(path string) (bool, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false, err
+	}
+	return true, nil
 }

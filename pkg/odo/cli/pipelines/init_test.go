@@ -41,16 +41,16 @@ func TestCompleteInitParameters(t *testing.T) {
 
 func TestValidateInitParameters(t *testing.T) {
 	optionTests := []struct {
-		name       string
-		gitRepoURL string
-		errMsg     string
+		name    string
+		gitRepo string
+		errMsg  string
 	}{
 		{"invalid repo", "test", "repo must be org/repo"},
 		{"valid repo", "test/repo", ""},
 	}
 
 	for _, tt := range optionTests {
-		o := InitParameters{gitOpsRepoURL: tt.gitRepoURL, prefix: "test"}
+		o := InitParameters{gitOpsRepo: tt.gitRepo, prefix: "test"}
 
 		err := o.Validate()
 
@@ -71,18 +71,14 @@ func TestInitCommandWithMissingParams(t *testing.T) {
 		flags   []keyValuePair
 		wantErr string
 	}{
-		{"Missing gitops-repo-url flag",
+		{"Missing gitops-repo flag",
 			[]keyValuePair{flag("output", "~/output"),
 				flag("gitops-webhook-secret", "123"), flag("skip-checks", "true")},
-			`required flag(s) "gitops-repo-url" not set`},
+			`Required flag(s) "gitops-repo" have/has not been set`},
 		{"Missing gitops-webhook-secret flag",
-			[]keyValuePair{flag("gitops-repo-url", "https://github.com/org/sample"), flag("output", "~/output"),
+			[]keyValuePair{flag("gitops-repo", "org/sample"), flag("output", "~/output"),
 				flag("skip-checks", "true")},
-			`required flag(s) "gitops-webhook-secret" not set`},
-		{"Missing output flag",
-			[]keyValuePair{flag("gitops-repo-url", "https://github.com/org/sample"), flag("gitops-webhook-secret", "123"),
-				flag("skip-checks", "true")},
-			`required flag(s) "output" not set`},
+			`Required flag(s) "gitops-webhook-secret" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
 		t.Run(tt.desc, func(t *testing.T) {
@@ -92,6 +88,34 @@ func TestInitCommandWithMissingParams(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBypassChecks(t *testing.T) {
+	tests := []struct {
+		description        string
+		skipChecks         bool
+		wantedBypassChecks bool
+	}{
+		{"bypass tekton installation checks", true, true},
+		{"don't bypass tekton installation checks", false, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			o := InitParameters{skipChecks: test.skipChecks}
+
+			err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
+
+			if err != nil {
+				t.Errorf("Complete() %#v failed: ", err)
+			}
+
+			if o.skipChecks != test.wantedBypassChecks {
+				t.Errorf("Complete() %#v bypassChecks flag: got %v, want %v", test.description, o.skipChecks, test.wantedBypassChecks)
+			}
+		})
+	}
+
 }
 
 func executeCommand(cmd *cobra.Command, flags ...keyValuePair) (c *cobra.Command, output string, err error) {
