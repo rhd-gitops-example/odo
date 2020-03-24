@@ -186,9 +186,9 @@ func createManifestsForImageRepo(sa *corev1.ServiceAccount, isInternalRegistry b
 func createPipelines(ns map[string]string, isInternalRegistry bool, deploymentPath string) []interface{} {
 	out := make([]interface{}, 0)
 	out = append(out, createDevCIPipeline(meta.NamespacedName(ns["cicd"], "dev-ci-pipeline"), isInternalRegistry))
-	out = append(out, createStageCIPipeline(meta.NamespacedName(ns["cicd"], "stage-ci-pipeline"), ns["stage"]))
+	out = append(out, createCIPipeline(meta.NamespacedName(ns["cicd"], "stage-ci-pipeline"), ns["stage"]))
 	out = append(out, createDevCDPipeline(meta.NamespacedName(ns["cicd"], "dev-cd-pipeline"), deploymentPath, ns["dev"], isInternalRegistry))
-	out = append(out, createStageCDPipeline(meta.NamespacedName(ns["cicd"], "stage-cd-pipeline"), ns["stage"]))
+	out = append(out, createCDPipeline(meta.NamespacedName(ns["cicd"], "stage-cd-pipeline"), ns["stage"]))
 	return out
 
 }

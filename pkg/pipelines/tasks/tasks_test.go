@@ -33,9 +33,9 @@ func TestDeployFromSourceTask(t *testing.T) {
 			},
 		},
 	}
-	deployFromSourceTask := GenerateDeployFromSourceTask(testNS, "test")
+	deployFromSourceTask := CreateDeployFromSourceTask(testNS, "test")
 	if diff := cmp.Diff(wantedTask, deployFromSourceTask); diff != "" {
-		t.Fatalf("GenerateDeployFromSourceTask() failed \n%s", diff)
+		t.Fatalf("CreateDeployFromSourceTask() failed \n%s", diff)
 	}
 }
 

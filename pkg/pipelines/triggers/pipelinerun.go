@@ -38,26 +38,26 @@ func createDevCIPipelineRun(saName, imageRepo string) pipelinev1.PipelineRun {
 
 }
 
-func createStageCDPipelineRun(saName string) pipelinev1.PipelineRun {
+func createCDPipelineRun(saName string) pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
 		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", "cd-deploy-from-push-pipeline-$(uid)")),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: saName,
 			PipelineRef:        createPipelineRef("cd-deploy-from-push-pipeline"),
-			Resources:          createStageResources(),
+			Resources:          createResources(),
 		},
 	}
 }
 
-func createStageCIPipelineRun(saName string) pipelinev1.PipelineRun {
+func createCIPipelineRun(saName string) pipelinev1.PipelineRun {
 	return pipelinev1.PipelineRun{
 		TypeMeta:   pipelineRunTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", "ci-dryrun-from-pr-pipeline-$(uid)")),
 		Spec: pipelinev1.PipelineRunSpec{
 			ServiceAccountName: saName,
 			PipelineRef:        createPipelineRef("ci-dryrun-from-pr-pipeline"),
-			Resources:          createStageResources(),
+			Resources:          createResources(),
 		},
 	}
 
@@ -87,7 +87,7 @@ func createDevResource(imageRepo string, param string) []pipelinev1.PipelineReso
 	}
 }
 
-func createStageResources() []pipelinev1.PipelineResourceBinding {
+func createResources() []pipelinev1.PipelineResourceBinding {
 	return []pipelinev1.PipelineResourceBinding{
 		pipelinev1.PipelineResourceBinding{
 			Name: "source-repo",

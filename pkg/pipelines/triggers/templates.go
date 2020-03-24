@@ -18,8 +18,8 @@ func GenerateTemplates(ns, saName, imageRepo string) []triggersv1.TriggerTemplat
 	return []triggersv1.TriggerTemplate{
 		createDevCDDeployTemplate(ns, saName, imageRepo),
 		createDevCIBuildPRTemplate(ns, saName, imageRepo),
-		CreateStageCDPushTemplate(ns, saName),
-		CreateStageCIDryRunTemplate(ns, saName),
+		CreateCDPushTemplate(ns, saName),
+		CreateCIDryRunTemplate(ns, saName),
 	}
 }
 
@@ -64,7 +64,7 @@ func createDevCIBuildPRTemplate(ns, saName, imageRepo string) triggersv1.Trigger
 
 }
 
-func CreateStageCDPushTemplate(ns, saName string) triggersv1.TriggerTemplate {
+func CreateCDPushTemplate(ns, saName string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "cd-deploy-from-push-template")),
@@ -76,14 +76,14 @@ func CreateStageCDPushTemplate(ns, saName string) triggersv1.TriggerTemplate {
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
 				triggersv1.TriggerResourceTemplate{
-					RawMessage: createStageCDResourceTemplate(saName),
+					RawMessage: createCDResourceTemplate(saName),
 				},
 			},
 		},
 	}
 }
 
-func CreateStageCIDryRunTemplate(ns, saName string) triggersv1.TriggerTemplate {
+func CreateCIDryRunTemplate(ns, saName string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta: triggerTemplateTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "ci-dryrun-from-pr-template"),
@@ -96,7 +96,7 @@ func CreateStageCIDryRunTemplate(ns, saName string) triggersv1.TriggerTemplate {
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
 				triggersv1.TriggerResourceTemplate{
-					RawMessage: createStageCIResourceTemplate(saName),
+					RawMessage: createCIResourceTemplate(saName),
 				},
 			},
 		},
@@ -132,13 +132,13 @@ func createDevCIResourceTemplate(saName, imageRepo string) []byte {
 	return []byte(string(byteTemplateCI))
 }
 
-func createStageCDResourceTemplate(saName string) []byte {
-	byteStageCD, _ := json.Marshal(createStageCDPipelineRun(saName))
+func createCDResourceTemplate(saName string) []byte {
+	byteStageCD, _ := json.Marshal(createCDPipelineRun(saName))
 	return []byte(string(byteStageCD))
 }
 
-func createStageCIResourceTemplate(saName string) []byte {
-	byteStageCI, _ := json.Marshal(createStageCIPipelineRun(saName))
+func createCIResourceTemplate(saName string) []byte {
+	byteStageCI, _ := json.Marshal(createCIPipelineRun(saName))
 	return []byte(string(byteStageCI))
 }
 

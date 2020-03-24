@@ -94,7 +94,7 @@ func Init(o *InitParameters) error {
 
 	// key: path of the resource
 	// value: YAML content of the resource
-	outputs := map[string][]interface{}{}
+	outputs := map[string]interface{}{}
 
 	if o.GitOpsWebhookSecret != "" {
 		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebhookSecret), o.GitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
@@ -102,7 +102,7 @@ func Init(o *InitParameters) error {
 			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
 		}
 
-		outputs[secretsPath] = append(outputs[secretsPath], githubSecret)
+		outputs[secretsPath] = githubSecret
 	}
 
 	// create gitops pipeline
@@ -117,15 +117,15 @@ func Init(o *InitParameters) error {
 
 	sort.Strings(fileNames)
 	// kustomize file should refer all the pipeline resources
-	if err := addKustomize("resources", fileNames, filepath.Join(pipelinesPath, kustomize), o.Prefix); err != nil {
+	if err := addKustomize("resources", fileNames, filepath.Join(pipelinesPath, kustomize)); err != nil {
 		return err
 	}
 
-	if err := addKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), kustomize), o.Prefix); err != nil {
+	if err := addKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), kustomize)); err != nil {
 		return err
 	}
 
-	if err := addKustomize("bases", []string{}, filepath.Join(gitopsPath, envsDir, baseDir, kustomize), o.Prefix); err != nil {
+	if err := addKustomize("bases", []string{}, filepath.Join(gitopsPath, envsDir, baseDir, kustomize)); err != nil {
 		return err
 	}
 
@@ -136,58 +136,41 @@ func getCICDDir(path, prefix string) string {
 	return filepath.Join(path, envsDir, addPrefix(prefix, cicdDir))
 }
 
-func createPipelineResources(outputs map[string][]interface{}, namespaces map[string]string, gitopsRepo, prefix string) map[string][]interface{} {
+func createPipelineResources(outputs map[string]interface{}, namespaces map[string]string, gitopsRepo, prefix string) map[string]interface{} {
 
-	// create namespace
-	outputs[namespacesPath] = append(outputs[namespacesPath], createNamespace(namespaces["cicd"]))
+	outputs[namespacesPath] = createNamespace(namespaces["cicd"])
 
-	// create roles and rolebindings for pipeline service account
-	role := createClusterRole(meta.NamespacedName("", clusterRoleName), rules)
-	outputs[rolesPath] = append(outputs[rolesPath], role)
+	outputs[rolesPath] = createClusterRole(meta.NamespacedName("", clusterRoleName), rules)
 
 	sa := createServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
-	rolebinding := createRoleBinding(meta.NamespacedName(namespaces["cicd"], roleBindingName), sa, role.Kind, role.Name)
-	outputs[rolebindingsPath] = append(outputs[rolebindingsPath], rolebinding)
 
-	// create deploy from source task
-	task := tasks.GenerateDeployFromSourceTask(namespaces["cicd"], getPipelinesDir("", prefix))
-	outputs[tasksPath] = append(outputs[tasksPath], task)
+	outputs[rolebindingsPath] = createRoleBinding(meta.NamespacedName(namespaces["cicd"], roleBindingName), sa, "ClusterRole", clusterRoleName)
 
-	// create ci-cd pipelines for gitops repo
-	ciPipeline := createStageCIPipeline(meta.NamespacedName(namespaces["cicd"], "ci-dryrun-from-pr-pipeline"), namespaces["cicd"])
-	outputs[ciPipelinesPath] = append(outputs[ciPipelinesPath], ciPipeline)
+	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(namespaces["cicd"], getPipelinesDir("", prefix))
 
-	cdPipeline := createStageCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["cicd"])
-	outputs[cdPipelinesPath] = append(outputs[cdPipelinesPath], cdPipeline)
+	outputs[ciPipelinesPath] = createCIPipeline(meta.NamespacedName(namespaces["cicd"], "ci-dryrun-from-pr-pipeline"), namespaces["cicd"])
 
-	// create trigger bindings
-	prBinding := triggers.CreatePRBinding(namespaces["cicd"])
-	outputs[prBindingPath] = append(outputs[prBindingPath], prBinding)
+	outputs[cdPipelinesPath] = createCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["cicd"])
 
-	pushBinding := triggers.CreatePushBinding(namespaces["cicd"])
-	outputs[pushBindingPath] = append(outputs[pushBindingPath], pushBinding)
+	outputs[prBindingPath] = triggers.CreatePRBinding(namespaces["cicd"])
 
-	// create trigger templates
-	prTemplate := triggers.CreateStageCIDryRunTemplate(namespaces["cicd"], saName)
-	outputs[prTemplatePath] = append(outputs[prTemplatePath], prTemplate)
+	outputs[pushBindingPath] = triggers.CreatePushBinding(namespaces["cicd"])
 
-	pushTemplate := triggers.CreateStageCDPushTemplate(namespaces["cicd"], saName)
-	outputs[pushTemplatePath] = append(outputs[pushTemplatePath], pushTemplate)
+	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(namespaces["cicd"], saName)
 
-	// create eventlisteners and route
-	eventListener := eventlisteners.Generate(gitopsRepo, namespaces["cicd"], saName)
-	outputs[eventListenerPath] = append(outputs[eventListenerPath], eventListener)
+	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(namespaces["cicd"], saName)
 
-	route := routes.Generate(namespaces["cicd"])
-	outputs[routePath] = append(outputs[routePath], route)
+	outputs[eventListenerPath] = eventlisteners.Generate(gitopsRepo, namespaces["cicd"], saName)
+
+	outputs[routePath] = routes.Generate(namespaces["cicd"])
 
 	return outputs
 }
 
-func writeResources(path string, files map[string][]interface{}) ([]string, error) {
+func writeResources(path string, files map[string]interface{}) ([]string, error) {
 	filenames := make([]string, 0)
-	for filename, items := range files {
-		err := marshalItemsToFile(filepath.Join(path, filename), items)
+	for filename, item := range files {
+		err := marshalItemsToFile(filepath.Join(path, filename), list(item))
 		if err != nil {
 			return nil, err
 		}
@@ -209,22 +192,20 @@ func marshalItemsToFile(filename string, items []interface{}) error {
 	return marshalOutputs(f, items)
 }
 
-// generate file name in the format index-prefix-filename.yaml
-func fileName(index int, prefix, name string) string {
-	return fmt.Sprintf("%02d-%v%v.yaml", index, prefix, name)
+func list(i interface{}) []interface{} {
+	return []interface{}{i}
 }
 
 func getPipelinesDir(rootPath, prefix string) string {
 	return filepath.Join(rootPath, envsDir, addPrefix(prefix, cicdDir), pipelineDir)
 }
 
-func addKustomize(name string, items []string, path, prefix string) error {
+func addKustomize(name string, items []string, path string) error {
 	content := make([]interface{}, 0)
 	content = append(content, map[string]interface{}{name: items})
 	return marshalItemsToFile(path, content)
 }
 
-// create and invoke a Tekton Checker
 func checkTektonInstall() (bool, error) {
 	tektonChecker, err := newTektonChecker()
 	if err != nil {

@@ -13,9 +13,9 @@ import (
 func TestWriteResources(t *testing.T) {
 	tmpDir, cleanUp := makeTempDir(t)
 	defer cleanUp()
-	resources := map[string][]interface{}{
-		"01_roles/serviceaccount.yaml": []interface{}{fakeYamlDoc(1)},
-		"02_tasks/buildah_task.yaml":   []interface{}{fakeYamlDoc(1), fakeYamlDoc(2)},
+	resources := map[string]interface{}{
+		"01_roles/serviceaccount.yaml": fakeYamlDoc(1),
+		"02_tasks/buildah_task.yaml":   fakeYamlDoc(2),
 	}
 
 	_, err := writeResources(tmpDir, resources)
@@ -23,7 +23,7 @@ func TestWriteResources(t *testing.T) {
 		t.Fatalf("failed to writeResources: %v", err)
 	}
 	assertFileContents(t, filepath.Join(tmpDir, "01_roles/serviceaccount.yaml"), []byte("key1: value1\n---\n"))
-	assertFileContents(t, filepath.Join(tmpDir, "02_tasks/buildah_task.yaml"), []byte("key1: value1\n---\nkey2: value2\n---\n"))
+	assertFileContents(t, filepath.Join(tmpDir, "02_tasks/buildah_task.yaml"), []byte("key2: value2\n---\n"))
 }
 
 func assertFileContents(t *testing.T, filename string, want []byte) {
@@ -61,14 +61,6 @@ func assertNoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestFileNameCreation(t *testing.T) {
-	validFileName := "01-test-foo.yaml"
-	name := fileName(1, "test-", "foo")
-	if diff := cmp.Diff(validFileName, name); diff != "" {
-		t.Fatalf("fileName() failed:\n%v", diff)
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 )
 
-func GenerateDeployFromSourceTask(ns, path string) pipelinev1.Task {
+func CreateDeployFromSourceTask(ns, path string) pipelinev1.Task {
 	task := pipelinev1.Task{
 		TypeMeta:   taskTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "deploy-from-source-task")),

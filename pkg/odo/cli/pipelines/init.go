@@ -92,7 +92,7 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 	initCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
 	initCmd.MarkFlagRequired("gitops-repo")
 	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for gitops repository")
-	initCmd.MarkFlagRequired("github-webhook-secret")
+	initCmd.MarkFlagRequired("gitops-webhook-secret")
 	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	initCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
