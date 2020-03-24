@@ -14,7 +14,7 @@ const (
 
 	stageCDDeployFilters = "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == '%s') && body.ref.startsWith('refs/heads/master')"
 
-	GithubWebhookSecret = "github-webhook-secret"
+	GitOpsWebhookSecret = "gitops-webhook-secret"
 
 	WebhookSecretKey = "webhook-secret-key"
 )
@@ -64,7 +64,7 @@ func createGithubInterceptor(eventType string) *triggersv1.EventInterceptor {
 	return &triggersv1.EventInterceptor{
 		GitHub: &triggersv1.GitHubInterceptor{
 			SecretRef: &triggersv1.SecretRef{
-				SecretName: GithubWebhookSecret,
+				SecretName: GitOpsWebhookSecret,
 				SecretKey:  WebhookSecretKey,
 			},
 			EventTypes: []string{

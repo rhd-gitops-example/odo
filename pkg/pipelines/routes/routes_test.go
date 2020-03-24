@@ -14,7 +14,7 @@ func TestGenerateRoute(t *testing.T) {
 	validRoute := routev1.Route{
 		TypeMeta: routeTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "github-webhook-event-listener",
+			Name:      "gitops-webhook-event-listener",
 			Namespace: "cicd-environment",
 			Labels: map[string]string{
 				"app.kubernetes.io/managed-by": "EventListener",

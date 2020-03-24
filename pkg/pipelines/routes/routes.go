@@ -15,7 +15,7 @@ var (
 func Generate(ns string) routev1.Route {
 	return routev1.Route{
 		TypeMeta:   routeTypeMeta,
-		ObjectMeta: createRouteObjectMeta(ns, "github-webhook-event-listener"),
+		ObjectMeta: createRouteObjectMeta(ns, "gitops-webhook-event-listener"),
 		Spec: routev1.RouteSpec{
 			To: creatRouteTargetReference(
 				"Service",

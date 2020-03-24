@@ -28,8 +28,8 @@ var (
 
 // InitParameters encapsulates the parameters for the odo pipelines init command.
 type InitParameters struct {
-	gitOpsWebhookSecret string // used to create Github's shared webhook secret for gitops repo
 	gitOpsRepo          string // repo to store Gitops resources e.g. org/repo
+	gitOpsWebhookSecret string // used to create Github's shared webhook secret for gitops repo
 	output              string // path to add Gitops resources
 	prefix              string // used to generate the environments in a shared cluster
 	skipChecks          bool   // skip Tekton installation checks

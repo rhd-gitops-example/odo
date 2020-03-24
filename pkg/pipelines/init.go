@@ -18,8 +18,8 @@ import (
 
 // InitParameters is a struct that provides flags for initialise command
 type InitParameters struct {
-	GitOpsWebhookSecret string
 	GitOpsRepo          string
+	GitOpsWebhookSecret string
 	Output              string
 	Prefix              string
 	SkipChecks          bool
@@ -55,7 +55,7 @@ const (
 	namespacesPath    = "01-namespaces/cicd-environment.yaml"
 	rolesPath         = "02-rolebindings/pipeline-service-role.yaml"
 	rolebindingsPath  = "02-rolebindings/pipeline-service-rolebinding.yaml"
-	secretsPath       = "03-secrets/github-webhook-secret.yaml"
+	secretsPath       = "03-secrets/gitops-webhook-secret.yaml"
 	tasksPath         = "04-tasks/deploy-from-source-task.yaml"
 	ciPipelinesPath   = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
 	cdPipelinesPath   = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
@@ -64,7 +64,7 @@ const (
 	prTemplatePath    = "07-templates/ci-dryrun-from-pr-template.yaml"
 	pushTemplatePath  = "07-templates/cd-deploy-from-push-template.yaml"
 	eventListenerPath = "08-eventlisteners/cicd-event-listener.yaml"
-	routePath         = "09-routes/github-webhook-event-listener.yaml"
+	routePath         = "09-routes/gitops-webhook-event-listener.yaml"
 )
 
 // Init function will initialise the gitops directory
@@ -96,7 +96,7 @@ func Init(o *InitParameters) error {
 	outputs := map[string]interface{}{}
 
 	if o.GitOpsWebhookSecret != "" {
-		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebhookSecret), o.GitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
+		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret), o.GitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
 		}

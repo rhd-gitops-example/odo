@@ -33,7 +33,7 @@ func TestGenerateEventListener(t *testing.T) {
 						&triggersv1.EventInterceptor{
 							GitHub: &triggersv1.GitHubInterceptor{
 								SecretRef: &triggersv1.SecretRef{
-									SecretName: GithubWebhookSecret,
+									SecretName: GitOpsWebhookSecret,
 									SecretKey:  WebhookSecretKey,
 								},
 								EventTypes: []string{
@@ -62,7 +62,7 @@ func TestGenerateEventListener(t *testing.T) {
 						&triggersv1.EventInterceptor{
 							GitHub: &triggersv1.GitHubInterceptor{
 								SecretRef: &triggersv1.SecretRef{
-									SecretName: GithubWebhookSecret,
+									SecretName: GitOpsWebhookSecret,
 									SecretKey:  WebhookSecretKey,
 								},
 								EventTypes: []string{
@@ -133,7 +133,7 @@ func TestCreateListenerTrigger(t *testing.T) {
 			&triggersv1.EventInterceptor{
 				GitHub: &triggersv1.GitHubInterceptor{
 					SecretRef: &triggersv1.SecretRef{
-						SecretName: GithubWebhookSecret,
+						SecretName: GitOpsWebhookSecret,
 						SecretKey:  WebhookSecretKey,
 					},
 					EventTypes: []string{
@@ -173,7 +173,7 @@ func TestCreateGithubInterceptor(t *testing.T) {
 	validGithubInterceptor := triggersv1.EventInterceptor{
 		GitHub: &triggersv1.GitHubInterceptor{
 			SecretRef: &triggersv1.SecretRef{
-				SecretName: GithubWebhookSecret,
+				SecretName: GitOpsWebhookSecret,
 				SecretKey:  WebhookSecretKey,
 			},
 			EventTypes: []string{

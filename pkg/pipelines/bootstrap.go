@@ -76,7 +76,7 @@ func Bootstrap(o *BootstrapParameters) error {
 	}
 
 	if o.GithubHookSecret != "" {
-		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GithubWebhookSecret), o.GithubHookSecret, eventlisteners.WebhookSecretKey)
+		githubSecret, err := createOpaqueSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret), o.GithubHookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
 		}
