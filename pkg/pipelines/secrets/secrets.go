@@ -24,6 +24,8 @@ var (
 	secretTypeMeta = meta.TypeMeta("Secret", "v1")
 )
 
+type getPublicKey func() (*rsa.PublicKey, error)
+
 // CreateSealedDockerConfigSecret creates a SealedSecret with the given name and reader
 func CreateSealedDockerConfigSecret(name types.NamespacedName, in io.Reader) (*ssv1alpha1.SealedSecret, error) {
 	secret, err := createDockerConfigSecret(name, in)
@@ -31,7 +33,7 @@ func CreateSealedDockerConfigSecret(name types.NamespacedName, in io.Reader) (*s
 		return nil, err
 	}
 
-	return seal(secret)
+	return seal(secret, getClusterPublicKey)
 }
 
 // CreateSealedSecret creates a SealedSecret with the provided name and body/data and type
@@ -41,11 +43,11 @@ func CreateSealedSecret(name types.NamespacedName, data, secretKey string) (*ssv
 		return nil, err
 	}
 
-	return seal(secret)
+	return seal(secret, getClusterPublicKey)
 }
 
 // Returns a sealed secret
-func seal(secret *corev1.Secret) (*ssv1alpha1.SealedSecret, error) {
+func seal(secret *corev1.Secret, getPubKey getPublicKey) (*ssv1alpha1.SealedSecret, error) {
 	// Strip read-only server-side ObjectMeta (if present)
 	secret.SetSelfLink("")
 	secret.SetUID("")
@@ -55,7 +57,7 @@ func seal(secret *corev1.Secret) (*ssv1alpha1.SealedSecret, error) {
 	secret.SetDeletionTimestamp(nil)
 	secret.DeletionGracePeriodSeconds = nil
 
-	pubKey, err := getPublicKey()
+	pubKey, err := getPubKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed dto get public key from cluster: %w", err)
 	}
@@ -64,7 +66,7 @@ func seal(secret *corev1.Secret) (*ssv1alpha1.SealedSecret, error) {
 }
 
 // Retrieves a public key from sealed-secrets-controller
-func getPublicKey() (*rsa.PublicKey, error) {
+func getClusterPublicKey() (*rsa.PublicKey, error) {
 	client, err := getRESTClient()
 	if err != nil {
 		return nil, err
