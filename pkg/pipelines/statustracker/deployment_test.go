@@ -10,56 +10,63 @@ import (
 
 	ssv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealed-secrets/v1alpha1"
 	"github.com/google/go-cmp/cmp"
-	"github.com/openshift/odo/pkg/pipelines/deployment"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/roles"
 )
 
-func TestCreateStatusTrackerDeployment(t *testing.T) {
-	deploy := createStatusTrackerDeployment("dana-cicd")
+func TestDeployment(t *testing.T) {
+	deploy := createDeployment("dana-cicd")
 
 	want := &appsv1.Deployment{
 		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("dana-cicd", operatorName)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
-			Selector: labelSelector(deployment.KubernetesAppNameLabel, operatorName),
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						deployment.KubernetesAppNameLabel: operatorName,
-					},
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: operatorName,
-					Containers: []corev1.Container{
-						{
-							Name:            operatorName,
-							Image:           containerImage,
-							Command:         []string{operatorName},
-							ImagePullPolicy: corev1.PullAlways,
-							Env: []corev1.EnvVar{
-								{
-									Name: "WATCH_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.namespace",
-										},
-									},
-								},
-								{
-									Name: "POD_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.name",
-										},
-									},
-								},
-								{
-									Name:  "OPERATOR_NAME",
-									Value: operatorName,
+			Selector: labelSelector("name", operatorName),
+			Template: podTemplate(operatorName),
+		},
+	}
+
+	if diff := cmp.Diff(want, deploy); diff != "" {
+		t.Fatalf("deployment diff: %s", diff)
+	}
+}
+
+func TestPodTemplate(t *testing.T) {
+	want := corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"name": operatorName,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: operatorName,
+			Containers: []corev1.Container{
+				corev1.Container{
+					Name:            operatorName,
+					Image:           containerImage,
+					Command:         []string{operatorName},
+					ImagePullPolicy: corev1.PullAlways,
+					Env: []corev1.EnvVar{
+						corev1.EnvVar{
+							Name: "WATCH_NAMESPACE",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath: "metadata.namespace",
 								},
 							},
+						},
+						corev1.EnvVar{
+							Name: "POD_NAME",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath: "metadata.name",
+								},
+							},
+						},
+						corev1.EnvVar{
+							Name:  "OPERATOR_NAME",
+							Value: operatorName,
 						},
 					},
 				},
@@ -67,8 +74,10 @@ func TestCreateStatusTrackerDeployment(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(want, deploy); diff != "" {
-		t.Fatalf("deployment diff: %s", diff)
+	spec := podTemplate(operatorName)
+
+	if diff := cmp.Diff(want, spec); diff != "" {
+		t.Fatalf("labelTemplate diff: %s", diff)
 	}
 }
 
@@ -94,7 +103,7 @@ func TestResource(t *testing.T) {
 		testSecret,
 		roles.CreateRole(name, roleRules),
 		roles.CreateRoleBinding(name, sa, "Role", operatorName),
-		createStatusTrackerDeployment(ns),
+		createDeployment(ns),
 	}
 
 	if diff := cmp.Diff(want, res); diff != "" {

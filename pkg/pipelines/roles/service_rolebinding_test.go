@@ -16,40 +16,11 @@ const (
 )
 
 var testRules = []v1rbac.PolicyRule{
-	{
+	v1rbac.PolicyRule{
 		APIGroups: []string{"tekton.dev"},
 		Resources: []string{"eventlisteners", "triggerbindings", "triggertemplates", "tasks", "taskruns"},
 		Verbs:     []string{"get"},
 	},
-}
-
-func TestClusterRoleBinding(t *testing.T) {
-	want := &v1rbac.ClusterRoleBinding{
-		TypeMeta: clusterRoleBindingTypeMeta,
-		ObjectMeta: v1.ObjectMeta{
-			Name: "test-clusterbinding",
-		},
-		Subjects: []v1rbac.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      "pipeline",
-				Namespace: "cicd",
-			},
-		},
-		RoleRef: v1rbac.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     "edit",
-		},
-	}
-	sa := &corev1.ServiceAccount{
-		TypeMeta:   serviceAccountTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("cicd", "pipeline")),
-	}
-	got := CreateClusterRoleBinding(meta.NamespacedName("", "test-clusterbinding"), sa, "ClusterRole", "edit")
-	if diff := cmp.Diff(got, want); diff != "" {
-		t.Fatalf("CreateClusterRoleBinding() failed:%v\n", diff)
-	}
 }
 
 func TestRoleBinding(t *testing.T) {
@@ -59,7 +30,7 @@ func TestRoleBinding(t *testing.T) {
 			Name: roleBindingName,
 		},
 		Subjects: []v1rbac.Subject{
-			{
+			v1rbac.Subject{
 				Kind:      "ServiceAccount",
 				Name:      "pipeline",
 				Namespace: "testing",
@@ -92,12 +63,12 @@ func TestRoleBindingForSubjects(t *testing.T) {
 			Namespace: "testns",
 		},
 		Subjects: []v1rbac.Subject{
-			{
+			v1rbac.Subject{
 				Kind:      "ServiceAccount",
 				Name:      "pipeline",
 				Namespace: "testing",
 			},
-			{
+			v1rbac.Subject{
 				Kind:      "ServiceAccount",
 				Name:      "pipeline",
 				Namespace: "testing2",
@@ -111,8 +82,8 @@ func TestRoleBindingForSubjects(t *testing.T) {
 	}
 
 	roleBinding := CreateRoleBindingForSubjects(meta.NamespacedName("testns", roleBindingName), "Role", roleName,
-		[]v1rbac.Subject{{Kind: "ServiceAccount", Name: "pipeline", Namespace: "testing"},
-			{Kind: "ServiceAccount", Name: "pipeline", Namespace: "testing2"},
+		[]v1rbac.Subject{v1rbac.Subject{Kind: "ServiceAccount", Name: "pipeline", Namespace: "testing"},
+			v1rbac.Subject{Kind: "ServiceAccount", Name: "pipeline", Namespace: "testing2"},
 		})
 
 	if diff := cmp.Diff(want, roleBinding); diff != "" {
@@ -142,7 +113,7 @@ func TestServiceAccount(t *testing.T) {
 			Name: "pipeline",
 		},
 		Secrets: []corev1.ObjectReference{
-			{
+			corev1.ObjectReference{
 				Name: "regcred",
 			},
 		},
@@ -162,7 +133,7 @@ func TestAddSecretToSA(t *testing.T) {
 		},
 	}
 	validSecrets := []corev1.ObjectReference{
-		{
+		corev1.ObjectReference{
 			Name: "regcred",
 		},
 	}
