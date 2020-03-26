@@ -8,32 +8,23 @@ import (
 	"io/ioutil"
 	"strings"
 
-	ssv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealed-secrets/v1alpha1"
 	"github.com/openshift/client-go/route/clientset/versioned/scheme"
+	"github.com/openshift/odo/pkg/pipelines/clientconfig"
+	"github.com/openshift/odo/pkg/pipelines/meta"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/cert"
 
-	"github.com/openshift/odo/pkg/pipelines/clientconfig"
-	"github.com/openshift/odo/pkg/pipelines/meta"
+	ssv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealed-secrets/v1alpha1"
 )
 
 var (
-	secretTypeMeta       = meta.TypeMeta("Secret", "v1")
-	sealedSecretTypeMeta = meta.TypeMeta("SealedSecret", "bitnami.com/v1alpha1")
+	secretTypeMeta = meta.TypeMeta("Secret", "v1")
 )
 
-// DefaultPublicKeyFunc is the func used to get the key from Bitnami.
-var DefaultPublicKeyFunc = getClusterPublicKey
-
-type PublicKeyFunc func() (*rsa.PublicKey, error)
-
-// MakeServiceWebhookSecretName common method to create service webhook secret name
-func MakeServiceWebhookSecretName(serviceName string) string {
-	return "github-webhook-secret-" + serviceName
-}
+type getPublicKey func() (*rsa.PublicKey, error)
 
 // CreateSealedDockerConfigSecret creates a SealedSecret with the given name and reader
 func CreateSealedDockerConfigSecret(name types.NamespacedName, in io.Reader) (*ssv1alpha1.SealedSecret, error) {
@@ -42,7 +33,7 @@ func CreateSealedDockerConfigSecret(name types.NamespacedName, in io.Reader) (*s
 		return nil, err
 	}
 
-	return seal(secret, DefaultPublicKeyFunc)
+	return seal(secret, getClusterPublicKey)
 }
 
 // CreateSealedSecret creates a SealedSecret with the provided name and body/data and type
@@ -52,11 +43,11 @@ func CreateSealedSecret(name types.NamespacedName, data, secretKey string) (*ssv
 		return nil, err
 	}
 
-	return seal(secret, DefaultPublicKeyFunc)
+	return seal(secret, getClusterPublicKey)
 }
 
 // Returns a sealed secret
-func seal(secret *corev1.Secret, pubKey PublicKeyFunc) (*ssv1alpha1.SealedSecret, error) {
+func seal(secret *corev1.Secret, getPubKey getPublicKey) (*ssv1alpha1.SealedSecret, error) {
 	// Strip read-only server-side ObjectMeta (if present)
 	secret.SetSelfLink("")
 	secret.SetUID("")
@@ -66,19 +57,12 @@ func seal(secret *corev1.Secret, pubKey PublicKeyFunc) (*ssv1alpha1.SealedSecret
 	secret.SetDeletionTimestamp(nil)
 	secret.DeletionGracePeriodSeconds = nil
 
-	key, err := pubKey()
+	pubKey, err := getPubKey()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get public key from cluster (is sealed-secrets installed?): %w", err)
+		return nil, fmt.Errorf("failed dto get public key from cluster: %w", err)
 	}
 
-	sealedSecret, err := ssv1alpha1.NewSealedSecret(scheme.Codecs, key, secret)
-	if err != nil {
-		return nil, err
-	}
-
-	// NewSealedSecret() doesn't add TypeMeta to SealedSecret
-	sealedSecret.TypeMeta = sealedSecretTypeMeta
-	return sealedSecret, err
+	return ssv1alpha1.NewSealedSecret(scheme.Codecs, pubKey, secret)
 }
 
 // Retrieves a public key from sealed-secrets-controller
@@ -93,6 +77,7 @@ func getClusterPublicKey() (*rsa.PublicKey, error) {
 		return nil, err
 	}
 	defer f.Close()
+
 	return parseKey(f)
 }
 
