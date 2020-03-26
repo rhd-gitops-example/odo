@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/openshift/client-go/route/clientset/versioned/scheme"
-	"github.com/openshift/odo/pkg/pipelines/client"
+	"github.com/openshift/odo/pkg/pipelines/clientconfig"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -120,7 +120,7 @@ func parseKey(r io.Reader) (*rsa.PublicKey, error) {
 
 // Gets a REST client
 func getRESTClient() (*clientv1.CoreV1Client, error) {
-	config, err := client.GetRESTConfig()
+	config, err := clientconfig.GetRESTConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client config due to %w", err)
 	}

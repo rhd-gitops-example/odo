@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openshift/odo/pkg/pipelines/client"
+	"github.com/openshift/odo/pkg/pipelines/clientconfig"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	errs "k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +32,7 @@ type tektonChecker struct {
 // newTektonChecker constructs a tektonChecker that is backed by a client configured with user's kubeconfig
 func newTektonChecker() (*tektonChecker, error) {
 	// obtain client config
-	clientConfig, err := client.GetRESTConfig()
+	clientConfig, err := clientconfig.GetRESTConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client config due to %w", err)
 	}
