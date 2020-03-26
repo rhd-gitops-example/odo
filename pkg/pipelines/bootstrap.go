@@ -70,15 +70,6 @@ func Bootstrap(o *BootstrapParameters) error {
 		outputs = append(outputs, n)
 	}
 
-	if o.GitHubToken != "" {
-		githubAuth, err := secrets.CreateSealedSecret(meta.NamespacedName(namespaces["cicd"], "github-auth"), o.GitHubToken, "token")
-		if err != nil {
-			return fmt.Errorf("failed to generate Status Tracker Secret: %w", err)
-		}
-
-		outputs = append(outputs, githubAuth)
-	}
-
 	if o.GitHubHookSecret != "" {
 		githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret), o.GitHubHookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
@@ -130,7 +121,7 @@ func Bootstrap(o *BootstrapParameters) error {
 	outputs = append(outputs, createRoleBindings(namespaces, sa)...)
 
 	if o.GitHubToken != "" {
-		res, err := statustracker.Resources(o.GitHubToken, namespaces["cicd"])
+		res, err := statustracker.Resources(namespaces["cicd"], o.GitHubToken)
 		if err != nil {
 			return err
 		}
