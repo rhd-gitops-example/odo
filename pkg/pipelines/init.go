@@ -81,7 +81,6 @@ func Init(o *InitParameters) error {
 	}
 
 	namespaces := namespaceNames(o.Prefix)
-
 	gitopsName := getGitopsRepoName(o.GitOpsRepo)
 	gitopsPath := filepath.Join(o.Output, gitopsName)
 
