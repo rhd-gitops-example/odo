@@ -38,7 +38,7 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 		},
 	}
 
-	template := createDevCDDeployTemplate("testns", serviceAccName, "example.com:5000/testing/testing")
+	template := CreateDevCDDeployTemplate("testns", serviceAccName, "example.com:5000/testing/testing")
 	if diff := cmp.Diff(validDevCDTemplate, template); diff != "" {
 		t.Fatalf("CreateDevCDDeployTemplate failed:\n%s", diff)
 	}
@@ -76,7 +76,7 @@ func TestCreateDevCIBuildPRTemplate(t *testing.T) {
 			},
 		},
 	}
-	template := createDevCIBuildPRTemplate("testns", serviceAccName, "example.com:5000/testing/testing")
+	template := CreateDevCIBuildPRTemplate("testns", serviceAccName, "example.com:5000/testing/testing")
 	if diff := cmp.Diff(validdevCIPRTemplate, template); diff != "" {
 		t.Fatalf("CreatedevCIBuildPRTemplate failed:\n%s", diff)
 	}

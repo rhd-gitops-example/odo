@@ -16,14 +16,14 @@ var (
 // GenerateTemplates will return a slice of trigger templates
 func GenerateTemplates(ns, saName, imageRepo string) []triggersv1.TriggerTemplate {
 	return []triggersv1.TriggerTemplate{
-		createDevCDDeployTemplate(ns, saName, imageRepo),
-		createDevCIBuildPRTemplate(ns, saName, imageRepo),
+		CreateDevCDDeployTemplate(ns, saName, imageRepo),
+		CreateDevCIBuildPRTemplate(ns, saName, imageRepo),
 		CreateCDPushTemplate(ns, saName),
 		CreateCIDryRunTemplate(ns, saName),
 	}
 }
 
-func createDevCDDeployTemplate(ns, saName, imageRepo string) triggersv1.TriggerTemplate {
+func CreateDevCDDeployTemplate(ns, saName, imageRepo string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "dev-cd-deploy-from-master-template")),
@@ -41,7 +41,7 @@ func createDevCDDeployTemplate(ns, saName, imageRepo string) triggersv1.TriggerT
 	}
 }
 
-func createDevCIBuildPRTemplate(ns, saName, imageRepo string) triggersv1.TriggerTemplate {
+func CreateDevCIBuildPRTemplate(ns, saName, imageRepo string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta: triggerTemplateTypeMeta,
 		ObjectMeta: meta.ObjectMeta(

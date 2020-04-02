@@ -20,11 +20,14 @@ import (
 
 // InitParameters is a struct that provides flags for initialise command
 type InitParameters struct {
-	GitOpsRepo          string
-	GitOpsWebhookSecret string
-	Output              string
-	Prefix              string
-	SkipChecks          bool
+	DeploymentPath           string
+	GitOpsRepo               string
+	GitOpsWebhookSecret      string
+	Output                   string
+	Prefix                   string
+	SkipChecks               bool
+	ImageRepo                string
+	InternalRegistryHostname string
 }
 
 // PolicyRules to be bound to service account
@@ -49,24 +52,28 @@ var (
 )
 
 const (
-	pipelineDir       = "pipelines"
-	cicdDir           = "cicd-environment"
-	envsDir           = "envs"
-	baseDir           = "base"
-	kustomize         = "kustomization.yaml"
-	namespacesPath    = "01-namespaces/cicd-environment.yaml"
-	rolesPath         = "02-rolebindings/pipeline-service-role.yaml"
-	rolebindingsPath  = "02-rolebindings/pipeline-service-rolebinding.yaml"
-	secretsPath       = "03-secrets/gitops-webhook-secret.yaml"
-	tasksPath         = "04-tasks/deploy-from-source-task.yaml"
-	ciPipelinesPath   = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
-	cdPipelinesPath   = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
-	prBindingPath     = "06-bindings/github-pr-binding.yaml"
-	pushBindingPath   = "06-bindings/github-push-binding.yaml"
-	prTemplatePath    = "07-templates/ci-dryrun-from-pr-template.yaml"
-	pushTemplatePath  = "07-templates/cd-deploy-from-push-template.yaml"
-	eventListenerPath = "08-eventlisteners/cicd-event-listener.yaml"
-	routePath         = "09-routes/gitops-webhook-event-listener.yaml"
+	pipelineDir              = "pipelines"
+	cicdDir                  = "cicd-environment"
+	envsDir                  = "envs"
+	baseDir                  = "base"
+	kustomize                = "kustomization.yaml"
+	namespacesPath           = "01-namespaces/cicd-environment.yaml"
+	rolesPath                = "02-rolebindings/pipeline-service-role.yaml"
+	rolebindingsPath         = "02-rolebindings/pipeline-service-rolebinding.yaml"
+	secretsPath              = "03-secrets/gitops-webhook-secret.yaml"
+	tasksPath                = "04-tasks/deploy-from-source-task.yaml"
+	ciPipelinesPath          = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
+	cdPipelinesPath          = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
+	appCIPipelinesPath       = "05-pipelines/app-ci-pipeline.yaml"
+	appCDPipelinesPath       = "05-pipelines/app-cd-pipeline.yaml"
+	prBindingPath            = "06-bindings/github-pr-binding.yaml"
+	pushBindingPath          = "06-bindings/github-push-binding.yaml"
+	prTemplatePath           = "07-templates/ci-dryrun-from-pr-template.yaml"
+	pushTemplatePath         = "07-templates/cd-deploy-from-push-template.yaml"
+	appCIBuildPRTemplatePath = "07-templates/app-ci-build-pr-template.yaml"
+	appCDBuildPRTemplatePath = "07-templates/app-cd-build-pr-template.yaml"
+	eventListenerPath        = "08-eventlisteners/cicd-event-listener.yaml"
+	routePath                = "09-routes/gitops-webhook-event-listener.yaml"
 )
 
 // Init function will initialise the gitops directory
@@ -80,6 +87,11 @@ func Init(o *InitParameters) error {
 		if !installed {
 			return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
 		}
+	}
+
+	isInternalRegistry, imageRepo, err := validatingImageRepo(o)
+	if err != nil {
+		return err
 	}
 
 	namespaces := namespaceNames(o.Prefix)
@@ -107,7 +119,7 @@ func Init(o *InitParameters) error {
 	}
 
 	// create gitops pipeline
-	files := createPipelineResources(outputs, namespaces, o.GitOpsRepo, o.Prefix)
+	files := createPipelineResources(outputs, namespaces, o.GitOpsRepo, o.Prefix, o.DeploymentPath, imageRepo, isInternalRegistry)
 
 	pipelinesPath := getPipelinesDir(gitopsPath, o.Prefix)
 
@@ -137,7 +149,7 @@ func getCICDDir(path, prefix string) string {
 	return filepath.Join(path, envsDir, addPrefix(prefix, cicdDir))
 }
 
-func createPipelineResources(outputs map[string]interface{}, namespaces map[string]string, gitopsRepo, prefix string) map[string]interface{} {
+func createPipelineResources(outputs map[string]interface{}, namespaces map[string]string, gitopsRepo, prefix, deploymentPath, imageRepo string, isInternalRegistry bool) map[string]interface{} {
 
 	outputs[namespacesPath] = createNamespace(namespaces["cicd"])
 
@@ -153,6 +165,10 @@ func createPipelineResources(outputs map[string]interface{}, namespaces map[stri
 
 	outputs[cdPipelinesPath] = createCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["cicd"])
 
+	outputs[appCIPipelinesPath] = createDevCIPipeline(meta.NamespacedName(namespaces["cicd"], "app-ci-pipeline"), isInternalRegistry)
+
+	outputs[appCDPipelinesPath] = createDevCDPipeline(meta.NamespacedName(namespaces["cicd"], "app-cd-pipeline"), deploymentPath, namespaces["dev"], isInternalRegistry)
+
 	outputs[prBindingPath] = triggers.CreatePRBinding(namespaces["cicd"])
 
 	outputs[pushBindingPath] = triggers.CreatePushBinding(namespaces["cicd"])
@@ -160,6 +176,10 @@ func createPipelineResources(outputs map[string]interface{}, namespaces map[stri
 	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(namespaces["cicd"], saName)
 
 	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(namespaces["cicd"], saName)
+
+	outputs[appCIBuildPRTemplatePath] = triggers.CreateDevCIBuildPRTemplate(namespaces["cicd"], saName, imageRepo)
+
+	outputs[appCDBuildPRTemplatePath] = triggers.CreateDevCDDeployTemplate(namespaces["cicd"], saName, imageRepo)
 
 	outputs[eventListenerPath] = eventlisteners.Generate(gitopsRepo, namespaces["cicd"], saName)
 
@@ -231,4 +251,48 @@ func isExisting(path string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// validatingImageRepo validates the input image repo.  It determines if it is
+// for internal registry and prepend internal registry hostname if neccessary.
+func validatingImageRepo(o *InitParameters) (bool, string, error) {
+	components := strings.Split(o.ImageRepo, "/")
+
+	// repo url has minimum of 2 components
+	if len(components) < 2 {
+		return false, "", imageRepoValidationErrors(o.ImageRepo)
+	}
+
+	for _, v := range components {
+		// check for empty components
+		if strings.TrimSpace(v) == "" {
+			return false, "", imageRepoValidationErrors(o.ImageRepo)
+		}
+		// check for white spaces
+		if len(v) > len(strings.TrimSpace(v)) {
+			return false, "", imageRepoValidationErrors(o.ImageRepo)
+		}
+	}
+
+	if len(components) == 2 {
+		if components[0] == "docker.io" || components[0] == "quay.io" {
+			// we recognize docker.io and quay.io.  It is missing one component
+			return false, "", imageRepoValidationErrors(o.ImageRepo)
+		}
+		// We have format like <project>/<app> which is an internal registry.
+		// We prepend the internal registry hostname.
+		return true, o.InternalRegistryHostname + "/" + o.ImageRepo, nil
+	}
+
+	// Check the first component to see if it is an internal registry
+	if len(components) == 3 {
+		return components[0] == o.InternalRegistryHostname, o.ImageRepo, nil
+	}
+
+	// > 3 components.  invalid repo
+	return false, "", imageRepoValidationErrors(o.ImageRepo)
+}
+
+func imageRepoValidationErrors(imageRepo string) error {
+	return fmt.Errorf("failed to parse image repo:%s, expected image repository in the form <registry>/<username>/<repository> or <project>/<app> for internal registry", imageRepo)
 }
