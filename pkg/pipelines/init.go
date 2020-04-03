@@ -194,8 +194,8 @@ func marshalItemsToFile(filename string, items []interface{}) error {
 	return marshalOutputs(f, items)
 }
 
-func list(i interface{}) []interface{} {
-	return []interface{}{i}
+func list(i ...interface{}) []interface{} {
+	return i
 }
 
 func getPipelinesDir(rootPath, prefix string) string {
@@ -203,7 +203,7 @@ func getPipelinesDir(rootPath, prefix string) string {
 }
 
 func addKustomize(name string, items []string, path string) error {
-	content := make([]interface{}, 0)
+	content := []interface{}{}
 	content = append(content, map[string]interface{}{name: items})
 	return marshalItemsToFile(path, content)
 }
