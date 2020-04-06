@@ -28,15 +28,15 @@ var (
 
 // EnvParameters encapsulates the parameters for the odo pipelines init command.
 type EnvParameters struct {
-	envName string
-	output string
-	prefix string
+	envName    string
+	output     string
+	prefix     string
 	gitOpsRepo string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
 
-// NewEnvParameters bootstraps a InitParameters instance.
+// NewEnvParameters bootstraps a EnvParameters instance.
 func NewEnvParameters() *EnvParameters {
 	return &EnvParameters{}
 }
@@ -63,11 +63,11 @@ func (eo *EnvParameters) Validate() error {
 
 // Run runs the project bootstrap command.
 func (eo *EnvParameters) Run() error {
-	options:=pipelines.EnvParameters{
+	options := pipelines.EnvParameters{
 		GitOpsRepo: eo.gitOpsRepo,
-		EnvName: eo.envName,
-		Output: eo.output,
-		Prefix: eo.prefix,
+		EnvName:    eo.envName,
+		Output:     eo.output,
+		Prefix:     eo.prefix,
 	}
 
 	return pipelines.Env(&options)
@@ -91,7 +91,7 @@ func NewCmdEnv(name, fullName string) *cobra.Command {
 	envCmd.MarkFlagRequired("gitops-repo")
 	envCmd.Flags().StringVar(&o.envName, "env-name", "", "name of the environment/namespace")
 	envCmd.MarkFlagRequired("env-name")
-	envCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
+	envCmd.Flags().StringVar(&o.output, "output", ".", "folder/path to add Gitops resources")
 	envCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 
 	return envCmd

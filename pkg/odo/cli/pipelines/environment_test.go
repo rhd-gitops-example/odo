@@ -57,3 +57,28 @@ func TestValidateEnvParameters(t *testing.T) {
 		}
 	}
 }
+
+func TestAddCommandWithMissingParams(t *testing.T) {
+	cmdTests := []struct {
+		desc    string
+		flags   []keyValuePair
+		wantErr string
+	}{
+		{"Missing gitops-repo flag",
+			[]keyValuePair{flag("output", "~/output"),
+				flag("env-name", "test"), flag("skip-checks", "true")},
+			`Required flag(s) "gitops-repo" have/has not been set`},
+		{"Missing env-name flag",
+			[]keyValuePair{flag("gitops-repo", "org/sample"), flag("output", "~/output"),
+				flag("skip-checks", "true")},
+			`Required flag(s) "env-name" have/has not been set`},
+	}
+	for _, tt := range cmdTests {
+		t.Run(tt.desc, func(t *testing.T) {
+			_, _, err := executeCommand(NewCmdEnv("add", "odo pipelines add"), tt.flags...)
+			if err.Error() != tt.wantErr {
+				t.Errorf("got %s, want %s", err, tt.wantErr)
+			}
+		})
+	}
+}

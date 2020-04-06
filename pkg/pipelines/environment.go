@@ -24,10 +24,11 @@ type EnvParameters struct {
 // Env will bootstrap a new environment directory
 func Env(o *EnvParameters) error {
 
-	namespaces := namespaceNames(o.Prefix)
-
 	gitopsName := getGitopsRepoName(o.GitOpsRepo)
 	gitopsPath := filepath.Join(o.Output, gitopsName)
+
+	envName := addPrefix(o.Prefix, o.EnvName)
+	envPath := getEnvPath(gitopsPath, o.EnvName, o.Prefix)
 
 	// check if the gitops dir exists
 	exists, _ := isExisting(gitopsPath)
@@ -35,10 +36,13 @@ func Env(o *EnvParameters) error {
 		return fmt.Errorf("%s doesn't exist at %s", gitopsName, o.Output)
 	}
 
-	envName := addPrefix(o.Prefix, o.EnvName)
-	envPath := getEnvPath(gitopsPath, o.EnvName, o.Prefix)
+	// check if the environment dir already exists
+	exists, _ = isExisting(envPath)
+	if exists {
+		return fmt.Errorf("%s already exists", envName)
+	}
 
-	err := addKustomize("bases", []string{envNamespace, envRoleBinding}, filepath.Join(envPath, "base", kustomize))
+	err := addKustomize("resources", []string{envNamespace, envRoleBinding}, filepath.Join(envPath, "base", kustomize))
 	if err != nil {
 		return err
 	}
@@ -48,27 +52,31 @@ func Env(o *EnvParameters) error {
 		return err
 	}
 
-	outputs := map[string]interface{}{}
-	basePath := filepath.Join(envPath, "base")
-
-	outputs[filepath.Join(basePath, envNamespace)] = createNamespace(envName)
-
-	sa := roles.CreateServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
-
-	outputs[filepath.Join(basePath, envRoleBinding)] = roles.CreateRoleBinding(meta.NamespacedName(envName, roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
-
-	for path, value := range outputs {
-		err := marshalItemsToFile(path, list(value))
-		if err != nil {
-			return err
-		}
+	if err = addEnvResources(o.Prefix, envPath, envName); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func addEnvBase() {
+func addEnvResources(prefix, envPath, envName string) error {
 
+	namespaces := namespaceNames(prefix)
+
+	outputs := map[string]interface{}{}
+	basePath := filepath.Join(envPath, "base")
+
+	outputs[envNamespace] = createNamespace(envName)
+
+	sa := roles.CreateServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
+
+	outputs[envRoleBinding] = roles.CreateRoleBinding(meta.NamespacedName(envName, roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
+
+	_, err := writeResources(basePath, outputs)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func getEnvPath(gitopsPath, envName, prefix string) string {
