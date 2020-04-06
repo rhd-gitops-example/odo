@@ -123,14 +123,14 @@ func Init(o *InitParameters) error {
 		return err
 	}
 
-	if err := addKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), kustomize)); err != nil {
+	if err := addKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), baseDir, kustomize)); err != nil {
 		return err
 	}
 
-	if err := addKustomize("bases", []string{}, filepath.Join(gitopsPath, envsDir, baseDir, kustomize)); err != nil {
+	// Add overlays
+	if err := addKustomize("bases", []string{"../base"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), "overlays", kustomize)); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -199,7 +199,7 @@ func list(i ...interface{}) []interface{} {
 }
 
 func getPipelinesDir(rootPath, prefix string) string {
-	return filepath.Join(rootPath, envsDir, addPrefix(prefix, cicdDir), pipelineDir)
+	return filepath.Join(rootPath, envsDir, addPrefix(prefix, cicdDir), baseDir, pipelineDir)
 }
 
 func addKustomize(name string, items []string, path string) error {
