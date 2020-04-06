@@ -3,13 +3,13 @@ package pipelines
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/openshift/odo/pkg/pipelines/meta"
+	"github.com/openshift/odo/pkg/pipelines/out"
+	"github.com/openshift/odo/pkg/pipelines/out/gitrepo"
 	"github.com/openshift/odo/pkg/pipelines/roles"
 	"github.com/openshift/odo/pkg/pipelines/routes"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
@@ -84,18 +84,20 @@ func Init(o *InitParameters) error {
 
 	namespaces := namespaceNames(o.Prefix)
 
-	gitopsName := getGitopsRepoName(o.GitOpsRepo)
-	gitopsPath := filepath.Join(o.Output, gitopsName)
-
-	// check if the gitops dir already exists
-	exists, _ := isExisting(gitopsPath)
-	if exists {
-		return fmt.Errorf("%s already exists at %s", gitopsName, gitopsPath)
+	output, err := gitrepo.New("https://github.com/wtam2018/gitopstest.git",
+		"wtam2018", "gitopstest", "dev", "051d73dc54a72b2fdece19cf4dace45cf630e9d9")
+	if err != nil {
+		return fmt.Errorf("failed to create output : %w", err)
 	}
 
-	// key: path of the resource
-	// value: YAML content of the resource
-	outputs := map[string]interface{}{}
+	/*
+			output, err := fs.New(o.GitOpsRepo, o.Output)
+		if err != nil {
+			return fmt.Errorf("failed to create output : %w", err)
+		}
+	*/
+
+	pipelinesPath := getPipelinesDir(o.Prefix)
 
 	if o.GitOpsWebhookSecret != "" {
 		githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret),
@@ -104,108 +106,64 @@ func Init(o *InitParameters) error {
 			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
 		}
 
-		outputs[secretsPath] = githubSecret
+		output.Add(filepath.Join(pipelinesPath, secretsPath), githubSecret)
 	}
 
-	// create gitops pipeline
-	files := createPipelineResources(outputs, namespaces, o.GitOpsRepo, o.Prefix)
+	// add gitops pipeline resource to output
+	addPipelineResources(pipelinesPath, output, namespaces, o.GitOpsRepo, o.Prefix)
 
-	pipelinesPath := getPipelinesDir(gitopsPath, o.Prefix)
+	paths := output.GetPaths()
+	sort.Strings(paths)
 
-	fileNames, err := writeResources(pipelinesPath, files)
-	if err != nil {
-		return err
-	}
-
-	sort.Strings(fileNames)
 	// kustomize file should refer all the pipeline resources
-	if err := addKustomize("resources", fileNames, filepath.Join(pipelinesPath, kustomize)); err != nil {
-		return err
-	}
+	addKustomize(output, "resources", paths, filepath.Join(pipelinesPath, kustomize))
+	addKustomize(output, "bases", []string{"./pipelines"}, filepath.Join(getCICDDir(o.Prefix), kustomize))
+	addKustomize(output, "bases", []string{}, filepath.Join(envsDir, baseDir, kustomize))
 
-	if err := addKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), kustomize)); err != nil {
-		return err
-	}
-
-	if err := addKustomize("bases", []string{}, filepath.Join(gitopsPath, envsDir, baseDir, kustomize)); err != nil {
-		return err
-	}
-
-	return nil
+	return output.Write()
 }
 
-func getCICDDir(path, prefix string) string {
-	return filepath.Join(path, envsDir, addPrefix(prefix, cicdDir))
+func getCICDDir(prefix string) string {
+	return filepath.Join(envsDir, addPrefix(prefix, cicdDir))
 }
 
-func createPipelineResources(outputs map[string]interface{}, namespaces map[string]string, gitopsRepo, prefix string) map[string]interface{} {
+func addPipelineResources(pipelinePath string, o out.Output, namespaces map[string]string, gitopsRepo, prefix string) {
 
-	outputs[namespacesPath] = createNamespace(namespaces["cicd"])
+	o.Add(filepath.Join(pipelinePath, namespacesPath), createNamespace(namespaces["cicd"]))
 
-	outputs[rolesPath] = roles.CreateClusterRole(meta.NamespacedName("", roles.ClusterRoleName), rules)
+	o.Add(filepath.Join(pipelinePath, rolesPath), roles.CreateClusterRole(meta.NamespacedName("", roles.ClusterRoleName), rules))
 
 	sa := roles.CreateServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
 
-	outputs[rolebindingsPath] = roles.CreateRoleBinding(meta.NamespacedName(namespaces["cicd"], roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
+	o.Add(filepath.Join(pipelinePath, rolebindingsPath), roles.CreateRoleBinding(meta.NamespacedName(namespaces["cicd"], roleBindingName), sa, "ClusterRole", roles.ClusterRoleName))
 
-	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(namespaces["cicd"], getPipelinesDir("", prefix))
+	o.Add(filepath.Join(pipelinePath, tasksPath), tasks.CreateDeployFromSourceTask(namespaces["cicd"], getPipelinesDir(prefix)))
 
-	outputs[ciPipelinesPath] = createCIPipeline(meta.NamespacedName(namespaces["cicd"], "ci-dryrun-from-pr-pipeline"), namespaces["cicd"])
+	o.Add(filepath.Join(pipelinePath, ciPipelinesPath), createCIPipeline(meta.NamespacedName(namespaces["cicd"], "ci-dryrun-from-pr-pipeline"), namespaces["cicd"]))
 
-	outputs[cdPipelinesPath] = createCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["cicd"])
+	o.Add(filepath.Join(pipelinePath, cdPipelinesPath), createCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["cicd"]))
 
-	outputs[prBindingPath] = triggers.CreatePRBinding(namespaces["cicd"])
+	o.Add(filepath.Join(pipelinePath, prBindingPath), triggers.CreatePRBinding(namespaces["cicd"]))
 
-	outputs[pushBindingPath] = triggers.CreatePushBinding(namespaces["cicd"])
+	o.Add(filepath.Join(pipelinePath, pushBindingPath), triggers.CreatePushBinding(namespaces["cicd"]))
 
-	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(namespaces["cicd"], saName)
+	o.Add(filepath.Join(pipelinePath, prTemplatePath), triggers.CreateCIDryRunTemplate(namespaces["cicd"], saName))
 
-	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(namespaces["cicd"], saName)
+	o.Add(filepath.Join(pipelinePath, pushTemplatePath), triggers.CreateCDPushTemplate(namespaces["cicd"], saName))
 
-	outputs[eventListenerPath] = eventlisteners.Generate(gitopsRepo, namespaces["cicd"], saName)
+	o.Add(filepath.Join(pipelinePath, eventListenerPath), eventlisteners.Generate(gitopsRepo, namespaces["cicd"], saName))
 
-	outputs[routePath] = routes.Generate(namespaces["cicd"])
-
-	return outputs
+	o.Add(filepath.Join(pipelinePath, routePath), routes.Generate(namespaces["cicd"]))
 }
 
-func writeResources(path string, files map[string]interface{}) ([]string, error) {
-	filenames := make([]string, 0)
-	for filename, item := range files {
-		err := marshalItemsToFile(filepath.Join(path, filename), list(item))
-		if err != nil {
-			return nil, err
-		}
-		filenames = append(filenames, filename)
-	}
-	return filenames, nil
+func getPipelinesDir(prefix string) string {
+	return filepath.Join(envsDir, addPrefix(prefix, cicdDir), pipelineDir)
 }
 
-func marshalItemsToFile(filename string, items []interface{}) error {
-	err := os.MkdirAll(filepath.Dir(filename), 0755)
-	if err != nil {
-		return fmt.Errorf("failed to MkDirAll for %s: %v", filename, err)
-	}
-	f, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to Create file %s: %v", filename, err)
-	}
-	defer f.Close()
-	return marshalOutputs(f, items)
-}
-
-func list(i interface{}) []interface{} {
-	return []interface{}{i}
-}
-
-func getPipelinesDir(rootPath, prefix string) string {
-	return filepath.Join(rootPath, envsDir, addPrefix(prefix, cicdDir), pipelineDir)
-}
-
-func addKustomize(name string, items []string, path string) error {
+func addKustomize(o out.Output, name string, items []string, path string) {
 	content := make([]interface{}, 0)
 	content = append(content, map[string]interface{}{name: items})
-	return marshalItemsToFile(path, content)
+	o.Add(path, content)
 }
 
 func checkTektonInstall() (bool, error) {
@@ -216,20 +174,9 @@ func checkTektonInstall() (bool, error) {
 	return tektonChecker.checkInstall()
 }
 
-func getGitopsRepoName(repo string) string {
-	return strings.Split(repo, "/")[1]
-}
-
 func addPrefix(prefix, name string) string {
 	if prefix != "" {
 		return prefix + name
 	}
 	return name
-}
-
-func isExisting(path string) (bool, error) {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false, err
-	}
-	return true, nil
 }
