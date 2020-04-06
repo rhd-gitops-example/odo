@@ -1,0 +1,53 @@
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  annotations:
+    tekton.dev/git-status: "true"
+    tekton.dev/status-context: dev-ci-build-from-pr
+    tekton.dev/status-description: Dev CI Build
+  creationTimestamp: null
+  name: dev-ci-build-from-pr-template
+  namespace: gitops-cicd-environment
+spec:
+  params:
+  - description: The git branch for this PR
+    name: gitref
+  - description: the specific commit SHA.
+    name: gitsha
+  - description: The git repository url
+    name: gitrepositoryurl
+  - description: The GitHub repository for this PullRequest.
+    name: fullname
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineRun
+    metadata:
+      creationTimestamp: null
+      name: dev-ci-pipeline-run-$(uid)
+    spec:
+      params:
+      - name: REPO
+        value: $(params.fullname)
+      - name: COMMIT_SHA
+        value: $(params.gitsha)
+      pipelineRef:
+        name: dev-ci-pipeline
+      resources:
+      - name: source-repo
+        resourceSpec:
+          params:
+          - name: revision
+            value: $(params.gitref)
+          - name: url
+            value: $(params.gitrepositoryurl)
+          type: git
+      - name: runtime-image
+        resourceSpec:
+          params:
+          - name: url
+            value: image-registry.openshift-image-registry.svc:5000/example/repo:$(params.gitref)-$(params.gitsha)
+          type: image
+      serviceAccountName: pipeline
+    status: {}
+status: {}
+---

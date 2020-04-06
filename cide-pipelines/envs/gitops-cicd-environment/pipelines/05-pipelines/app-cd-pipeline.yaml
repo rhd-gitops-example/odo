@@ -1,0 +1,47 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  creationTimestamp: null
+  name: app-cd-pipeline
+  namespace: gitops-cicd-environment
+spec:
+  resources:
+  - name: source-repo
+    type: git
+  - name: runtime-image
+    type: image
+  tasks:
+  - name: build-image
+    params:
+    - name: TLSVERIFY
+      value: "false"
+    resources:
+      inputs:
+      - name: source
+        resource: source-repo
+      outputs:
+      - name: image
+        resource: runtime-image
+    taskRef:
+      kind: ClusterTask
+      name: buildah
+  - name: deploy-image
+    params:
+    - name: PATHTODEPLOYMENT
+      value: deploy
+    - name: YAMLPATHTOIMAGE
+      value: spec.template.spec.containers[0].image
+    - name: NAMESPACE
+      value: gitops-dev-environment
+    resources:
+      inputs:
+      - name: source
+        resource: source-repo
+      - name: image
+        resource: runtime-image
+    runAfter:
+    - build-image
+    taskRef:
+      kind: Task
+      name: deploy-using-kubectl-task
+---

@@ -10,9 +10,9 @@ import (
 
 // Filters for interceptors
 const (
-	stageCIDryRunFilters = "(header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize') && body.pull_request.head.repo.full_name == '%s'"
+	StageCIDryRunFilters = "(header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize') && body.pull_request.head.repo.full_name == '%s'"
 
-	stageCDDeployFilters = "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == '%s') && body.ref.startsWith('refs/heads/master')"
+	StageCDDeployFilters = "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == '%s') && body.ref.startsWith('refs/heads/master')"
 
 	GitOpsWebhookSecret = "gitops-webhook-secret"
 
@@ -31,16 +31,16 @@ func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
 		Spec: triggersv1.EventListenerSpec{
 			ServiceAccountName: saName,
 			Triggers: []triggersv1.EventListenerTrigger{
-				createListenerTrigger(
+				CreateListenerTrigger(
 					"ci-dryrun-from-pr",
-					stageCIDryRunFilters,
+					StageCIDryRunFilters,
 					githubRepo,
 					"github-pr-binding",
 					"ci-dryrun-from-pr-template",
 				),
-				createListenerTrigger(
+				CreateListenerTrigger(
 					"cd-deploy-from-push",
-					stageCDDeployFilters,
+					StageCDDeployFilters,
 					githubRepo,
 					"github-push-binding",
 					"cd-deploy-from-push-template",
@@ -69,7 +69,7 @@ func createGitHubInterceptor() *triggersv1.EventInterceptor {
 	}
 }
 
-func createListenerTrigger(name string, filter string, repoName string, binding string, template string) triggersv1.EventListenerTrigger {
+func CreateListenerTrigger(name string, filter string, repoName string, binding string, template string) triggersv1.EventListenerTrigger {
 	return triggersv1.EventListenerTrigger{
 		Name: name,
 		Interceptors: []*triggersv1.EventInterceptor{

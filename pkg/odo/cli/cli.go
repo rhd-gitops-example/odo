@@ -35,72 +35,72 @@ var (
 	// We do not use ktemplates.Normalize here as it messed up the newlines..
 	odoLong = `(OpenShift Do) odo is a CLI tool for running OpenShift applications in a fast and automated manner.
 Reducing the complexity of deployment, odo adds iterative development without the worry of deploying your source code.
-
+ 
 Find more information at https://github.com/openshift/odo`
 
 	odoExample = ktemplates.Examples(`  # Creating and deploying a Node.js project
-  git clone https://github.com/openshift/nodejs-ex && cd nodejs-ex
-  %[1]s create nodejs
-  %[1]s push
-
-  # Accessing your Node.js component
-  %[1]s url create`)
+ git clone https://github.com/openshift/nodejs-ex && cd nodejs-ex
+ %[1]s create nodejs
+ %[1]s push
+ 
+ # Accessing your Node.js component
+ %[1]s url create`)
 
 	rootUsageTemplate = `Usage:{{if .Runnable}}
-  {{if .HasAvailableFlags}}{{appendIfNotPresent .UseLine "[flags]"}}{{else}}{{.UseLine}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
-  {{ .CommandPath}} [command]{{end}}{{if gt .Aliases 0}}
-
+ {{if .HasAvailableFlags}}{{appendIfNotPresent .UseLine "[flags]"}}{{else}}{{.UseLine}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+ {{ .CommandPath}} [command]{{end}}{{if gt .Aliases 0}}
+ 
 Aliases:
-  {{.NameAndAliases}}{{end}}{{if .HasExample}}
-
+ {{.NameAndAliases}}{{end}}{{if .HasExample}}
+ 
 Examples:
 {{ .Example }}{{end}}{{ if .HasAvailableSubCommands}}
-
+ 
 Commands:{{range .Commands}}{{if eq .Annotations.command "main"}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
-
+ {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
+ 
 Utility Commands:{{range .Commands}}{{if or (eq .Annotations.command "utility") (eq .Name "help") }}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{ if .HasAvailableLocalFlags}}
-
+ {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{ if .HasAvailableLocalFlags}}
+ 
 Component Shortcuts:{{range .Commands}}{{if eq .Annotations.command "component"}}
-  {{rpad .Name .NamePadding }} {{.Short}} {{end}}{{end}}{{end}}
-
+ {{rpad .Name .NamePadding }} {{.Short}} {{end}}{{end}}{{end}}
+ 
 Flags:
 {{CapitalizeFlagDescriptions .LocalFlags | trimRightSpace }}{{end}}{{ if .HasAvailableInheritedFlags}}
-
+ 
 Global Flags:
 {{.InheritedFlags.FlagUsages | trimRightSpace}}{{end}}{{if .HasHelpSubCommands}}
-
+ 
 Additional help topics:{{range .Commands}}{{if .IsHelpCommand}}
-  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{ if .HasAvailableSubCommands }}
-
+ {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{ if .HasAvailableSubCommands }}
+ 
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `
 
 	rootDefaultHelp = odoLong + `
-
+ 
 Get started by creating a new application:
-
- git clone https://github.com/openshift/nodejs-ex && cd nodejs-ex
- odo create nodejs
- odo push
-
-Your nodejs application has now been deployed. odo has pushed the source code, built the application and deployed it on OpenShift. 
+ 
+git clone https://github.com/openshift/nodejs-ex && cd nodejs-ex
+odo create nodejs
+odo push
+ 
+Your nodejs application has now been deployed. odo has pushed the source code, built the application and deployed it on OpenShift.
 You can now edit your code in real time and watch as odo automatically deploys your application.
-
- odo watch
-
+ 
+odo watch
+ 
 To access your application, create a URL:
-
- odo url create myurl
- odo push
-
+ 
+odo url create myurl
+odo push
+ 
 More information such as logs or what components you've deployed can be accessed with these commands:
-
- odo describe
- odo list
- odo log
-
+ 
+odo describe
+odo list
+odo log
+ 
 To see a full list of commands, run 'odo --help'`
 )
 
