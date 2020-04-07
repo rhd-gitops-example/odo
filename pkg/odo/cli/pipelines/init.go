@@ -28,14 +28,11 @@ var (
 
 // InitParameters encapsulates the parameters for the odo pipelines init command.
 type InitParameters struct {
-	deploymentPath           string
-	gitOpsRepo               string // repo to store Gitops resources e.g. org/repo
-	gitOpsWebhookSecret      string // used to create Github's shared webhook secret for gitops repo
-	output                   string // path to add Gitops resources
-	prefix                   string // used to generate the environments in a shared cluster
-	skipChecks               bool   // skip Tekton installation checks
-	imageRepo                string
-	internalRegistryHostname string
+	gitOpsRepo          string // repo to store Gitops resources e.g. org/repo
+	gitOpsWebhookSecret string // used to create Github's shared webhook secret for gitops repo
+	output              string // path to add Gitops resources
+	prefix              string // used to generate the environments in a shared cluster
+	skipChecks          bool   // skip Tekton installation checks
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -68,14 +65,11 @@ func (io *InitParameters) Validate() error {
 // Run runs the project bootstrap command.
 func (io *InitParameters) Run() error {
 	options := pipelines.InitParameters{
-		DeploymentPath:           io.deploymentPath,
-		GitOpsWebhookSecret:      io.gitOpsWebhookSecret,
-		GitOpsRepo:               io.gitOpsRepo,
-		Output:                   io.output,
-		Prefix:                   io.prefix,
-		ImageRepo:                io.imageRepo,
-		SkipChecks:               io.skipChecks,
-		InternalRegistryHostname: io.internalRegistryHostname,
+		GitOpsWebhookSecret: io.gitOpsWebhookSecret,
+		GitOpsRepo:          io.gitOpsRepo,
+		Output:              io.output,
+		Prefix:              io.prefix,
+		SkipChecks:          io.skipChecks,
 	}
 
 	return pipelines.Init(&options)
@@ -102,10 +96,6 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	initCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
-	initCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
-	initCmd.MarkFlagRequired("image-repo")
-	initCmd.Flags().StringVar(&o.deploymentPath, "deployment-path", "deploy", "deployment folder path name")
-	initCmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
 
 	return initCmd
 }

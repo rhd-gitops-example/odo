@@ -174,7 +174,7 @@ func createManifestsForImageRepo(sa *corev1.ServiceAccount, isInternalRegistry b
 
 	} else {
 		// Add secret to service account if external registry is used
-		dockerSecret, err := createDockerSecret(o.DockerConfigJSONFileName, namespaces["cicd"])
+		dockerSecret, err := CreateDockerSecret(o.DockerConfigJSONFileName, namespaces["cicd"])
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +197,7 @@ func createPipelines(ns map[string]string, isInternalRegistry bool, deploymentPa
 }
 
 // createDockerSecret creates Docker secret
-func createDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.SealedSecret, error) {
+func CreateDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.SealedSecret, error) {
 	if dockerConfigJSONFileName == "" {
 		return nil, errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")
 	}

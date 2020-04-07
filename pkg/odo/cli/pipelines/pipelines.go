@@ -3,6 +3,7 @@ package pipelines
 import (
 	"fmt"
 
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/service"
 	"github.com/spf13/cobra"
 
 	odoutil "github.com/openshift/odo/pkg/odo/util"
@@ -15,7 +16,7 @@ const RecommendedCommandName = "pipelines"
 func NewCmdComponent(name, fullName string) *cobra.Command {
 
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
-	addCmd := NewCmdAdd(AddRecommendedCommandName, odoutil.GetFullName(fullName, AddRecommendedCommandName))
+	ServiceCmd := service.NewCmdAddService(service.ServiceRecommendedCommandName, odoutil.GetFullName(fullName, service.ServiceRecommendedCommandName))
 	var pipelinesCmd = &cobra.Command{
 		Use:   name,
 		Short: "Manage pipelines",
@@ -26,7 +27,8 @@ func NewCmdComponent(name, fullName string) *cobra.Command {
 	}
 
 	pipelinesCmd.Flags().AddFlagSet(initCmd.Flags())
-	pipelinesCmd.AddCommand(initCmd, addCmd)
+	pipelinesCmd.AddCommand(initCmd)
+	pipelinesCmd.AddCommand(ServiceCmd)
 
 	pipelinesCmd.Annotations = map[string]string{"command": "main"}
 	pipelinesCmd.SetUsageTemplate(odoutil.CmdUsageTemplate)

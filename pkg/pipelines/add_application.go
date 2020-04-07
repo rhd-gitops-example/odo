@@ -3,19 +3,15 @@ package pipelines
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
-	ssv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealed-secrets/v1alpha1"
-	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/roles"
-	"github.com/openshift/odo/pkg/pipelines/secrets"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
-// InitParameters is a struct that provides flags for initialise command
+// AddParameters is a struct that provides flags for add application command
 type AddParameters struct {
 	GitopsRepo          string
 	GitopsWebhookSecret string
@@ -51,8 +47,8 @@ type patchStringValue struct {
 	Value triggersv1.EventListenerTrigger `yaml:"value"`
 }
 
-// Init function will initialise the gitops directory
-func Add(o *AddParameters) error {
+// Add_Application function will initialise the gitops directory
+func Add_Application(o *AddParameters) error {
 
 	if !o.SkipChecks {
 		installed, err := checkTektonInstall()
@@ -129,35 +125,9 @@ func createResourcesConfig(outputs map[string]interface{}, namespace, dockerFile
 	sa := roles.CreateServiceAccount(meta.NamespacedName(namespace, saName))
 	ServiceAcc := roles.AddSecretToSA(sa, secretName)
 	outputs[configSApath] = ServiceAcc
-	secrets, _ := createSealedDockerSecret(dockerFilePath, namespace)
+	secrets, _ := CreateDockerSecret(dockerFilePath, namespace)
 	outputs[secretPath] = secrets
 	return outputs
-}
-
-func createSealedDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.SealedSecret, error) {
-	if dockerConfigJSONFileName == "" {
-		return nil, errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")
-	}
-
-	authJSONPath, err := homedir.Expand(dockerConfigJSONFileName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate path to file: %w", err)
-	}
-
-	f, err := os.Open(authJSONPath)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to read docker file '%s' : %w", authJSONPath, err)
-	}
-	defer f.Close()
-
-	dockerSecret, err := secrets.CreateSealedDockerConfigSecret(meta.NamespacedName(ns, dockerSecretName), f)
-	if err != nil {
-		return nil, err
-	}
-
-	return dockerSecret, nil
-
 }
 
 func createPatchFiles(outputs map[string]interface{}, name, repo string) {
