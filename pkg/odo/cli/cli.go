@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/odo/pkg/odo/cli/login"
 	"github.com/openshift/odo/pkg/odo/cli/logout"
 	"github.com/openshift/odo/pkg/odo/cli/pipelines"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/environment"
 	"github.com/openshift/odo/pkg/odo/cli/preference"
 	"github.com/openshift/odo/pkg/odo/cli/project"
 	"github.com/openshift/odo/pkg/odo/cli/service"
@@ -176,8 +177,8 @@ func NewCmdOdo(name, fullName string) *cobra.Command {
 
 		pipelines.NewCmdComponent(pipelines.RecommendedCommandName, util.GetFullName(fullName, pipelines.RecommendedCommandName)),
 		pipelines.NewCmdInit(pipelines.InitRecommendedCommandName, util.GetFullName(fullName, pipelines.InitRecommendedCommandName)),
-		pipelines.NewCmdAdd(pipelines.AddRecommendedCommandName, util.GetFullName(fullName, pipelines.AddRecommendedCommandName)),
-		pipelines.NewCmdEnv(pipelines.EnvRecommendedCommandName, util.GetFullName(fullName, pipelines.EnvRecommendedCommandName)),
+		environment.NewCmdAddEnv(environment.AddEnvRecommendedCommandName, util.GetFullName(fullName, environment.AddEnvRecommendedCommandName)),
+		environment.NewCmdEnv(environment.EnvRecommendedCommandName, util.GetFullName(fullName, environment.EnvRecommendedCommandName)),
 	)
 
 	odoutil.VisitCommands(rootCmd, reconfigureCmdWithSubcmd)
