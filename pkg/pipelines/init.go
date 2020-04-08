@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/roles"
 	"github.com/openshift/odo/pkg/pipelines/routes"
+	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/tasks"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
 	v1rbac "k8s.io/api/rbac/v1"
@@ -90,22 +91,7 @@ func Init(o *InitParameters) error {
 		return fmt.Errorf("%s already exists at %s", gitopsName, gitopsPath)
 	}
 
-	// key: path of the resource
-	// value: YAML content of the resource
-	// outputs := map[string]interface{}{}
-
-	// if o.GitOpsWebhookSecret != "" {
-	// 	githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret),
-	// 		o.GitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
-	// 	}
-
-	// 	outputs[secretsPath] = githubSecret
-	// }
-
-	// create gitops pipeline
-	files, err := CreatePipelineResources(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
+	files, err := CreateResources(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
 	if err != nil {
 		return err
 	}
@@ -139,46 +125,46 @@ func getCICDDir(path, prefix string) string {
 	return filepath.Join(path, envsDir, addPrefix(prefix, cicdDir))
 }
 
-func CreatePipelineResources(prefix, gitOpsRepo, gitOpsWebhook string) (map[string]interface{}, error) {
+func CreateResources(prefix, gitOpsRepo, gitOpsWebhook string) (map[string]interface{}, error) {
 
 	// key: path of the resource
 	// value: YAML content of the resource
 	outputs := map[string]interface{}{}
-	namespaces := namespaceNames(prefix)
+	cicdNamespace := addPrefix(prefix, "cicd")
 
-	// githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret),
-	// 	gitOpsWebhook, eventlisteners.WebhookSecretKey)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
-	// }
+	githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdNamespace, eventlisteners.GitOpsWebhookSecret),
+		gitOpsWebhook, eventlisteners.WebhookSecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
+	}
 
-	// outputs[secretsPath] = githubSecret
+	outputs[secretsPath] = githubSecret
 
-	outputs[namespacesPath] = CreateNamespace(namespaces["cicd"])
+	outputs[namespacesPath] = CreateNamespace(cicdNamespace)
 
 	outputs[rolesPath] = roles.CreateClusterRole(meta.NamespacedName("", roles.ClusterRoleName), rules)
 
-	sa := roles.CreateServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
+	sa := roles.CreateServiceAccount(meta.NamespacedName(cicdNamespace, saName))
 
-	outputs[rolebindingsPath] = roles.CreateRoleBinding(meta.NamespacedName(namespaces["cicd"], roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
+	outputs[rolebindingsPath] = roles.CreateRoleBinding(meta.NamespacedName(cicdNamespace, roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
 
-	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(namespaces["cicd"], getPipelinesDir("", prefix))
+	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, getPipelinesDir("", prefix))
 
-	outputs[ciPipelinesPath] = createCIPipeline(meta.NamespacedName(namespaces["cicd"], "ci-dryrun-from-pr-pipeline"), namespaces["cicd"])
+	outputs[ciPipelinesPath] = createCIPipeline(meta.NamespacedName(cicdNamespace, "ci-dryrun-from-pr-pipeline"), cicdNamespace)
 
-	outputs[cdPipelinesPath] = createCDPipeline(meta.NamespacedName(namespaces["cicd"], "cd-deploy-from-push-pipeline"), namespaces["cicd"])
+	outputs[cdPipelinesPath] = createCDPipeline(meta.NamespacedName(cicdNamespace, "cd-deploy-from-push-pipeline"), cicdNamespace)
 
-	outputs[prBindingPath] = triggers.CreatePRBinding(namespaces["cicd"])
+	outputs[prBindingPath] = triggers.CreatePRBinding(cicdNamespace)
 
-	outputs[pushBindingPath] = triggers.CreatePushBinding(namespaces["cicd"])
+	outputs[pushBindingPath] = triggers.CreatePushBinding(cicdNamespace)
 
-	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(namespaces["cicd"], saName)
+	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(cicdNamespace, saName)
 
-	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(namespaces["cicd"], saName)
+	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(cicdNamespace, saName)
 
-	outputs[eventListenerPath] = eventlisteners.Generate(gitOpsRepo, namespaces["cicd"], saName)
+	outputs[eventListenerPath] = eventlisteners.Generate(gitOpsRepo, cicdNamespace, saName)
 
-	outputs[routePath] = routes.Generate(namespaces["cicd"])
+	outputs[routePath] = routes.Generate(cicdNamespace)
 	return outputs, nil
 }
 

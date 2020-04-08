@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 )
 
 // WriteResources takes a prefix path, and a map of paths to values, and will
@@ -36,7 +36,7 @@ func marshalItemsToFile(filename string, items []interface{}) error {
 		return fmt.Errorf("failed to Create file %s: %v", filename, err)
 	}
 	defer f.Close()
-	return marshalOutputs(os.Stdout, items)
+	return marshalOutputs(f, items)
 }
 
 func list(i interface{}) []interface{} {

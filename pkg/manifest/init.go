@@ -21,6 +21,7 @@ type InitParameters struct {
 
 // Init bootstraps a GitOps manifest and repository structure.
 func Init(o *InitParameters) error {
+
 	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
 	if err != nil {
 		return err
@@ -31,11 +32,11 @@ func Init(o *InitParameters) error {
 
 func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook string) (resources, error) {
 	manifest := createManifest(prefix)
-	initialFiles := map[string]interface{}{
+	initialFiles := resources{
 		"manifest.yaml": manifest,
 	}
 
-	cicdResources, err := pipelines.CreatePipelineResources(prefix, gitOpsRepo, gitOpsWebhook)
+	cicdResources, err := pipelines.CreateResources(prefix, gitOpsRepo, gitOpsWebhook)
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +104,9 @@ func cicdEnvironmentPath(m *config.Manifest) string {
 	return pathForEnvironment(m.Environments[0])
 }
 
-func getResourceFiles(resources map[string]interface{}) []string {
+func getResourceFiles(res resources) []string {
 	files := []string{}
-	for k := range resources {
+	for k := range res {
 		files = append(files, k)
 	}
 	sort.Strings(files)

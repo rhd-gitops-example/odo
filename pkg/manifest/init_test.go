@@ -1,7 +1,6 @@
 package manifest
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -36,18 +35,18 @@ func TestInitialFiles(t *testing.T) {
 	want := resources{
 		"manifest.yaml": createManifest(prefix),
 	}
-	cicdResources, err := pipelines.CreatePipelineResources(prefix, gitOpsRepo, gitOpsWebhook)
+	cicdResources, err := pipelines.CreateResources(prefix, gitOpsRepo, gitOpsWebhook)
 	if err != nil {
-		t.Fatalf("CreatePipelineResources() failes due to :%s\n", err)
+		t.Fatalf("CreatePipelineResources() failed due to :%s\n", err)
 	}
 	files := getResourceFiles(cicdResources)
-	merge(addPrefixToResources("environments/tst-cicd", getCICDKustomization(files)), want)
-	merge(addPrefixToResources("environments/tst-cicd/base/pipelines", cicdResources), want)
 
+	want = merge(addPrefixToResources("environments/tst-cicd/base/pipelines", cicdResources), want)
+
+	want = merge(addPrefixToResources("environments/tst-cicd", getCICDKustomization(files)), want)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("outputs didn't match: %s\n", diff)
 	}
-	fmt.Println(getResourceFiles(want))
 }
 
 func TestGetCICDKustomization(t *testing.T) {

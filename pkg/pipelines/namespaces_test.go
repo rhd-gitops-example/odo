@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateNamespace(t *testing.T) {
-	ns := createNamespace("test-environment")
+	ns := CreateNamespace("test-environment")
 	want := &corev1.Namespace{
 		TypeMeta: namespaceTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
@@ -42,9 +42,9 @@ func TestCreateNamespaces(t *testing.T) {
 		"test-cicd-environment",
 	})
 	want := []*corev1.Namespace{
-		createNamespace("test-dev-environment"),
-		createNamespace("test-stage-environment"),
-		createNamespace("test-cicd-environment"),
+		CreateNamespace("test-dev-environment"),
+		CreateNamespace("test-stage-environment"),
+		CreateNamespace("test-cicd-environment"),
 	}
 	if diff := cmp.Diff(want, ns); diff != "" {
 		t.Fatalf("createNamespaces() failed got\n%s", diff)
@@ -68,7 +68,7 @@ func TestCheckNamespace(t *testing.T) {
 			false,
 		},
 	}
-	validNamespace := createNamespace("sample")
+	validNamespace := CreateNamespace("sample")
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			cs := testclient.NewSimpleClientset(validNamespace)
