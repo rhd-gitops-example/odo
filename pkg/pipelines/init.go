@@ -82,7 +82,7 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	gitopsName := getGitopsRepoName(o.GitOpsRepo)
+	gitopsName := GetGitopsRepoName(o.GitOpsRepo)
 	gitopsPath := filepath.Join(o.Output, gitopsName)
 
 	// check if the gitops dir already exists
@@ -211,7 +211,7 @@ func checkTektonInstall() (bool, error) {
 	return tektonChecker.checkInstall()
 }
 
-func getGitopsRepoName(repo string) string {
+func GetGitopsRepoName(repo string) string {
 	return strings.Split(repo, "/")[1]
 }
 

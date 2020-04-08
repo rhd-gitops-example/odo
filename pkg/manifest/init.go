@@ -1,6 +1,8 @@
 package manifest
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 
@@ -22,11 +24,19 @@ type InitParameters struct {
 // Init bootstraps a GitOps manifest and repository structure.
 func Init(o *InitParameters) error {
 
+	gitopsName := pipelines.GetGitopsRepoName(o.GitOpsRepo)
+	gitopsPath := filepath.Join(o.Output, gitopsName)
+
+	exists, err := isExisting(gitopsPath)
+	if exists {
+		return err
+	}
+
 	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
 	if err != nil {
 		return err
 	}
-	_, err = yaml.WriteResources(o.Output, outputs)
+	_, err = yaml.WriteResources(gitopsPath, outputs)
 	return err
 }
 
@@ -111,4 +121,15 @@ func getResourceFiles(res resources) []string {
 	}
 	sort.Strings(files)
 	return files
+}
+
+func isExisting(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	if fileInfo.IsDir() {
+		return true, fmt.Errorf("%q: Dir already exists at %s", filepath.Base(path), path)
+	}
+	return true, fmt.Errorf("%q: File already exists at %s", filepath.Base(path), path)
 }
