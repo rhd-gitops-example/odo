@@ -81,10 +81,10 @@ func TestAddCommandWithMissingParams(t *testing.T) {
 			`Required flag(s) "env-name" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
-		t.Run(tt.desc, func(t *testing.T) {
+		t.Run(tt.desc, func(rt *testing.T) {
 			_, _, err := executeCommand(NewCmdAddEnv("add", "odo pipelines add"), tt.flags...)
 			if err.Error() != tt.wantErr {
-				t.Errorf("got %s, want %s", err, tt.wantErr)
+				rt.Errorf("got %s, want %s", err, tt.wantErr)
 			}
 		})
 	}

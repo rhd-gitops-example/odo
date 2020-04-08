@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEnv(t *testing.T) {
@@ -29,12 +31,8 @@ func TestEnv(t *testing.T) {
 	}
 
 	for _, path := range wantedPaths {
-		t.Run(fmt.Sprintf("checking path %s", path), func(t *testing.T) {
-			exists, err := isExisting(filepath.Join(gitopsPath, path))
-			assertNoError(t, err)
-			if !exists {
-				t.Fatalf("path %s doesn't exist", path)
-			}
+		t.Run(fmt.Sprintf("checking path %s", path), func(rt *testing.T) {
+			assert.FileExists(rt, filepath.Join(gitopsPath, path))
 		})
 	}
 }
