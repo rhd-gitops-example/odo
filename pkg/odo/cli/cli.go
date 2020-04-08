@@ -177,7 +177,6 @@ func NewCmdOdo(name, fullName string) *cobra.Command {
 
 		pipelines.NewCmdComponent(pipelines.RecommendedCommandName, util.GetFullName(fullName, pipelines.RecommendedCommandName)),
 		pipelines.NewCmdInit(pipelines.InitRecommendedCommandName, util.GetFullName(fullName, pipelines.InitRecommendedCommandName)),
-		environment.NewCmdAddEnv(environment.AddEnvRecommendedCommandName, util.GetFullName(fullName, environment.AddEnvRecommendedCommandName)),
 		environment.NewCmdEnv(environment.EnvRecommendedCommandName, util.GetFullName(fullName, environment.EnvRecommendedCommandName)),
 	)
 

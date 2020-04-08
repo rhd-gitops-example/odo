@@ -1,9 +1,10 @@
 package environment
 
 import (
-	"github.com/spf13/cobra"
+	"fmt"
 
 	odoutil "github.com/openshift/odo/pkg/odo/util"
+	"github.com/spf13/cobra"
 )
 
 // EnvRecommendedCommandName is the recommended environment command name.
@@ -13,11 +14,12 @@ const EnvRecommendedCommandName = "environment"
 func NewCmdEnv(name, fullName string) *cobra.Command {
 
 	addEnvCmd := NewCmdAddEnv(AddEnvRecommendedCommandName, odoutil.GetFullName(fullName, AddEnvRecommendedCommandName))
+
 	var envCmd = &cobra.Command{
 		Use:   name,
-		Short: "Add a new component to GitOps",
-		//Example: fmt.Sprintf("%s\n%s\n\n  See sub-commands individually for more examples",
-		//fullName, EnvRecommendedCommandName),
+		Short: "Manage an environment in GitOps",
+		Example: fmt.Sprintf("%s\n%s\n\n  See sub-commands individually for more examples",
+			fullName, AddEnvRecommendedCommandName),
 		Run: func(cmd *cobra.Command, args []string) {
 		},
 	}
