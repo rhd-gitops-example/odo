@@ -160,7 +160,7 @@ func createManifestsForImageRepo(sa *corev1.ServiceAccount, isInternalRegistry b
 			return nil, err
 		}
 		if !namespaceExists {
-			out = append(out, createNamespace(internalRegistryNamespace))
+			out = append(out, CreateNamespace(internalRegistryNamespace))
 		}
 
 		// pipelines sa should have access to internal registry

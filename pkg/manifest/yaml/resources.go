@@ -36,7 +36,7 @@ func marshalItemsToFile(filename string, items []interface{}) error {
 		return fmt.Errorf("failed to Create file %s: %v", filename, err)
 	}
 	defer f.Close()
-	return marshalOutputs(f, items)
+	return marshalOutputs(os.Stdout, items)
 }
 
 func list(i interface{}) []interface{} {

@@ -23,7 +23,7 @@ var (
 func createNamespaces(names []string) []*corev1.Namespace {
 	ns := []*corev1.Namespace{}
 	for _, n := range names {
-		ns = append(ns, createNamespace(n))
+		ns = append(ns, CreateNamespace(n))
 	}
 	return ns
 }
@@ -36,7 +36,7 @@ func namespaceNames(prefix string) map[string]string {
 	return prefixedNames
 }
 
-func createNamespace(name string) *corev1.Namespace {
+func CreateNamespace(name string) *corev1.Namespace {
 	ns := &corev1.Namespace{
 		TypeMeta: namespaceTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{

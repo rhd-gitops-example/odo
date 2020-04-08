@@ -2,9 +2,11 @@ package manifest
 
 import (
 	"path/filepath"
+	"sort"
 
 	"github.com/openshift/odo/pkg/manifest/config"
 	"github.com/openshift/odo/pkg/manifest/yaml"
+	"github.com/openshift/odo/pkg/pipelines"
 )
 
 type resources map[string]interface{}
@@ -19,7 +21,7 @@ type InitParameters struct {
 
 // Init bootstraps a GitOps manifest and repository structure.
 func Init(o *InitParameters) error {
-	outputs, err := createInitialFiles(o.Prefix)
+	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
 	if err != nil {
 		return err
 	}
@@ -27,13 +29,24 @@ func Init(o *InitParameters) error {
 	return err
 }
 
-func createInitialFiles(prefix string) (map[string]interface{}, error) {
+func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook string) (resources, error) {
 	manifest := createManifest(prefix)
 	initialFiles := map[string]interface{}{
 		"manifest.yaml": manifest,
 	}
-	cicdKustomizations := addPrefixToResources(cicdEnvironmentPath(manifest), getCICDKustomization())
+
+	cicdResources, err := pipelines.CreatePipelineResources(prefix, gitOpsRepo, gitOpsWebhook)
+	if err != nil {
+		return nil, err
+	}
+	files := getResourceFiles(cicdResources)
+
+	prefixedResources := addPrefixToResources(filepath.Join(cicdEnvironmentPath(manifest), "base/pipelines"), cicdResources)
+	initialFiles = merge(prefixedResources, initialFiles)
+
+	cicdKustomizations := addPrefixToResources(cicdEnvironmentPath(manifest), getCICDKustomization(files))
 	initialFiles = merge(cicdKustomizations, initialFiles)
+
 	return initialFiles, nil
 }
 
@@ -48,13 +61,16 @@ func createManifest(prefix string) *config.Manifest {
 	}
 }
 
-func getCICDKustomization() resources {
+func getCICDKustomization(files []string) resources {
 	return resources{
 		"base/kustomization.yaml": map[string]interface{}{
-			"resources": []string{},
+			"bases": []string{"./pipelines"},
 		},
 		"overlays/kustomization.yaml": map[string]interface{}{
 			"bases": []string{"../base"},
+		},
+		"base/pipelines/kustomization.yaml": map[string]interface{}{
+			"resources": files,
 		},
 	}
 }
@@ -85,4 +101,13 @@ func merge(from, to resources) resources {
 // TODO: this should probably use the .FindCICDEnvironment on the manifest.
 func cicdEnvironmentPath(m *config.Manifest) string {
 	return pathForEnvironment(m.Environments[0])
+}
+
+func getResourceFiles(resources map[string]interface{}) []string {
+	files := []string{}
+	for k := range resources {
+		files = append(files, k)
+	}
+	sort.Strings(files)
+	return files
 }

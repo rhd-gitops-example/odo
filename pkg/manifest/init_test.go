@@ -1,10 +1,12 @@
 package manifest
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/odo/pkg/manifest/config"
+	"github.com/openshift/odo/pkg/pipelines"
 )
 
 func TestCreateManifest(t *testing.T) {
@@ -25,29 +27,42 @@ func TestCreateManifest(t *testing.T) {
 
 func TestInitialFiles(t *testing.T) {
 	prefix := "tst-"
-	got, err := createInitialFiles(prefix)
+	gitOpsRepo := "test-repo"
+	gitOpsWebhook := "123"
+	got, err := createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]interface{}{
+	want := resources{
 		"manifest.yaml": createManifest(prefix),
 	}
-	want = merge(addPrefixToResources("environments/tst-cicd", getCICDKustomization()), want)
+	cicdResources, err := pipelines.CreatePipelineResources(prefix, gitOpsRepo, gitOpsWebhook)
+	if err != nil {
+		t.Fatalf("CreatePipelineResources() failes due to :%s\n", err)
+	}
+	files := getResourceFiles(cicdResources)
+	merge(addPrefixToResources("environments/tst-cicd", getCICDKustomization(files)), want)
+	merge(addPrefixToResources("environments/tst-cicd/base/pipelines", cicdResources), want)
+
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("outputs didn't match: %s\n", diff)
 	}
+	fmt.Println(getResourceFiles(want))
 }
 
 func TestGetCICDKustomization(t *testing.T) {
 	want := resources{
 		"base/kustomization.yaml": map[string]interface{}{
-			"resources": []string{},
+			"bases": []string{"./pipelines"},
 		},
 		"overlays/kustomization.yaml": map[string]interface{}{
 			"bases": []string{"../base"},
 		},
+		"base/pipelines/kustomization.yaml": map[string]interface{}{
+			"resources": []string{"resource1", "resource2"},
+		},
 	}
-	got := getCICDKustomization()
+	got := getCICDKustomization([]string{"resource1", "resource2"})
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("getCICDKustomization was not correct: %s\n", diff)
 	}

@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/roles"
 	"github.com/openshift/odo/pkg/pipelines/routes"
-	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/tasks"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
 	v1rbac "k8s.io/api/rbac/v1"
@@ -82,8 +81,6 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	namespaces := namespaceNames(o.Prefix)
-
 	gitopsName := getGitopsRepoName(o.GitOpsRepo)
 	gitopsPath := filepath.Join(o.Output, gitopsName)
 
@@ -95,20 +92,23 @@ func Init(o *InitParameters) error {
 
 	// key: path of the resource
 	// value: YAML content of the resource
-	outputs := map[string]interface{}{}
+	// outputs := map[string]interface{}{}
 
-	if o.GitOpsWebhookSecret != "" {
-		githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret),
-			o.GitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
-		if err != nil {
-			return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
-		}
+	// if o.GitOpsWebhookSecret != "" {
+	// 	githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret),
+	// 		o.GitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
+	// 	}
 
-		outputs[secretsPath] = githubSecret
-	}
+	// 	outputs[secretsPath] = githubSecret
+	// }
 
 	// create gitops pipeline
-	files := createPipelineResources(outputs, namespaces, o.GitOpsRepo, o.Prefix)
+	files, err := CreatePipelineResources(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
+	if err != nil {
+		return err
+	}
 
 	pipelinesPath := getPipelinesDir(gitopsPath, o.Prefix)
 
@@ -139,9 +139,22 @@ func getCICDDir(path, prefix string) string {
 	return filepath.Join(path, envsDir, addPrefix(prefix, cicdDir))
 }
 
-func createPipelineResources(outputs map[string]interface{}, namespaces map[string]string, gitopsRepo, prefix string) map[string]interface{} {
+func CreatePipelineResources(prefix, gitOpsRepo, gitOpsWebhook string) (map[string]interface{}, error) {
 
-	outputs[namespacesPath] = createNamespace(namespaces["cicd"])
+	// key: path of the resource
+	// value: YAML content of the resource
+	outputs := map[string]interface{}{}
+	namespaces := namespaceNames(prefix)
+
+	// githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(namespaces["cicd"], eventlisteners.GitOpsWebhookSecret),
+	// 	gitOpsWebhook, eventlisteners.WebhookSecretKey)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
+	// }
+
+	// outputs[secretsPath] = githubSecret
+
+	outputs[namespacesPath] = CreateNamespace(namespaces["cicd"])
 
 	outputs[rolesPath] = roles.CreateClusterRole(meta.NamespacedName("", roles.ClusterRoleName), rules)
 
@@ -163,11 +176,10 @@ func createPipelineResources(outputs map[string]interface{}, namespaces map[stri
 
 	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(namespaces["cicd"], saName)
 
-	outputs[eventListenerPath] = eventlisteners.Generate(gitopsRepo, namespaces["cicd"], saName)
+	outputs[eventListenerPath] = eventlisteners.Generate(gitOpsRepo, namespaces["cicd"], saName)
 
 	outputs[routePath] = routes.Generate(namespaces["cicd"])
-
-	return outputs
+	return outputs, nil
 }
 
 func writeResources(path string, files map[string]interface{}) ([]string, error) {
