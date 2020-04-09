@@ -11,8 +11,8 @@ import (
 // RecommendedCommandName is the recommended pipelines command name.
 const RecommendedCommandName = "pipelines"
 
-// NewCmdComponent implements the component odo command
-func NewCmdComponent(name, fullName string) *cobra.Command {
+// NewCmdPipelines creates a new pipelines command
+func NewCmdPipelines(name, fullName string) *cobra.Command {
 
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
 	envCmd := environment.NewCmdEnv(environment.EnvRecommendedCommandName, odoutil.GetFullName(fullName, environment.EnvRecommendedCommandName))

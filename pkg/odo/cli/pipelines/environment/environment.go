@@ -10,7 +10,7 @@ import (
 // EnvRecommendedCommandName is the recommended environment command name.
 const EnvRecommendedCommandName = "environment"
 
-// NewCmdEnv implements the component odo command
+// NewCmdEnv create a new environment command
 func NewCmdEnv(name, fullName string) *cobra.Command {
 
 	addEnvCmd := NewCmdAddEnv(AddEnvRecommendedCommandName, odoutil.GetFullName(fullName, AddEnvRecommendedCommandName))

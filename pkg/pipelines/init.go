@@ -131,6 +131,7 @@ func Init(o *InitParameters) error {
 	if err := addKustomize("bases", []string{"../base"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), "overlays", kustomize)); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -172,7 +173,7 @@ func createPipelineResources(outputs map[string]interface{}, namespaces map[stri
 func writeResources(path string, files map[string]interface{}) ([]string, error) {
 	filenames := make([]string, 0)
 	for filename, item := range files {
-		err := marshalItemsToFile(filepath.Join(path, filename), list(item))
+		err := marshalItemsToFile(filepath.Join(path, filename), item)
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +182,7 @@ func writeResources(path string, files map[string]interface{}) ([]string, error)
 	return filenames, nil
 }
 
-func marshalItemsToFile(filename string, items []interface{}) error {
+func marshalItemsToFile(filename string, item interface{}) error {
 	err := os.MkdirAll(filepath.Dir(filename), 0755)
 	if err != nil {
 		return fmt.Errorf("failed to MkDirAll for %s: %v", filename, err)
@@ -191,11 +192,7 @@ func marshalItemsToFile(filename string, items []interface{}) error {
 		return fmt.Errorf("failed to Create file %s: %v", filename, err)
 	}
 	defer f.Close()
-	return marshalOutputs(f, items)
-}
-
-func list(i ...interface{}) []interface{} {
-	return i
+	return marshalOutput(f, item)
 }
 
 func getPipelinesDir(rootPath, prefix string) string {

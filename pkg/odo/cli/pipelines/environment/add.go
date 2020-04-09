@@ -29,9 +29,9 @@ var (
 // AddEnvParameters encapsulates the parameters for the odo pipelines init command.
 type AddEnvParameters struct {
 	envName    string
+	gitOpsRepo string
 	output     string
 	prefix     string
-	gitOpsRepo string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
