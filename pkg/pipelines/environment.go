@@ -37,7 +37,7 @@ func Env(o *EnvParameters) error {
 
 	// check if the environment dir already exists
 	if exists, _ := isExisting(envPath); exists {
-		return fmt.Errorf("%s already exists", envName)
+		return fmt.Errorf("directory for environment %s", envName)
 	}
 
 	err := addKustomize("resources", []string{envNamespace, envRoleBinding}, filepath.Join(envPath, "base", kustomize))

@@ -12,15 +12,16 @@ import (
 func TestEnv(t *testing.T) {
 
 	gitopsPath, cleanUp := fakeGitopsDir(t)
+	outputPath := filepath.Dir(gitopsPath)
 	defer cleanUp()
 
 	envParameters := EnvParameters{
 		EnvName:    "dev",
 		GitOpsRepo: "org/gitops",
-		Output:     filepath.Dir(gitopsPath),
+		Output:     outputPath,
 	}
 	if err := Env(&envParameters); err != nil {
-		t.Fatalf("Env() failed :%s", err.Error())
+		t.Fatalf("Env() failed :%s", err)
 	}
 
 	wantedPaths := []string{
@@ -31,7 +32,7 @@ func TestEnv(t *testing.T) {
 	}
 
 	for _, path := range wantedPaths {
-		t.Run(fmt.Sprintf("checking path %s", path), func(t *testing.T) {
+		t.Run(fmt.Sprintf("checking path %s already exists", path), func(t *testing.T) {
 			assert.FileExists(t, filepath.Join(gitopsPath, path))
 		})
 	}
