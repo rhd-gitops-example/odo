@@ -31,14 +31,12 @@ func Env(o *EnvParameters) error {
 	envPath := getEnvPath(gitopsPath, o.EnvName, o.Prefix)
 
 	// check if the gitops dir exists
-	exists, _ := isExisting(gitopsPath)
-	if !exists {
-		return fmt.Errorf("%s doesn't exist at %s", gitopsName, o.Output)
+	if !isDirectory(gitopsPath) {
+		return fmt.Errorf("%s directory doesn't exist at %s", gitopsName, o.Output)
 	}
 
 	// check if the environment dir already exists
-	exists, _ = isExisting(envPath)
-	if exists {
+	if exists, _ := isExisting(envPath); exists {
 		return fmt.Errorf("%s already exists", envName)
 	}
 
