@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openshift/odo/pkg/manifest/config"
 	"github.com/openshift/odo/pkg/pipelines"
 )
@@ -44,9 +45,17 @@ func TestInitialFiles(t *testing.T) {
 	want = merge(addPrefixToResources("environments/tst-cicd/base/pipelines", cicdResources), want)
 
 	want = merge(addPrefixToResources("environments/tst-cicd", getCICDKustomization(files)), want)
-	if diff := cmp.Diff(want, got); diff != "" {
+
+	if diff := cmp.Diff(want, got, cmpopts.IgnoreMapEntries(ignoreSecrets)); diff != "" {
 		t.Fatalf("outputs didn't match: %s\n", diff)
 	}
+}
+
+func ignoreSecrets(k string, v interface{}) bool {
+	if k == "environments/tst-cicd/base/pipelines/03-secrets/gitops-webhook-secret.yaml" {
+		return true
+	}
+	return false
 }
 
 func TestGetCICDKustomization(t *testing.T) {

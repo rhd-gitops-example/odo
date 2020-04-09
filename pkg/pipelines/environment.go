@@ -24,7 +24,7 @@ type EnvParameters struct {
 // Env will bootstrap a new environment directory
 func Env(o *EnvParameters) error {
 
-	gitopsName := getGitopsRepoName(o.GitOpsRepo)
+	gitopsName := GetGitopsRepoName(o.GitOpsRepo)
 	gitopsPath := filepath.Join(o.Output, gitopsName)
 
 	envName := addPrefix(o.Prefix, o.EnvName)
@@ -64,7 +64,7 @@ func addEnvResources(prefix, envPath, envName string) error {
 	outputs := map[string]interface{}{}
 	basePath := filepath.Join(envPath, "base")
 
-	outputs[envNamespace] = createNamespace(envName)
+	outputs[envNamespace] = CreateNamespace(envName)
 
 	sa := roles.CreateServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
 

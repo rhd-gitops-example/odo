@@ -52,7 +52,7 @@ func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook string) (resources, er
 	}
 	files := getResourceFiles(cicdResources)
 
-	prefixedResources := addPrefixToResources(filepath.Join(cicdEnvironmentPath(manifest), "base/pipelines"), cicdResources)
+	prefixedResources := addPrefixToResources(pipelinesPath(manifest), cicdResources)
 	initialFiles = merge(prefixedResources, initialFiles)
 
 	cicdKustomizations := addPrefixToResources(cicdEnvironmentPath(manifest), getCICDKustomization(files))
@@ -88,6 +88,10 @@ func getCICDKustomization(files []string) resources {
 
 func pathForEnvironment(env *config.Environment) string {
 	return filepath.Join("environments", env.Name)
+}
+
+func pipelinesPath(m *config.Manifest) string {
+	return filepath.Join(cicdEnvironmentPath(m), "base/pipelines")
 }
 
 func addPrefixToResources(prefix string, files resources) map[string]interface{} {
