@@ -70,8 +70,7 @@ func addEnvResources(prefix, envPath, envName string) error {
 
 	sa := roles.CreateServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
 
-	outputs[envRoleBinding] = roles.CreateRoleBinding(meta.NamespacedName(envName, roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
-
+	outputs[envRoleBinding] = roles.CreateRoleBinding(meta.NamespacedName(envName, roleBindingName), sa, "ClusterRole", "edit")
 	_, err := writeResources(basePath, outputs)
 	if err != nil {
 		return err
