@@ -174,9 +174,8 @@ func NewCmdOdo(name, fullName string) *cobra.Command {
 		config.NewCmdConfiguration(config.RecommendedCommandName, util.GetFullName(fullName, config.RecommendedCommandName)),
 		preference.NewCmdPreference(preference.RecommendedCommandName, util.GetFullName(fullName, preference.RecommendedCommandName)),
 		debug.NewCmdDebug(debug.RecommendedCommandName, util.GetFullName(fullName, debug.RecommendedCommandName)),
-		pipelines.NewCmdComponent(pipelines.RecommendedCommandName, util.GetFullName(fullName, pipelines.RecommendedCommandName)),
-		pipelines.NewCmdInit(pipelines.InitRecommendedCommandName, util.GetFullName(fullName, pipelines.InitRecommendedCommandName)),
 		manifest.NewCmdManifest(manifest.RecommendedCommandName, util.GetFullName(fullName, manifest.RecommendedCommandName)),
+		pipelines.NewCmdPipelines(pipelines.RecommendedCommandName, util.GetFullName(fullName, pipelines.RecommendedCommandName)),
 	)
 
 	odoutil.VisitCommands(rootCmd, reconfigureCmdWithSubcmd)
