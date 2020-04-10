@@ -2,14 +2,13 @@ package environment
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
-	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/spf13/cobra"
 
-	ktemplates "k8s.io/kubectl/pkg/util/templates"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
 const (
@@ -29,9 +28,10 @@ var (
 
 // AddEnvParameters encapsulates the parameters for the odo pipelines init command.
 type AddEnvParameters struct {
-	envName  string
-	output   string
-	manifest string
+	envName    string
+	gitOpsRepo string
+	output     string
+	prefix     string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -46,26 +46,31 @@ func NewAddEnvParameters() *AddEnvParameters {
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (eo *AddEnvParameters) Complete(name string, cmd *cobra.Command, args []string) error {
+	if eo.prefix != "" && !strings.HasSuffix(eo.prefix, "-") {
+		eo.prefix = eo.prefix + "-"
+	}
 	return nil
 }
 
 // Validate validates the parameters of the EnvParameters.
 func (eo *AddEnvParameters) Validate() error {
+	// TODO: this won't work with GitLab as the repo can have more path elements.
+	if len(strings.Split(eo.gitOpsRepo, "/")) != 2 {
+		return fmt.Errorf("repo must be org/repo: %s", eo.gitOpsRepo)
+	}
 	return nil
 }
 
 // Run runs the project bootstrap command.
 func (eo *AddEnvParameters) Run() error {
 	options := pipelines.EnvParameters{
-		EnvName:          eo.envName,
-		ManifestFilename: eo.manifest,
+		GitOpsRepo: eo.gitOpsRepo,
+		EnvName:    eo.envName,
+		Output:     eo.output,
+		Prefix:     eo.prefix,
 	}
-	err := pipelines.AddEnv(&options, ioutils.NewFilesystem())
-	if err != nil {
-		return nil
-	}
-	log.Successf("Created Environment %s sucessfully.", eo.envName)
-	return nil
+
+	return pipelines.Env(&options)
 }
 
 // NewCmdAddEnv creates the project add environment command.
@@ -82,8 +87,12 @@ func NewCmdAddEnv(name, fullName string) *cobra.Command {
 		},
 	}
 
+	addEnvCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
+	addEnvCmd.MarkFlagRequired("gitops-repo")
 	addEnvCmd.Flags().StringVar(&o.envName, "env-name", "", "name of the environment/namespace")
 	addEnvCmd.MarkFlagRequired("env-name")
-	addEnvCmd.Flags().StringVar(&o.manifest, "manifest", "pipelines.yaml", "path to manifest file")
+	addEnvCmd.Flags().StringVar(&o.output, "output", ".", "folder/path to add Gitops resources")
+	addEnvCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
+
 	return addEnvCmd
 }
