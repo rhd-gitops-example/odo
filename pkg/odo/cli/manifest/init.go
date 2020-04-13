@@ -90,9 +90,10 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 
 	initCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
 	initCmd.MarkFlagRequired("gitops-repo")
-	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for gitops repository")
+	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for GitOps repository")
 	initCmd.MarkFlagRequired("gitops-webhook-secret")
-	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
+	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add GitOps resources")
+	initCmd.MarkFlagRequired("output")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	return initCmd
 }

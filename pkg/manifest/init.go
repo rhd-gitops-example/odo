@@ -36,10 +36,7 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	gitopsName := pipelines.GetGitopsRepoName(o.GitOpsRepo)
-	gitopsPath := filepath.Join(o.Output, gitopsName)
-
-	exists, err := isExisting(gitopsPath)
+	exists, err := isExisting(o.Output)
 	if exists {
 		return err
 	}
@@ -48,7 +45,7 @@ func Init(o *InitParameters) error {
 	if err != nil {
 		return err
 	}
-	_, err = yaml.WriteResources(gitopsPath, outputs)
+	_, err = yaml.WriteResources(o.Output, outputs)
 	return err
 }
 
