@@ -1,7 +1,6 @@
 package pipelines
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/openshift/odo/pkg/pipelines/meta"
@@ -15,32 +14,30 @@ const (
 
 // EnvParameters encapsulates parameters for add env command
 type EnvParameters struct {
-	EnvName    string
-	Output     string
-	Prefix     string
-	GitOpsRepo string
+	EnvName string
+	Output  string
+	Prefix  string
 }
 
 // Env will bootstrap a new environment directory
 func Env(o *EnvParameters) error {
 
-	gitopsName := GetGitopsRepoName(o.GitOpsRepo)
-	gitopsPath := filepath.Join(o.Output, gitopsName)
-
 	envName := addPrefix(o.Prefix, o.EnvName)
-	envPath := getEnvPath(gitopsPath, o.EnvName, o.Prefix)
+	envPath := getEnvPath(o.Output, o.EnvName, o.Prefix)
 
 	// check if the gitops dir exists
-	if !isDirectory(gitopsPath) {
-		return fmt.Errorf("%s directory doesn't exist at %s", gitopsName, o.Output)
+	exists, err := isExisting(o.Output)
+	if !exists {
+		return err
 	}
 
 	// check if the environment dir already exists
-	if exists, _ := isExisting(envPath); exists {
-		return fmt.Errorf("directory for environment %s", envName)
+	exists, err = isExisting(envPath)
+	if exists {
+		return err
 	}
 
-	err := addKustomize("resources", []string{envNamespace, envRoleBinding}, filepath.Join(envPath, "base", kustomize))
+	err = addKustomize("resources", []string{envNamespace, envRoleBinding}, filepath.Join(envPath, "base", kustomize))
 	if err != nil {
 		return err
 	}

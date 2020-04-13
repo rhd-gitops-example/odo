@@ -12,13 +12,11 @@ import (
 func TestEnv(t *testing.T) {
 
 	gitopsPath, cleanUp := fakeGitopsDir(t)
-	outputPath := filepath.Dir(gitopsPath)
 	defer cleanUp()
 
 	envParameters := EnvParameters{
-		EnvName:    "dev",
-		GitOpsRepo: "org/gitops",
-		Output:     outputPath,
+		EnvName: "dev",
+		Output:  gitopsPath,
 	}
 	if err := Env(&envParameters); err != nil {
 		t.Fatalf("Env() failed :%s", err)

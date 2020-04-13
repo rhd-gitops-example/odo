@@ -39,46 +39,20 @@ func TestCompleteEnvParameters(t *testing.T) {
 	}
 }
 
-func TestValidateEnvParameters(t *testing.T) {
-	optionTests := []struct {
-		name    string
-		gitRepo string
-		errMsg  string
-	}{
-		{"invalid repo", "test", "repo must be org/repo"},
-		{"valid repo", "test/repo", ""},
-	}
-
-	for _, tt := range optionTests {
-		o := AddEnvParameters{gitOpsRepo: tt.gitRepo, prefix: "test"}
-
-		err := o.Validate()
-
-		if err != nil && tt.errMsg == "" {
-			t.Errorf("Validate() %#v got an unexpected error: %s", tt.name, err)
-			continue
-		}
-
-		if !matchError(t, tt.errMsg, err) {
-			t.Errorf("Validate() %#v failed to match error: got %s, want %s", tt.name, err, tt.errMsg)
-		}
-	}
-}
-
 func TestAddCommandWithMissingParams(t *testing.T) {
 	cmdTests := []struct {
 		desc    string
 		flags   []keyValuePair
 		wantErr string
 	}{
-		{"Missing gitops-repo flag",
-			[]keyValuePair{flag("output", "~/output"),
-				flag("env-name", "test"), flag("skip-checks", "true")},
-			`Required flag(s) "gitops-repo" have/has not been set`},
 		{"Missing env-name flag",
-			[]keyValuePair{flag("gitops-repo", "org/sample"), flag("output", "~/output"),
+			[]keyValuePair{flag("output", "~/output"),
 				flag("skip-checks", "true")},
 			`Required flag(s) "env-name" have/has not been set`},
+		{"Missing output flag",
+			[]keyValuePair{flag("env-name", "stage"),
+				flag("skip-checks", "true")},
+			`Required flag(s) "output" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
 		t.Run(tt.desc, func(rt *testing.T) {

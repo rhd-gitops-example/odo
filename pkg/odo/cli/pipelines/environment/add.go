@@ -28,10 +28,9 @@ var (
 
 // AddEnvParameters encapsulates the parameters for the odo pipelines init command.
 type AddEnvParameters struct {
-	envName    string
-	gitOpsRepo string
-	output     string
-	prefix     string
+	envName string
+	output  string
+	prefix  string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -54,20 +53,15 @@ func (eo *AddEnvParameters) Complete(name string, cmd *cobra.Command, args []str
 
 // Validate validates the parameters of the EnvParameters.
 func (eo *AddEnvParameters) Validate() error {
-	// TODO: this won't work with GitLab as the repo can have more path elements.
-	if len(strings.Split(eo.gitOpsRepo, "/")) != 2 {
-		return fmt.Errorf("repo must be org/repo: %s", eo.gitOpsRepo)
-	}
 	return nil
 }
 
 // Run runs the project bootstrap command.
 func (eo *AddEnvParameters) Run() error {
 	options := pipelines.EnvParameters{
-		GitOpsRepo: eo.gitOpsRepo,
-		EnvName:    eo.envName,
-		Output:     eo.output,
-		Prefix:     eo.prefix,
+		EnvName: eo.envName,
+		Output:  eo.output,
+		Prefix:  eo.prefix,
 	}
 
 	return pipelines.Env(&options)
@@ -87,11 +81,10 @@ func NewCmdAddEnv(name, fullName string) *cobra.Command {
 		},
 	}
 
-	addEnvCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
-	addEnvCmd.MarkFlagRequired("gitops-repo")
 	addEnvCmd.Flags().StringVar(&o.envName, "env-name", "", "name of the environment/namespace")
 	addEnvCmd.MarkFlagRequired("env-name")
 	addEnvCmd.Flags().StringVar(&o.output, "output", ".", "folder/path to add Gitops resources")
+	addEnvCmd.MarkFlagRequired("output")
 	addEnvCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 
 	return addEnvCmd

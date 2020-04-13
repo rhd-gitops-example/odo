@@ -87,13 +87,10 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	gitopsName := GetGitopsRepoName(o.GitOpsRepo)
-	gitopsPath := filepath.Join(o.Output, gitopsName)
-
 	// check if the gitops dir already exists
-	exists, _ := isExisting(gitopsPath)
+	exists, err := isExisting(o.Output)
 	if exists {
-		return fmt.Errorf("%s already exists at %s", gitopsName, gitopsPath)
+		return err
 	}
 
 	files, err := CreateResources(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
@@ -101,7 +98,7 @@ func Init(o *InitParameters) error {
 		return err
 	}
 
-	pipelinesPath := getPipelinesDir(gitopsPath, o.Prefix)
+	pipelinesPath := getPipelinesDir(o.Output, o.Prefix)
 
 	fileNames, err := writeResources(pipelinesPath, files)
 	if err != nil {
@@ -114,12 +111,12 @@ func Init(o *InitParameters) error {
 		return err
 	}
 
-	if err := addKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), baseDir, kustomize)); err != nil {
+	if err := addKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(o.Output, o.Prefix), baseDir, kustomize)); err != nil {
 		return err
 	}
 
 	// Add overlays
-	if err := addKustomize("bases", []string{"../base"}, filepath.Join(getCICDDir(gitopsPath, o.Prefix), "overlays", kustomize)); err != nil {
+	if err := addKustomize("bases", []string{"../base"}, filepath.Join(getCICDDir(o.Output, o.Prefix), "overlays", kustomize)); err != nil {
 		return err
 	}
 
@@ -228,16 +225,12 @@ func addPrefix(prefix, name string) string {
 }
 
 func isExisting(path string) (bool, error) {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false, err
-	}
-	return true, nil
-}
-
-func isDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return false
+		return false, err
 	}
-	return fileInfo.IsDir()
+	if fileInfo.IsDir() {
+		return true, fmt.Errorf("%q: Dir already exists at %s", filepath.Base(path), path)
+	}
+	return true, fmt.Errorf("%q: File already exists at %s", filepath.Base(path), path)
 }
