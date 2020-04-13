@@ -32,6 +32,7 @@ type InitParameters struct {
 	gitOpsWebhookSecret string // used to create Github's shared webhook secret for gitops repo
 	output              string // path to add Gitops resources
 	prefix              string // used to generate the environments in a shared cluster
+	skipChecks          bool   // skip Tekton installation checks
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -68,6 +69,7 @@ func (io *InitParameters) Run() error {
 		GitOpsRepo:          io.gitOpsRepo,
 		Output:              io.output,
 		Prefix:              io.prefix,
+		SkipChecks:          io.skipChecks,
 	}
 	return manifest.Init(&options)
 }

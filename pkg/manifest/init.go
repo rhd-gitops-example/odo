@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,10 +20,21 @@ type InitParameters struct {
 	GitOpsWebhookSecret string
 	Output              string
 	Prefix              string
+	SkipChecks          bool
 }
 
 // Init bootstraps a GitOps manifest and repository structure.
 func Init(o *InitParameters) error {
+
+	if !o.SkipChecks {
+		installed, err := pipelines.CheckTektonInstall()
+		if err != nil {
+			return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
+		}
+		if !installed {
+			return errors.New("failed due to Tekton Pipelines or Triggers are not installed")
+		}
+	}
 
 	gitopsName := pipelines.GetGitopsRepoName(o.GitOpsRepo)
 	gitopsPath := filepath.Join(o.Output, gitopsName)

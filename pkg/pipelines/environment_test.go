@@ -25,10 +25,10 @@ func TestEnv(t *testing.T) {
 	}
 
 	wantedPaths := []string{
-		"envs/dev/base/kustomization.yaml",
-		"envs/dev/base/namespace.yaml",
-		"envs/dev/base/rolebinding.yaml",
-		"envs/dev/overlays/kustomization.yaml",
+		"environments/dev/base/kustomization.yaml",
+		"environments/dev/base/namespace.yaml",
+		"environments/dev/base/rolebinding.yaml",
+		"environments/dev/overlays/kustomization.yaml",
 	}
 
 	for _, path := range wantedPaths {

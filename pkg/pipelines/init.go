@@ -45,13 +45,18 @@ var (
 			Resources: []string{"rolebindings"},
 			Verbs:     []string{"get", "patch"},
 		},
+		v1rbac.PolicyRule{
+			APIGroups: []string{"bitnami.com"},
+			Resources: []string{"sealedsecrets"},
+			Verbs:     []string{"get", "patch"},
+		},
 	}
 )
 
 const (
 	pipelineDir       = "pipelines"
-	cicdDir           = "cicd-environment"
-	envsDir           = "envs"
+	cicdDir           = "cicd"
+	envsDir           = "environments"
 	baseDir           = "base"
 	kustomize         = "kustomization.yaml"
 	namespacesPath    = "01-namespaces/cicd-environment.yaml"
@@ -73,7 +78,7 @@ const (
 func Init(o *InitParameters) error {
 
 	if !o.SkipChecks {
-		installed, err := checkTektonInstall()
+		installed, err := CheckTektonInstall()
 		if err != nil {
 			return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
 		}
@@ -203,7 +208,7 @@ func addKustomize(name string, items []string, path string) error {
 	return marshalItemsToFile(path, content)
 }
 
-func checkTektonInstall() (bool, error) {
+func CheckTektonInstall() (bool, error) {
 	tektonChecker, err := newTektonChecker()
 	if err != nil {
 		return false, err

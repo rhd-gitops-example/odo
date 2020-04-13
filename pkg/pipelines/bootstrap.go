@@ -50,7 +50,7 @@ type BootstrapParameters struct {
 func Bootstrap(o *BootstrapParameters) error {
 
 	if !o.SkipChecks {
-		installed, err := checkTektonInstall()
+		installed, err := CheckTektonInstall()
 		if err != nil {
 			return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
 		}
