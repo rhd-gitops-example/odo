@@ -83,3 +83,6 @@ import:
   - pkg/apis/sealed-secrets
 - package: github.com/mkmik/multierror
   version: v0.3.0
+- package: sigs.k8s.io/kustomize
+  subpackages:
+  - api/types

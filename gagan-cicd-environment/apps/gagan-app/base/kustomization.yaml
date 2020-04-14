@@ -1,0 +1,3 @@
+bases:
+- ../../../services/gaganeggday/service-1/overlays
+---
