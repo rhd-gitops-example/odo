@@ -36,6 +36,7 @@ type InitParameters struct {
 	imageRepo                string
 	internalRegistryHostname string
 	deploymentPath           string
+	dockercfgjson            string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -76,6 +77,7 @@ func (io *InitParameters) Run() error {
 		DeploymentPath:           io.deploymentPath,
 		ImageRepo:                io.imageRepo,
 		InternalRegistryHostname: io.internalRegistryHostname,
+		Dockercfgjson:            io.dockercfgjson,
 	}
 
 	return pipelines.Init(&options)
@@ -99,6 +101,8 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 	initCmd.MarkFlagRequired("gitops-repo")
 	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for gitops repository")
 	initCmd.MarkFlagRequired("gitops-webhook-secret")
+	initCmd.Flags().StringVar(&o.dockercfgjson, "dockercfgjson", "", "provide the dockercfg json path")
+	initCmd.MarkFlagRequired("dockercfgjson")
 	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	initCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")

@@ -1,8 +1,0 @@
-bases:
-- ../../../../envs/staging/overlays/
----
-resources:
-- secret.yaml
-- serviceaccount.yaml
-- app-webhook-secret.yaml
----

@@ -21,7 +21,8 @@ import (
 )
 
 var (
-	secretTypeMeta = meta.TypeMeta("Secret", "v1")
+	secretTypeMeta       = meta.TypeMeta("Secret", "v1")
+	sealedSecretTypeMeta = meta.TypeMeta("SealedSecret", "bitnami.com/v1alpha1")
 )
 
 type getPublicKey func() (*rsa.PublicKey, error)
@@ -62,7 +63,14 @@ func seal(secret *corev1.Secret, getPubKey getPublicKey) (*ssv1alpha1.SealedSecr
 		return nil, fmt.Errorf("failed dto get public key from cluster: %w", err)
 	}
 
-	return ssv1alpha1.NewSealedSecret(scheme.Codecs, pubKey, secret)
+	sealedSecret, err := ssv1alpha1.NewSealedSecret(scheme.Codecs, pubKey, secret)
+	if err != nil {
+		return nil, err
+	}
+
+	// NewSealedSecret() doesn't add TypeMeta to SealedSecret
+	sealedSecret.TypeMeta = sealedSecretTypeMeta
+	return sealedSecret, err
 }
 
 // Retrieves a public key from sealed-secrets-controller

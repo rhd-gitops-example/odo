@@ -36,7 +36,6 @@ type AddParameters struct {
 	serviceWebhookSecret string
 	serviceImageRepo     string
 	envName              string
-	dockerCfgJson        string
 	serviceGitRepo       string
 	skipChecks           bool
 
@@ -78,9 +77,9 @@ func (io *AddParameters) Run() error {
 		ServiceWebhookSecret: io.serviceWebhookSecret,
 		ServiceImageRepo:     io.serviceImageRepo,
 		EnvName:              io.envName,
-		DockerCfgJson:        io.dockerCfgJson,
 		ServicesGitRepo:      io.serviceGitRepo,
 		SkipChecks:           io.skipChecks,
+		Prefix:               io.prefix,
 	}
 
 	return pipelines.Add_Application(&options)
@@ -108,7 +107,6 @@ func NewCmdAddService(name, fullName string) *cobra.Command {
 	addCmd.Flags().StringVar(&o.serviceWebhookSecret, "service-webhook-secret", "", "Provide the webhook secret of the app git repository")
 	addCmd.Flags().StringVar(&o.serviceImageRepo, "service-image-repo", "", "Image repository name in form <username>/<repository>")
 	addCmd.Flags().StringVar(&o.envName, "env-name", "", "Add the name of the environment(namespace) to which the pipelines should be bootstrapped")
-	addCmd.Flags().StringVar(&o.dockerCfgJson, "service-dockercfgjson", "", "Add the docker auth.json file path")
 	addCmd.Flags().StringVar(&o.serviceGitRepo, "services-git-repo", "", "Add the docker auth.json file path")
 	addCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", true, "skip Tekton installation checks")
 	addCmd.MarkFlagRequired("gitops-repo")

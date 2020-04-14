@@ -28,6 +28,7 @@ type InitParameters struct {
 	DeploymentPath           string
 	ImageRepo                string
 	InternalRegistryHostname string
+	Dockercfgjson            string
 }
 
 // PolicyRules to be bound to service account
@@ -61,6 +62,7 @@ const (
 	rolesPath                = "02-rolebindings/pipeline-service-role.yaml"
 	rolebindingsPath         = "02-rolebindings/pipeline-service-rolebinding.yaml"
 	secretsPath              = "03-secrets/gitops-webhook-secret.yaml"
+	dockersecretPath         = "03-secrets/gitops-docker-secret.yaml"
 	tasksPath                = "04-tasks/deploy-from-source-task.yaml"
 	appCIPipelinesPath       = "05-pipelines/app-ci-pipeline.yaml"
 	appCDPipelinesPath       = "05-pipelines/app-cd-pipeline.yaml"
@@ -120,7 +122,7 @@ func Init(o *InitParameters) error {
 	}
 
 	// create gitops pipeline
-	files := createPipelineResources(outputs, namespaces, o.GitOpsRepo, o.Prefix, o.DeploymentPath, imageRepo, isInternalRegistry)
+	files := createPipelineResources(outputs, namespaces, o.GitOpsRepo, o.Prefix, o.DeploymentPath, imageRepo, isInternalRegistry, o.Dockercfgjson)
 
 	pipelinesPath := getPipelinesDir(gitopsPath, o.Prefix)
 
@@ -150,7 +152,7 @@ func getCICDDir(path, prefix string) string {
 	return filepath.Join(path, envsDir, addPrefix(prefix, cicdDir))
 }
 
-func createPipelineResources(outputs map[string]interface{}, namespaces map[string]string, gitopsRepo, prefix, deploymentPath, imageRepo string, isInternalRegistry bool) map[string]interface{} {
+func createPipelineResources(outputs map[string]interface{}, namespaces map[string]string, gitopsRepo, prefix, deploymentPath, imageRepo string, isInternalRegistry bool, dockerFilePath string) map[string]interface{} {
 
 	outputs[namespacesPath] = createNamespace(namespaces["cicd"])
 
@@ -185,6 +187,9 @@ func createPipelineResources(outputs map[string]interface{}, namespaces map[stri
 	outputs[eventListenerPath] = eventlisteners.Generate(gitopsRepo, namespaces["cicd"], saName)
 
 	outputs[routePath] = routes.Generate(namespaces["cicd"])
+
+	secretsDocker, _ := CreateDockerSecret(dockerFilePath, namespaces["cicd"])
+	outputs[dockersecretPath] = secretsDocker
 
 	return outputs
 }
