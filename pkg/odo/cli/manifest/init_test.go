@@ -1,4 +1,4 @@
-package pipelines
+package manifest
 
 import (
 	"bytes"
@@ -86,40 +86,12 @@ func TestInitCommandWithMissingParams(t *testing.T) {
 	}
 	for _, tt := range cmdTests {
 		t.Run(tt.desc, func(t *testing.T) {
-			_, _, err := executeCommand(NewCmdInit("init", "odo pipelines init"), tt.flags...)
+			_, _, err := executeCommand(NewCmdInit("init", "odo manifest init"), tt.flags...)
 			if err.Error() != tt.wantErr {
 				t.Errorf("got %s, want %s", err, tt.wantErr)
 			}
 		})
 	}
-}
-
-func TestBypassChecks(t *testing.T) {
-	tests := []struct {
-		description        string
-		skipChecks         bool
-		wantedBypassChecks bool
-	}{
-		{"bypass tekton installation checks", true, true},
-		{"don't bypass tekton installation checks", false, false},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			o := InitParameters{skipChecks: test.skipChecks}
-
-			err := o.Complete("test", &cobra.Command{}, []string{"test", "test/repo"})
-
-			if err != nil {
-				t.Errorf("Complete() %#v failed: ", err)
-			}
-
-			if o.skipChecks != test.wantedBypassChecks {
-				t.Errorf("Complete() %#v bypassChecks flag: got %v, want %v", test.description, o.skipChecks, test.wantedBypassChecks)
-			}
-		})
-	}
-
 }
 
 func executeCommand(cmd *cobra.Command, flags ...keyValuePair) (c *cobra.Command, output string, err error) {

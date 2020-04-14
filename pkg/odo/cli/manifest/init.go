@@ -1,11 +1,11 @@
-package pipelines
+package manifest
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/odo/pkg/manifest"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
-	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/spf13/cobra"
 
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
@@ -18,12 +18,12 @@ const (
 
 var (
 	initExample = ktemplates.Examples(`
-	# Initialise OpenShift pipelines in a cluster
+	# Initialize OpenShift GitOps manifest
 	%[1]s 
 	`)
 
-	initLongDesc  = ktemplates.LongDesc(`Initialise GitOps CI/CD Pipelines`)
-	initShortDesc = `Initialise pipelines`
+	initLongDesc  = ktemplates.LongDesc(`Initialize GitOps manifest`)
+	initShortDesc = `Initialize manifest`
 )
 
 // InitParameters encapsulates the parameters for the odo pipelines init command.
@@ -64,15 +64,14 @@ func (io *InitParameters) Validate() error {
 
 // Run runs the project bootstrap command.
 func (io *InitParameters) Run() error {
-	options := pipelines.InitParameters{
+	options := manifest.InitParameters{
 		GitOpsWebhookSecret: io.gitOpsWebhookSecret,
 		GitOpsRepo:          io.gitOpsRepo,
 		Output:              io.output,
 		Prefix:              io.prefix,
 		SkipChecks:          io.skipChecks,
 	}
-
-	return pipelines.Init(&options)
+	return manifest.Init(&options)
 }
 
 // NewCmdInit creates the project init command.
@@ -91,12 +90,10 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 
 	initCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
 	initCmd.MarkFlagRequired("gitops-repo")
-	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for gitops repository")
+	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for GitOps repository")
 	initCmd.MarkFlagRequired("gitops-webhook-secret")
-	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
+	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add GitOps resources")
 	initCmd.MarkFlagRequired("output")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	initCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
-
 	return initCmd
 }
