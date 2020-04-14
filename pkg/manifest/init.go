@@ -110,7 +110,6 @@ const (
 
 // Init bootstraps a GitOps manifest and repository structure.
 func Init(o *InitParameters) error {
-
 	if !o.SkipChecks {
 		installed, err := pipelines.CheckTektonInstall()
 		if err != nil {
@@ -142,7 +141,6 @@ func Init(o *InitParameters) error {
 
 // CreateResources creates resources assocated to pipelines
 func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJSONPath, imageRepo string) (map[string]interface{}, error) {
-
 	// key: path of the resource
 	// value: YAML content of the resource
 	outputs := map[string]interface{}{}

@@ -2,8 +2,19 @@ package config
 
 import (
 	"errors"
+	"path/filepath"
 	"sort"
 )
+
+// PathForService gives a repo-rooted path within a repository.
+func PathForService(env *Environment, app *Application, svc *Service) string {
+	return filepath.Join(env.Name, "services", svc.Name)
+}
+
+// PathForEnvironment gives a repo-rooted path within a repository.
+func PathForEnvironment(env *Environment) string {
+	return filepath.Join("environments", env.Name)
+}
 
 // Manifest describes a set of environments, apps and services for deployment.
 type Manifest struct {
@@ -117,7 +128,7 @@ func (m Manifest) Walk(visitor interface{}) error {
 		if v, ok := visitor.(EnvironmentVisitor); ok {
 			err := v.Environment(env)
 			if err != nil {
-				return nil
+				return err
 			}
 		}
 	}

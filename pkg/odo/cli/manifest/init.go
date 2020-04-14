@@ -26,7 +26,7 @@ var (
 	initShortDesc = `Initialize manifest`
 )
 
-// InitParameters encapsulates the parameters for the odo pipelines init command.
+// InitParameters encapsulates the parameters for the odo manifest init command.
 type InitParameters struct {
 	dockercfgjson            string // filepath name to dockerconfigjson file
 	gitOpsRepo               string // repo to store Gitops resources e.g. org/repo
