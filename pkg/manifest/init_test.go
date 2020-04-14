@@ -6,7 +6,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openshift/odo/pkg/manifest/config"
-	"github.com/openshift/odo/pkg/pipelines"
 )
 
 func TestCreateManifest(t *testing.T) {
@@ -36,7 +35,7 @@ func TestInitialFiles(t *testing.T) {
 	want := resources{
 		"manifest.yaml": createManifest(prefix),
 	}
-	cicdResources, err := pipelines.CreateResources(prefix, gitOpsRepo, gitOpsWebhook)
+	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook)
 	if err != nil {
 		t.Fatalf("CreatePipelineResources() failed due to :%s\n", err)
 	}

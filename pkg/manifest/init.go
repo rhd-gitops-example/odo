@@ -3,13 +3,22 @@ package manifest
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 
 	"github.com/openshift/odo/pkg/manifest/config"
+	"github.com/openshift/odo/pkg/manifest/eventlisteners"
+	"github.com/openshift/odo/pkg/manifest/ioutils"
+	"github.com/openshift/odo/pkg/manifest/meta"
+	"github.com/openshift/odo/pkg/manifest/pipelines"
+	"github.com/openshift/odo/pkg/manifest/roles"
+	"github.com/openshift/odo/pkg/manifest/routes"
+	"github.com/openshift/odo/pkg/manifest/secrets"
+	"github.com/openshift/odo/pkg/manifest/tasks"
+	"github.com/openshift/odo/pkg/manifest/triggers"
 	"github.com/openshift/odo/pkg/manifest/yaml"
-	"github.com/openshift/odo/pkg/pipelines"
+
+	v1rbac "k8s.io/api/rbac/v1"
 )
 
 type resources map[string]interface{}
@@ -22,6 +31,69 @@ type InitParameters struct {
 	Prefix              string
 	SkipChecks          bool
 }
+
+// PolicyRules to be bound to service account
+var (
+	Rules = []v1rbac.PolicyRule{
+		{
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
+			Verbs:     []string{"patch"},
+		},
+		{
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"clusterroles"},
+			Verbs:     []string{"bind", "patch"},
+		},
+		{
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"rolebindings"},
+			Verbs:     []string{"get", "patch"},
+		},
+		{
+			APIGroups: []string{"bitnami.com"},
+			Resources: []string{"sealedsecrets"},
+			Verbs:     []string{"get", "patch"},
+		},
+	}
+)
+
+const (
+	pipelineDir = "pipelines"
+
+	// CICDDir constants for CICD directory name
+	CICDDir = "cicd"
+
+	// EnvsDir constants for environment directory name
+	EnvsDir = "environments"
+
+	// BaseDir constant for base directory name
+	BaseDir = "base"
+
+	// Kustomize constants for kustomization.yaml
+	Kustomize = "kustomization.yaml"
+
+	namespacesPath    = "01-namespaces/cicd-environment.yaml"
+	rolesPath         = "02-rolebindings/pipeline-service-role.yaml"
+	rolebindingsPath  = "02-rolebindings/pipeline-service-rolebinding.yaml"
+	secretsPath       = "03-secrets/gitops-webhook-secret.yaml"
+	tasksPath         = "04-tasks/deploy-from-source-task.yaml"
+	ciPipelinesPath   = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
+	cdPipelinesPath   = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
+	prBindingPath     = "06-bindings/github-pr-binding.yaml"
+	pushBindingPath   = "06-bindings/github-push-binding.yaml"
+	prTemplatePath    = "07-templates/ci-dryrun-from-pr-template.yaml"
+	pushTemplatePath  = "07-templates/cd-deploy-from-push-template.yaml"
+	eventListenerPath = "08-eventlisteners/cicd-event-listener.yaml"
+	routePath         = "09-routes/gitops-webhook-event-listener.yaml"
+
+	//dockerSecretName     = "regcred"
+	saName          = "pipeline"
+	roleName        = "pipelines-service-role"
+	roleBindingName = "pipelines-service-role-binding"
+	//devRoleBindingName   = "pipeline-edit-dev"
+	//stageRoleBindingName = "pipeline-edit-stage"
+)
 
 // Init bootstraps a GitOps manifest and repository structure.
 func Init(o *InitParameters) error {
@@ -36,7 +108,7 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	exists, err := isExisting(o.Output)
+	exists, err := ioutils.IsExisting(o.Output)
 	if exists {
 		return err
 	}
@@ -45,8 +117,43 @@ func Init(o *InitParameters) error {
 	if err != nil {
 		return err
 	}
+
 	_, err = yaml.WriteResources(o.Output, outputs)
 	return err
+}
+
+// CreateResources creates resources assocated to pipelines
+func CreateResources(prefix, gitOpsRepo, gitOpsWebhook string) (map[string]interface{}, error) {
+
+	// key: path of the resource
+	// value: YAML content of the resource
+	outputs := map[string]interface{}{}
+	cicdNamespace := AddPrefix(prefix, "cicd")
+
+	githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdNamespace, eventlisteners.GitOpsWebhookSecret),
+		gitOpsWebhook, eventlisteners.WebhookSecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
+	}
+
+	outputs[secretsPath] = githubSecret
+	outputs[namespacesPath] = CreateNamespace(cicdNamespace)
+	outputs[rolesPath] = roles.CreateClusterRole(meta.NamespacedName("", roles.ClusterRoleName), Rules)
+
+	sa := roles.CreateServiceAccount(meta.NamespacedName(cicdNamespace, saName))
+	outputs[rolebindingsPath] = roles.CreateRoleBinding(meta.NamespacedName(cicdNamespace, roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
+
+	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, GetPipelinesDir("", prefix))
+	outputs[ciPipelinesPath] = pipelines.CreateCIPipeline(meta.NamespacedName(cicdNamespace, "ci-dryrun-from-pr-pipeline"), cicdNamespace)
+	outputs[cdPipelinesPath] = pipelines.CreateCDPipeline(meta.NamespacedName(cicdNamespace, "cd-deploy-from-push-pipeline"), cicdNamespace)
+	outputs[prBindingPath] = triggers.CreatePRBinding(cicdNamespace)
+	outputs[pushBindingPath] = triggers.CreatePushBinding(cicdNamespace)
+	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(cicdNamespace, saName)
+	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(cicdNamespace, saName)
+	outputs[eventListenerPath] = eventlisteners.Generate(gitOpsRepo, cicdNamespace, saName)
+
+	outputs[routePath] = routes.Generate(cicdNamespace)
+	return outputs, nil
 }
 
 func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook string) (resources, error) {
@@ -55,7 +162,7 @@ func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook string) (resources, er
 		"manifest.yaml": manifest,
 	}
 
-	cicdResources, err := pipelines.CreateResources(prefix, gitOpsRepo, gitOpsWebhook)
+	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook)
 	if err != nil {
 		return nil, err
 	}
@@ -136,13 +243,7 @@ func getResourceFiles(res resources) []string {
 	return files
 }
 
-func isExisting(path string) (bool, error) {
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		return false, err
-	}
-	if fileInfo.IsDir() {
-		return true, fmt.Errorf("%q: Dir already exists at %s", filepath.Base(path), path)
-	}
-	return true, fmt.Errorf("%q: File already exists at %s", filepath.Base(path), path)
+// GetPipelinesDir gets pipelines directory
+func GetPipelinesDir(rootPath, prefix string) string {
+	return filepath.Join(rootPath, EnvsDir, AddPrefix(prefix, CICDDir), BaseDir, pipelineDir)
 }

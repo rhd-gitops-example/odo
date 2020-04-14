@@ -36,11 +36,11 @@ func marshalItemToFile(filename string, item interface{}) error {
 		return fmt.Errorf("failed to Create file %s: %v", filename, err)
 	}
 	defer f.Close()
-	return marshalOutput(f, item)
+	return MarshalOutput(f, item)
 }
 
-// marshalOutput marshal output to given writer
-func marshalOutput(out io.Writer, output interface{}) error {
+// MarshalOutput marshal output to given writer
+func MarshalOutput(out io.Writer, output interface{}) error {
 	data, err := yaml.Marshal(output)
 	if err != nil {
 		return fmt.Errorf("failed to marshal data: %w", err)
@@ -50,4 +50,11 @@ func marshalOutput(out io.Writer, output interface{}) error {
 		return fmt.Errorf("failed to write data: %w", err)
 	}
 	return nil
+}
+
+// AddKustomize adds kustomization.yaml.  Name and items become map key and value, respectively
+func AddKustomize(name string, items []string, path string) error {
+	content := []interface{}{}
+	content = append(content, map[string]interface{}{name: items})
+	return marshalItemToFile(path, content)
 }

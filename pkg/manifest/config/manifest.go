@@ -10,6 +10,7 @@ type Manifest struct {
 	Environments []*Environment `json:"environments,omitempty"`
 }
 
+// GetCICDEnvironment returns CICD Environemnt
 func (m *Manifest) GetCICDEnvironment() (*Environment, error) {
 	envs := []*Environment{}
 	for _, env := range m.Environments {
@@ -40,6 +41,7 @@ type Environment struct {
 	IsCICD bool `json:"cicd,omitempty"`
 }
 
+// GoString return environment name
 func (e Environment) GoString() string {
 	return e.Name
 }
