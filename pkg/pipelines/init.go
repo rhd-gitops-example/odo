@@ -46,7 +46,7 @@ func Init(o *InitParameters) error {
 		return err
 	}
 
-	files, err := manifest.CreateResources(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
+	files, err := manifest.CreateResources(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret, "")
 	if err != nil {
 		return err
 	}

@@ -28,14 +28,14 @@ func TestInitialFiles(t *testing.T) {
 	prefix := "tst-"
 	gitOpsRepo := "test-repo"
 	gitOpsWebhook := "123"
-	got, err := createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook)
+	got, err := createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := resources{
 		"manifest.yaml": createManifest(prefix),
 	}
-	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook)
+	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook, "")
 	if err != nil {
 		t.Fatalf("CreatePipelineResources() failed due to :%s\n", err)
 	}

@@ -3,9 +3,11 @@ package manifest
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/manifest/config"
 	"github.com/openshift/odo/pkg/manifest/eventlisteners"
 	"github.com/openshift/odo/pkg/manifest/ioutils"
@@ -19,17 +21,20 @@ import (
 	"github.com/openshift/odo/pkg/manifest/yaml"
 
 	v1rbac "k8s.io/api/rbac/v1"
+
+	ssv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealed-secrets/v1alpha1"
 )
 
 type resources map[string]interface{}
 
 // InitParameters is a struct that provides flags for the Init command.
 type InitParameters struct {
-	GitOpsRepo          string
-	GitOpsWebhookSecret string
-	Output              string
-	Prefix              string
-	SkipChecks          bool
+	DockerConfigJSONFileName string
+	GitOpsRepo               string
+	GitOpsWebhookSecret      string
+	Output                   string
+	Prefix                   string
+	SkipChecks               bool
 }
 
 // PolicyRules to be bound to service account
@@ -73,26 +78,26 @@ const (
 	// Kustomize constants for kustomization.yaml
 	Kustomize = "kustomization.yaml"
 
-	namespacesPath    = "01-namespaces/cicd-environment.yaml"
-	rolesPath         = "02-rolebindings/pipeline-service-role.yaml"
-	rolebindingsPath  = "02-rolebindings/pipeline-service-rolebinding.yaml"
-	secretsPath       = "03-secrets/gitops-webhook-secret.yaml"
-	tasksPath         = "04-tasks/deploy-from-source-task.yaml"
-	ciPipelinesPath   = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
-	cdPipelinesPath   = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
-	prBindingPath     = "06-bindings/github-pr-binding.yaml"
-	pushBindingPath   = "06-bindings/github-push-binding.yaml"
-	prTemplatePath    = "07-templates/ci-dryrun-from-pr-template.yaml"
-	pushTemplatePath  = "07-templates/cd-deploy-from-push-template.yaml"
-	eventListenerPath = "08-eventlisteners/cicd-event-listener.yaml"
-	routePath         = "09-routes/gitops-webhook-event-listener.yaml"
+	namespacesPath     = "01-namespaces/cicd-environment.yaml"
+	rolesPath          = "02-rolebindings/pipeline-service-role.yaml"
+	rolebindingsPath   = "02-rolebindings/pipeline-service-rolebinding.yaml"
+	serviceAccountPath = "02-rolebindings/pipeline-service-account.yaml"
+	secretsPath        = "03-secrets/gitops-webhook-secret.yaml"
+	dockerConfigPath   = "03-secrets/docker-config.yaml"
+	tasksPath          = "04-tasks/deploy-from-source-task.yaml"
+	ciPipelinesPath    = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
+	cdPipelinesPath    = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
+	prBindingPath      = "06-bindings/github-pr-binding.yaml"
+	pushBindingPath    = "06-bindings/github-push-binding.yaml"
+	prTemplatePath     = "07-templates/ci-dryrun-from-pr-template.yaml"
+	pushTemplatePath   = "07-templates/cd-deploy-from-push-template.yaml"
+	eventListenerPath  = "08-eventlisteners/cicd-event-listener.yaml"
+	routePath          = "09-routes/gitops-webhook-event-listener.yaml"
 
-	//dockerSecretName     = "regcred"
-	saName          = "pipeline"
-	roleName        = "pipelines-service-role"
-	roleBindingName = "pipelines-service-role-binding"
-	//devRoleBindingName   = "pipeline-edit-dev"
-	//stageRoleBindingName = "pipeline-edit-stage"
+	dockerSecretName = "regcred"
+	saName           = "pipeline"
+	roleName         = "pipelines-service-role"
+	roleBindingName  = "pipelines-service-role-binding"
 )
 
 // Init bootstraps a GitOps manifest and repository structure.
@@ -113,7 +118,7 @@ func Init(o *InitParameters) error {
 		return err
 	}
 
-	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
+	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret, o.DockerConfigJSONFileName)
 	if err != nil {
 		return err
 	}
@@ -123,7 +128,7 @@ func Init(o *InitParameters) error {
 }
 
 // CreateResources creates resources assocated to pipelines
-func CreateResources(prefix, gitOpsRepo, gitOpsWebhook string) (map[string]interface{}, error) {
+func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJsonPath string) (map[string]interface{}, error) {
 
 	// key: path of the resource
 	// value: YAML content of the resource
@@ -141,6 +146,18 @@ func CreateResources(prefix, gitOpsRepo, gitOpsWebhook string) (map[string]inter
 	outputs[rolesPath] = roles.CreateClusterRole(meta.NamespacedName("", roles.ClusterRoleName), Rules)
 
 	sa := roles.CreateServiceAccount(meta.NamespacedName(cicdNamespace, saName))
+
+	if dockerConfigJsonPath != "" {
+		dockerSecret, err := CreateDockerSecret(dockerConfigJsonPath, cicdNamespace)
+		if err != nil {
+			return nil, err
+		}
+		outputs[dockerConfigPath] = dockerSecret
+
+		// add secret and sa to outputs
+		outputs[serviceAccountPath] = roles.AddSecretToSA(sa, dockerSecretName)
+	}
+
 	outputs[rolebindingsPath] = roles.CreateRoleBinding(meta.NamespacedName(cicdNamespace, roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
 
 	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, GetPipelinesDir("", prefix))
@@ -156,13 +173,39 @@ func CreateResources(prefix, gitOpsRepo, gitOpsWebhook string) (map[string]inter
 	return outputs, nil
 }
 
-func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook string) (resources, error) {
+// CreateDockerSecret creates Docker secret
+func CreateDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.SealedSecret, error) {
+	if dockerConfigJSONFileName == "" {
+		return nil, errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")
+	}
+
+	authJSONPath, err := homedir.Expand(dockerConfigJSONFileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate path to file: %w", err)
+	}
+
+	f, err := os.Open(authJSONPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read docker file '%s' : %w", authJSONPath, err)
+	}
+	defer f.Close()
+
+	dockerSecret, err := secrets.CreateSealedDockerConfigSecret(meta.NamespacedName(ns, dockerSecretName), f)
+	if err != nil {
+		return nil, err
+	}
+
+	return dockerSecret, nil
+
+}
+
+func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath string) (resources, error) {
 	manifest := createManifest(prefix)
 	initialFiles := resources{
 		"manifest.yaml": manifest,
 	}
 
-	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook)
+	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath)
 	if err != nil {
 		return nil, err
 	}
