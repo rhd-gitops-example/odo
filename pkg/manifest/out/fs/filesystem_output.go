@@ -26,7 +26,7 @@ func New(outputFolder string, validation func() error) (out.Output, error) {
 	}, nil
 }
 
-// Write all outpout items to filesystem
+// Write all output items to filesystem.
 func (o *output) Write() error {
 	for filename, item := range o.Items {
 		err := writeToFile(filepath.Join(o.rootDir, filename), item)
