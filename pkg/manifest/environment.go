@@ -1,10 +1,12 @@
 package manifest
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/openshift/odo/pkg/manifest/ioutils"
 	"github.com/openshift/odo/pkg/manifest/meta"
+	"github.com/openshift/odo/pkg/manifest/out/fs"
 	"github.com/openshift/odo/pkg/manifest/roles"
 	"github.com/openshift/odo/pkg/manifest/yaml"
 )
@@ -24,57 +26,53 @@ type EnvParameters struct {
 // Env will bootstrap a new environment directory
 func Env(o *EnvParameters) error {
 
+	envPath := getEnvPath(o.EnvName, o.Prefix)
+
+	output, err := fs.New(o.Output, func() error {
+		// check if the gitops dir exists
+		exists, err := ioutils.IsExisting(o.Output)
+		if !exists {
+			return err
+		}
+		// check if the environment dir already exists
+		exists, err = ioutils.IsExisting(envPath)
+		if exists {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to create output : %w", err)
+	}
+
+	// base kustomization
+	output.Add(filepath.Join(envPath, "base", Kustomize), yaml.Kustomization("resources", []string{envNamespace, envRoleBinding}))
+
+	// overlay kustomization
+	output.Add(filepath.Join(envPath, "overlays", Kustomize), yaml.Kustomization("bases", []string{"../base"}))
+
 	envName := AddPrefix(o.Prefix, o.EnvName)
-	envPath := getEnvPath(o.Output, o.EnvName, o.Prefix)
+	output.AddAll(envResources(o.Prefix, envPath, envName))
 
-	// check if the gitops dir exists
-	exists, err := ioutils.IsExisting(o.Output)
-	if !exists {
-		return err
-	}
-
-	// check if the environment dir already exists
-	exists, err = ioutils.IsExisting(envPath)
-	if exists {
-		return err
-	}
-
-	err = yaml.AddKustomize("resources", []string{envNamespace, envRoleBinding}, filepath.Join(envPath, "base", Kustomize))
-	if err != nil {
-		return err
-	}
-
-	err = yaml.AddKustomize("bases", []string{"../base"}, filepath.Join(envPath, "overlays", Kustomize))
-	if err != nil {
-		return err
-	}
-
-	if err = addEnvResources(o.Prefix, envPath, envName); err != nil {
-		return err
-	}
-
-	return nil
+	return output.Write()
 }
 
-func addEnvResources(prefix, envPath, envName string) error {
+func envResources(prefix, envPath, envName string) map[string]interface{} {
 
 	namespaces := NamespaceNames(prefix)
 
 	outputs := map[string]interface{}{}
 	basePath := filepath.Join(envPath, "base")
 
-	outputs[envNamespace] = CreateNamespace(envName)
+	outputs[filepath.Join(basePath, envNamespace)] = CreateNamespace(envName)
 
 	sa := roles.CreateServiceAccount(meta.NamespacedName(namespaces["cicd"], saName))
+	outputs[filepath.Join(basePath, envRoleBinding)] = roles.CreateRoleBinding(meta.NamespacedName(envName, roleBindingName), sa, "ClusterRole", "edit")
 
-	outputs[envRoleBinding] = roles.CreateRoleBinding(meta.NamespacedName(envName, roleBindingName), sa, "ClusterRole", "edit")
-	_, err := yaml.WriteResources(basePath, outputs)
-	if err != nil {
-		return err
-	}
-	return nil
+	return outputs
 }
 
-func getEnvPath(gitopsPath, envName, prefix string) string {
-	return filepath.Join(gitopsPath, EnvsDir, AddPrefix(prefix, envName))
+func getEnvPath(envName, prefix string) string {
+	return filepath.Join(EnvsDir, AddPrefix(prefix, envName))
 }

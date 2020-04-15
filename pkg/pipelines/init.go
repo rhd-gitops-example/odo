@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/odo/pkg/manifest"
 	"github.com/openshift/odo/pkg/manifest/ioutils"
+	"github.com/openshift/odo/pkg/manifest/out/fs"
 	pl "github.com/openshift/odo/pkg/manifest/pipelines"
 
 	"github.com/openshift/odo/pkg/manifest/yaml"
@@ -35,10 +36,16 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	// check if the gitops dir already exists
-	exists, err := ioutils.IsExisting(o.Output)
-	if exists {
-		return err
+	output, err := fs.New(o.Output, func() error {
+		// check if the gitops dir already exists
+		exists, err := ioutils.IsExisting(o.Output)
+		if exists {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create output : %w", err)
 	}
 
 	files, err := manifest.CreateResources(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
@@ -46,29 +53,23 @@ func Init(o *InitParameters) error {
 		return err
 	}
 
+	output.AddAll(files)
+
 	pipelinesPath := manifest.GetPipelinesDir(o.Output, o.Prefix)
 
-	fileNames, err := yaml.WriteResources(pipelinesPath, files)
-	if err != nil {
-		return err
-	}
-
+	fileNames := output.GetPaths()
 	sort.Strings(fileNames)
-	// kustomize file should refer all the pipeline resources
-	if err := yaml.AddKustomize("resources", fileNames, filepath.Join(pipelinesPath, manifest.Kustomize)); err != nil {
-		return err
-	}
 
-	if err := yaml.AddKustomize("bases", []string{"./pipelines"}, filepath.Join(getCICDDir(o.Output, o.Prefix), manifest.BaseDir, manifest.Kustomize)); err != nil {
-		return err
-	}
+	// kustomize file should refer all the pipeline resources
+	output.Add(filepath.Join(pipelinesPath, manifest.Kustomize), yaml.Kustomization("resources", fileNames))
+
+	// bases
+	output.Add(filepath.Join(getCICDDir(o.Output, o.Prefix), manifest.BaseDir, manifest.Kustomize), yaml.Kustomization("bases", []string{"./pipelines"}))
 
 	// Add overlays
-	if err := yaml.AddKustomize("bases", []string{"../base"}, filepath.Join(getCICDDir(o.Output, o.Prefix), "overlays", manifest.Kustomize)); err != nil {
-		return err
-	}
+	output.Add(filepath.Join(getCICDDir(o.Output, o.Prefix), "overlays", manifest.Kustomize), yaml.Kustomization("bases", []string{"../base"}))
 
-	return nil
+	return output.Write()
 }
 
 func getCICDDir(path, prefix string) string {

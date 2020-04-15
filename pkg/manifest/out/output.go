@@ -1,12 +1,5 @@
 package out
 
-import (
-	"fmt"
-	"io"
-
-	"sigs.k8s.io/yaml"
-)
-
 type (
 	// BaseOutput base structure
 	BaseOutput struct {
@@ -21,6 +14,9 @@ type (
 	Output interface {
 		// Add an output item
 		Add(path string, data interface{})
+
+		// Add all output items
+		AddAll(map[string]interface{})
 
 		// Write out all outpout items
 		Write() error
@@ -53,16 +49,9 @@ func (o *BaseOutput) GetPaths() []string {
 	return paths
 }
 
-// Marshal marshals object to given writer
-func Marshal(writer io.Writer, object interface{}) error {
-	data, err := yaml.Marshal(object)
-	if err != nil {
-		return fmt.Errorf("failed to marshal data: %w", err)
+// AddAll adds all items from src to Items map
+func (o *BaseOutput) AddAll(src map[string]interface{}) {
+	for k, v := range src {
+		o.Items[k] = v
 	}
-
-	_, err = fmt.Fprintf(writer, "%s", data)
-	if err != nil {
-		return fmt.Errorf("failed to write data: %w", err)
-	}
-	return nil
 }

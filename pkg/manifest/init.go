@@ -10,13 +10,13 @@ import (
 	"github.com/openshift/odo/pkg/manifest/eventlisteners"
 	"github.com/openshift/odo/pkg/manifest/ioutils"
 	"github.com/openshift/odo/pkg/manifest/meta"
+	"github.com/openshift/odo/pkg/manifest/out/fs"
 	"github.com/openshift/odo/pkg/manifest/pipelines"
 	"github.com/openshift/odo/pkg/manifest/roles"
 	"github.com/openshift/odo/pkg/manifest/routes"
 	"github.com/openshift/odo/pkg/manifest/secrets"
 	"github.com/openshift/odo/pkg/manifest/tasks"
 	"github.com/openshift/odo/pkg/manifest/triggers"
-	"github.com/openshift/odo/pkg/manifest/yaml"
 
 	v1rbac "k8s.io/api/rbac/v1"
 )
@@ -87,12 +87,9 @@ const (
 	eventListenerPath = "08-eventlisteners/cicd-event-listener.yaml"
 	routePath         = "09-routes/gitops-webhook-event-listener.yaml"
 
-	//dockerSecretName     = "regcred"
 	saName          = "pipeline"
 	roleName        = "pipelines-service-role"
 	roleBindingName = "pipelines-service-role-binding"
-	//devRoleBindingName   = "pipeline-edit-dev"
-	//stageRoleBindingName = "pipeline-edit-stage"
 )
 
 // Init bootstraps a GitOps manifest and repository structure.
@@ -108,18 +105,25 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	exists, err := ioutils.IsExisting(o.Output)
-	if exists {
-		return err
+	output, err := fs.New(o.Output, func() error {
+		exists, err := ioutils.IsExisting(o.Output)
+		if exists {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to create output : %w", err)
 	}
 
-	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
+	files, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret)
 	if err != nil {
 		return err
 	}
 
-	_, err = yaml.WriteResources(o.Output, outputs)
-	return err
+	output.AddAll(files)
+	return output.Write()
 }
 
 // CreateResources creates resources assocated to pipelines

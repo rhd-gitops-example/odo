@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/openshift/odo/pkg/pipelines/out"
+	"github.com/openshift/odo/pkg/manifest/out"
+	"github.com/openshift/odo/pkg/manifest/yaml"
 )
 
 type output struct {
@@ -15,19 +15,14 @@ type output struct {
 }
 
 // New creates an Output that outputs to filesystem
-func New(repo, outputFolder string) (out.Output, error) {
-	gitopsName := getGitopsRepoName(repo)
-	gitopsPath := filepath.Join(outputFolder, gitopsName)
-
-	// check if the gitops dir already exists
-	exists, _ := isExisting(gitopsPath)
-	if exists {
-		return nil, fmt.Errorf("%s already exists at %s", gitopsName, gitopsPath)
+func New(outputFolder string, validation func() error) (out.Output, error) {
+	if err := validation(); err != nil {
+		return nil, err
 	}
 
 	return &output{
 		BaseOutput: out.New(),
-		rootDir:    gitopsPath,
+		rootDir:    outputFolder,
 	}, nil
 }
 
@@ -52,16 +47,5 @@ func writeToFile(filename string, item interface{}) error {
 		return fmt.Errorf("failed to Create file %s: %v", filename, err)
 	}
 	defer f.Close()
-	return out.Marshal(f, item)
-}
-
-func getGitopsRepoName(repo string) string {
-	return strings.Split(repo, "/")[1]
-}
-
-func isExisting(path string) (bool, error) {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false, err
-	}
-	return true, nil
+	return yaml.Marshal(f, item)
 }

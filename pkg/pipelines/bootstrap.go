@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/odo/pkg/manifest/statustracker"
 	"github.com/openshift/odo/pkg/manifest/tasks"
 	"github.com/openshift/odo/pkg/manifest/triggers"
-	"github.com/openshift/odo/pkg/manifest/yaml"
 )
 
 const (
@@ -129,7 +128,8 @@ func Bootstrap(o *BootstrapParameters) error {
 		outputs = append(outputs, res...)
 	}
 
-	return yaml.MarshalOutput(os.Stdout, outputs)
+	// odo pipelines bootstrap will be removed
+	return nil
 }
 
 func createRoleBindings(ns map[string]string, sa *corev1.ServiceAccount) []interface{} {

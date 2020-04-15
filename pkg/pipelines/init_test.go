@@ -8,18 +8,24 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openshift/odo/pkg/manifest/yaml"
+	"github.com/openshift/odo/pkg/manifest/out/fs"
 )
 
 func TestWriteResources(t *testing.T) {
 	tmpDir, cleanUp := makeTempDir(t)
 	defer cleanUp()
+
+	output, err := fs.New(tmpDir, func() error { return nil })
+	if err != nil {
+		t.Fatalf("failed to create output : %v", err)
+	}
+
 	resources := map[string]interface{}{
 		"01_roles/serviceaccount.yaml": fakeYamlDoc(1),
 		"02_tasks/buildah_task.yaml":   fakeYamlDoc(2),
 	}
-
-	_, err := yaml.WriteResources(tmpDir, resources)
+	output.AddAll(resources)
+	err = output.Write()
 	if err != nil {
 		t.Fatalf("failed to writeResources: %v", err)
 	}
