@@ -26,7 +26,7 @@ var (
 	AddShortDesc = `Add bootstrapped Application repo pipelines`
 )
 
-// AddParameter encapsulates the parameters for the odo pipelines services add command.
+// AddParameter encapsulates the parameters for the odo pipelines service add command.
 type AddParameters struct {
 	gitopsRepo           string
 	gitopsWebhookSecret  string
@@ -60,8 +60,8 @@ func (io *AddParameters) Complete(name string, cmd *cobra.Command, args []string
 
 // Validate validates the parameters of the AddParameters
 func (io *AddParameters) Validate() error {
-	if len(strings.Split(io.gitopsRepo, "/")) != 2 || len(strings.Split(io.serviceGitRepo, "/")) != 2 {
-		return fmt.Errorf("repo must be org/repo: %s", io.gitopsRepo)
+	if len(strings.Split(io.serviceGitRepo, "/")) != 2 || len(strings.Split(io.serviceGitRepo, "/")) != 2 {
+		return fmt.Errorf("service-git-repo must be org/repo: %s", io.serviceGitRepo)
 	}
 
 	return nil
@@ -77,7 +77,7 @@ func (io *AddParameters) Run() error {
 		ServiceWebhookSecret: io.serviceWebhookSecret,
 		ServiceImageRepo:     io.serviceImageRepo,
 		EnvName:              io.envName,
-		ServicesGitRepo:      io.serviceGitRepo,
+		ServiceGitRepo:       io.serviceGitRepo,
 		SkipChecks:           io.skipChecks,
 		Prefix:               io.prefix,
 	}
@@ -107,13 +107,12 @@ func NewCmdAddService(name, fullName string) *cobra.Command {
 	addCmd.Flags().StringVar(&o.serviceWebhookSecret, "service-webhook-secret", "", "Provide the webhook secret of the app git repository")
 	addCmd.Flags().StringVar(&o.serviceImageRepo, "service-image-repo", "", "Image repository name in form <username>/<repository>")
 	addCmd.Flags().StringVar(&o.envName, "env-name", "", "Add the name of the environment(namespace) to which the pipelines should be bootstrapped")
-	addCmd.Flags().StringVar(&o.serviceGitRepo, "services-git-repo", "", "Add the docker auth.json file path")
+	addCmd.Flags().StringVar(&o.serviceGitRepo, "service-git-repo", "", "Add the docker auth.json file path")
 	addCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", true, "skip Tekton installation checks")
-	addCmd.MarkFlagRequired("gitops-repo")
 	addCmd.MarkFlagRequired("app-name")
 	addCmd.MarkFlagRequired("service-webhook-secret")
 	addCmd.MarkFlagRequired("env-name")
-	addCmd.MarkFlagRequired("services-git-repo")
+	addCmd.MarkFlagRequired("service-git-repo")
 
 	return addCmd
 }

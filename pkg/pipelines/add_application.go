@@ -30,7 +30,7 @@ type AddParameters struct {
 	Prefix               string
 	ServiceWebhookSecret string
 	ServiceImageRepo     string
-	ServicesGitRepo      string
+	ServiceGitRepo       string
 	SkipChecks           bool
 }
 
@@ -71,7 +71,7 @@ func CreateApplication(o *AddParameters) error {
 		}
 	}
 
-	ServiceRepo := getGitopsRepoName(o.ServicesGitRepo)
+	ServiceRepo := getGitopsRepoName(o.ServiceGitRepo)
 
 	secretName := fmt.Sprintf("svc-%s-secret", ServiceRepo)
 
@@ -88,7 +88,7 @@ func CreateApplication(o *AddParameters) error {
 
 	configPath := filepath.Join(gitopsPath, servicesDir, ServiceRepo)
 
-	createPatchFiles(outputs, o.ServicesGitRepo)
+	createPatchFiles(outputs, o.ServiceGitRepo)
 
 	CreatePatchKustomiseFile(outputs, filepath.Join(overlaysDir, manifest.Kustomize))
 
@@ -143,17 +143,17 @@ func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret,
 	return outputs
 }
 
-func createPatchFiles(outputs map[string]interface{}, servicesRepo string) {
+func createPatchFiles(outputs map[string]interface{}, serviceRepo string) {
 	t := []patchStringValue{
 		{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
-			Value: eventlisteners.CreateListenerTrigger("app-ci-build-from-pr", eventlisteners.StageCIDryRunFilters, servicesRepo, "github-pr-binding", "app-ci-template"),
+			Value: eventlisteners.CreateListenerTrigger("app-ci-build-from-pr", eventlisteners.StageCIDryRunFilters, serviceRepo, "github-pr-binding", "app-ci-template"),
 		},
 		{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
-			Value: eventlisteners.CreateListenerTrigger("app-cd-deploy-from-master", eventlisteners.StageCDDeployFilters, servicesRepo, "github-push-binding", "app-cd-template"),
+			Value: eventlisteners.CreateListenerTrigger("app-cd-deploy-from-master", eventlisteners.StageCDDeployFilters, serviceRepo, "github-push-binding", "app-cd-template"),
 		},
 	}
 	outputs[PatchPath] = t
