@@ -83,14 +83,4 @@ import:
   - pkg/apis/sealed-secrets
 - package: github.com/mkmik/multierror
   version: v0.3.0
-- package: github.com/xanzy/ssh-agent
-  version: v0.2.1
-- package: github.com/jenkins-x/go-scm
-  version: v1.5.84
-- package: github.com/shurcooL/githubv4
-- package: github.com/shurcooL/graphql
-- package: gopkg.in/src-d/go-git.v4
-  version: v4.13.1
-- package: gopkg.in/src-d/go-billy.v4
-  version: v4.3.2
   

@@ -1,6 +1,0 @@
-{
-    "State": "success",
-    "Label": "continuous-integration/drone",
-    "Desc": "",
-    "Target": "https://example.com"
-}
