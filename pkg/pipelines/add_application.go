@@ -42,9 +42,10 @@ const (
 	overlaysDir      = "overlays"
 	PatchPath        = "overlays/eventlistener_patch.yaml"
 	servicesDir      = "services"
-	secretName       = "quay"
 	secretPath       = "base/config/secret.yaml"
 	webhookPath      = "base/config/app-webhook-secret.yaml"
+	kustomizeModPath = "base/config/kustomization.yaml"
+	secretName       = "secret"
 )
 
 // Note: struct fields must be public in order for unmarshal to
@@ -70,6 +71,8 @@ func Add_Application(o *AddParameters) error {
 
 	ServiceRepo := getGitopsRepoName(o.ServicesGitRepo)
 
+	secretName := fmt.Sprintf("svc-%s-secret", ServiceRepo)
+
 	// we simpily output to the output dir, no gitops repo in the output path
 	gitopsPath := o.Output
 
@@ -89,7 +92,9 @@ func Add_Application(o *AddParameters) error {
 
 	environmentName := manifest.NamespaceNames(o.Prefix)
 
-	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, environmentName["cicd"])
+	createKustomizeMod(outputs, kustomizeModPath, environmentName["cicd"])
+
+	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, environmentName["cicd"], secretName)
 
 	_, err := yaml.WriteResources(configPath, files)
 
@@ -113,14 +118,6 @@ func Add_Application(o *AddParameters) error {
 	if err := yaml.AddKustomize("bases", []string{"./config"}, filepath.Join(gitopsPath, servicesDir, ServiceRepo, manifest.BaseDir, manifest.Kustomize)); err != nil {
 		return err
 	}
-	kustomize1 := map[string][]string{
-		"bases":     []string{fmt.Sprintf("../../../../envs/%s/", environmentName["cicd"])},
-		"resources": []string{"serviceaccount.yaml", "app-webhook-secret.yaml"},
-	}
-
-	if err := addModKustomize(kustomize1, filepath.Join(gitopsPath, servicesDir, ServiceRepo, manifest.BaseDir, configDir, manifest.Kustomize)); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -133,11 +130,11 @@ func addModKustomize(values map[string][]string, path string) error {
 	return yaml.MarshalItemToFile(path, content)
 }
 
-func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret, environmentName string) map[string]interface{} {
+func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret, environmentName, secretName string) map[string]interface{} {
 	sa := roles.CreateServiceAccount(meta.NamespacedName(environmentName, saName))
 	ServiceAcc := roles.AddSecretToSA(sa, secretName)
 	outputs[configSApath] = ServiceAcc
-	githubSecret, _ := secrets.CreateSealedSecret(meta.NamespacedName(environmentName, eventlisteners.GitOpsWebhookSecret),
+	githubSecret, _ := secrets.CreateSealedSecret(meta.NamespacedName(environmentName, secretName),
 		serviceWebhookSecret, eventlisteners.WebhookSecretKey)
 	outputs[webhookPath] = githubSecret
 
@@ -157,7 +154,7 @@ func createPatchFiles(outputs map[string]interface{}, servicesRepo string) {
 			Value: eventlisteners.CreateListenerTrigger("app-cd-deploy-from-master", eventlisteners.StageCDDeployFilters, servicesRepo, "github-push-binding", "app-cd-template"),
 		},
 	}
-	outputs[PatchPath] = &t
+	outputs[PatchPath] = t
 
 }
 
@@ -185,7 +182,21 @@ func CreatePatchKustomiseFile(outputs map[string]interface{}, path string) {
 		Bases:           bases,
 		PatchesJson6902: Patches,
 	}
-	outputs[path] = &file
+	outputs[path] = file
+
+}
+
+func createKustomizeMod(outputs map[string]interface{}, path, environmentName string) {
+
+	bases := []string{fmt.Sprintf("../../../../environments/%s/overlays", environmentName)}
+	resources := []string{"serviceaccount.yaml", "app-webhook-secret.yaml"}
+
+	file := types.Kustomization{
+		Bases:     bases,
+		Resources: resources,
+	}
+
+	outputs[path] = file
 
 }
 
