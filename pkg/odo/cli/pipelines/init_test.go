@@ -65,43 +65,6 @@ func TestValidateInitParameters(t *testing.T) {
 	}
 }
 
-func TestInitCommandWithMissingParams(t *testing.T) {
-	cmdTests := []struct {
-		desc    string
-		flags   []keyValuePair
-		wantErr string
-	}{
-		{"Missing gitops-repo flag",
-			[]keyValuePair{flag("skip-checks", "true"),
-				flag("dockercfgjson", "~/Downloads/example"), flag("image-repo", "sample/repo"), flag("gitops-webhook-secret", "abc123")},
-			`Required flag(s) "gitops-repo" have/has not been set`},
-		{"Missing dockercfgjson flag",
-			[]keyValuePair{flag("skip-checks", "true"),
-				flag("gitops-repo", "sample/repo"), flag("image-repo", "sample/repo"), flag("gitops-webhook-secret", "abc123")},
-			`Required flag(s) "dockercfgjson" have/has not been set`},
-		{"Missing image-repo flag",
-			[]keyValuePair{flag("skip-checks", "true"),
-				flag("gitops-repo", "sample/repo"), flag("dockercfgjson", "sample/repo"), flag("gitops-webhook-secret", "abc123")},
-			`Required flag(s) "image-repo" have/has not been set`},
-		{"Missing gitops-webhook-secret flag",
-			[]keyValuePair{flag("skip-checks", "true"),
-				flag("gitops-repo", "sample/repo"), flag("dockercfgjson", "sample/repo"), flag("image-repo", "sample/repo")},
-			`Required flag(s) "gitops-webhook-secret" have/has not been set`},
-		{"Missing output flag",
-			[]keyValuePair{flag("gitops-repo", "org/sample"), flag("gitops-webhook-secret", "123"),
-				flag("skip-checks", "true")},
-			`Required flag(s) "output" have/has not been set`},
-	}
-	for _, tt := range cmdTests {
-		t.Run(tt.desc, func(t *testing.T) {
-			_, _, err := executeCommand(NewCmdInit("init", "odo pipelines init"), tt.flags...)
-			if err.Error() != tt.wantErr {
-				t.Errorf("got %s, want %s", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestBypassChecks(t *testing.T) {
 	tests := []struct {
 		description        string

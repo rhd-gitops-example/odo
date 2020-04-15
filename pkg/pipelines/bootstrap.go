@@ -197,7 +197,7 @@ func createPipelines(ns map[string]string, isInternalRegistry bool, deploymentPa
 
 }
 
-// createDockerSecret creates Docker secret
+// CreateDockerSecret creates Docker secret
 func CreateDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.SealedSecret, error) {
 	if dockerConfigJSONFileName == "" {
 		return nil, errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")

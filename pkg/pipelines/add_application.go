@@ -40,6 +40,7 @@ const (
 	configDir        = "config"
 	configSApath     = "base/config/serviceaccount.yaml"
 	overlaysDir      = "overlays"
+	// PatchPath path to eventlistener patch yaml
 	PatchPath        = "overlays/eventlistener_patch.yaml"
 	servicesDir      = "services"
 	secretPath       = "base/config/secret.yaml"
@@ -57,7 +58,8 @@ type patchStringValue struct {
 	Value triggersv1.EventListenerTrigger `json:"value"`
 }
 
-func Add_Application(o *AddParameters) error {
+// CreateApplication creates an application
+func CreateApplication(o *AddParameters) error {
 
 	if !o.SkipChecks {
 		installed, err := pipelines.CheckTektonInstall()
@@ -143,12 +145,12 @@ func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret,
 
 func createPatchFiles(outputs map[string]interface{}, servicesRepo string) {
 	t := []patchStringValue{
-		patchStringValue{
+		{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
 			Value: eventlisteners.CreateListenerTrigger("app-ci-build-from-pr", eventlisteners.StageCIDryRunFilters, servicesRepo, "github-pr-binding", "app-ci-template"),
 		},
-		patchStringValue{
+		{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
 			Value: eventlisteners.CreateListenerTrigger("app-cd-deploy-from-master", eventlisteners.StageCDDeployFilters, servicesRepo, "github-push-binding", "app-cd-template"),
@@ -173,7 +175,7 @@ func CreatePatchKustomiseFile(outputs map[string]interface{}, path string) {
 		Name: "cicd-event-listener",
 	}
 	Patches := []types.PatchJson6902{
-		types.PatchJson6902{
+		{
 			Target: target,
 			Path:   "eventlistener_patch.yaml",
 		},

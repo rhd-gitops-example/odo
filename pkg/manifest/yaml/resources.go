@@ -55,6 +55,5 @@ func MarshalOutput(out io.Writer, output interface{}) error {
 
 // AddKustomize adds kustomization.yaml.  Name and items become map key and value, respectively
 func AddKustomize(name string, items []string, path string) error {
-
 	return MarshalItemToFile(path, map[string]interface{}{name: items})
 }

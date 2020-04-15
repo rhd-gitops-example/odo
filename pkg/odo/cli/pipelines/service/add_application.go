@@ -82,7 +82,7 @@ func (io *AddParameters) Run() error {
 		Prefix:               io.prefix,
 	}
 
-	return pipelines.Add_Application(&options)
+	return pipelines.CreateApplication(&options)
 }
 
 // NewCmdAddService creates the project add service command.
