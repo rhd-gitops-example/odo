@@ -1,0 +1,34 @@
+- op: add
+  path: /spec/triggers/-
+  value:
+    bindings:
+    - name: github-pr-binding
+    interceptors:
+    - cel:
+        filter: (header.match('X-GitHub-Event', 'pull_request') && body.action ==
+          'opened' || body.action == 'synchronize') && body.pull_request.head.repo.full_name
+          == 'gaganeggday/taxi'
+    - github:
+        secretRef:
+          secretKey: webhook-secret-key
+          secretName: gitops-webhook-secret
+    name: app-ci-build-from-pr
+    template:
+      name: app-ci-template
+- op: add
+  path: /spec/triggers/-
+  value:
+    bindings:
+    - name: github-push-binding
+    interceptors:
+    - cel:
+        filter: (header.match('X-GitHub-Event', 'push') && body.repository.full_name
+          == 'gaganeggday/taxi') && body.ref.startsWith('refs/heads/master')
+    - github:
+        secretRef:
+          secretKey: webhook-secret-key
+          secretName: gitops-webhook-secret
+    name: app-cd-deploy-from-master
+    template:
+      name: app-cd-template
+---

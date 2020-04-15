@@ -1,0 +1,10 @@
+bases:
+- ../base
+patchesJson6902:
+- path: eventlistener_patch.yaml
+  target:
+    group: tekton.dev
+    kind: EventListener
+    name: cicd-event-listener
+    version: v1alpha1
+---

@@ -72,12 +72,20 @@ func TestInitCommandWithMissingParams(t *testing.T) {
 		wantErr string
 	}{
 		{"Missing gitops-repo flag",
-			[]keyValuePair{flag("output", "~/output"),
-				flag("gitops-webhook-secret", "123"), flag("skip-checks", "true")},
+			[]keyValuePair{flag("skip-checks", "true"),
+				flag("dockercfgjson", "~/Downloads/example"), flag("image-repo", "sample/repo"), flag("gitops-webhook-secret", "abc123")},
 			`Required flag(s) "gitops-repo" have/has not been set`},
+		{"Missing dockercfgjson flag",
+			[]keyValuePair{flag("skip-checks", "true"),
+				flag("gitops-repo", "sample/repo"), flag("image-repo", "sample/repo"), flag("gitops-webhook-secret", "abc123")},
+			`Required flag(s) "dockercfgjson" have/has not been set`},
+		{"Missing image-repo flag",
+			[]keyValuePair{flag("skip-checks", "true"),
+				flag("gitops-repo", "sample/repo"), flag("dockercfgjson", "sample/repo"), flag("gitops-webhook-secret", "abc123")},
+			`Required flag(s) "image-repo" have/has not been set`},
 		{"Missing gitops-webhook-secret flag",
-			[]keyValuePair{flag("gitops-repo", "org/sample"), flag("output", "~/output"),
-				flag("skip-checks", "true")},
+			[]keyValuePair{flag("skip-checks", "true"),
+				flag("gitops-repo", "sample/repo"), flag("dockercfgjson", "sample/repo"), flag("image-repo", "sample/repo")},
 			`Required flag(s) "gitops-webhook-secret" have/has not been set`},
 	}
 	for _, tt := range cmdTests {

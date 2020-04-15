@@ -3,6 +3,7 @@ package pipelines
 import (
 	"errors"
 	"fmt"
+	"log"
 	"path/filepath"
 
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
@@ -17,39 +18,38 @@ import (
 
 // AddParameters is a struct that provides flags for add application command
 type AddParameters struct {
+	AppName              string
+	EnvName              string
 	GitopsRepo           string
 	GitopsWebhookSecret  string
 	Output               string
 	Prefix               string
-	AppName              string
 	ServiceWebhookSecret string
 	ServiceImageRepo     string
-	EnvName              string
 	ServicesGitRepo      string
 	SkipChecks           bool
 }
 
 const (
-	overlays         = "overlays"
 	appDir           = "apps"
+	appWebhookSecret = "app-webhook-secret"
 	configDir        = "config"
+	configSApath     = "base/config/serviceaccount.yaml"
+	overlaysDir      = "overlays"
+	PatchPath        = "overlays/eventlistener_patch.yaml"
 	servicesDir      = "services"
 	secretName       = "quay"
-	configSApath     = "base/config/serviceaccount.yaml"
 	secretPath       = "base/config/secret.yaml"
-	PatchPath        = "overlays/eventlistener_patch.yaml"
-	overlaysDir      = "overlays"
 	webhookPath      = "base/config/app-webhook-secret.yaml"
-	appWebhookSecret = "app-webhook-secret"
 )
 
 // Note: struct fields must be public in order for unmarshal to
 // correctly populate the data.
 
 type patchStringValue struct {
-	Op    string                          `yaml:"op"`
-	Path  string                          `yaml:"path"`
-	Value triggersv1.EventListenerTrigger `yaml:"value"`
+	Op    string                          `json:"op"`
+	Path  string                          `json:"path"`
+	Value triggersv1.EventListenerTrigger `json:"value"`
 }
 
 // Add_Application function will initialise the gitops directory
@@ -75,18 +75,23 @@ func Add_Application(o *AddParameters) error {
 
 	exists, _ := isExisting(gitopsPath)
 
-	createPatchFiles(outputs, o.EnvName, o.AppName, o.ServicesGitRepo)
-
 	if !exists {
 		return fmt.Errorf("%s does not exist at %s", gitopsName, gitopsPath)
 	}
+
 	configPath := filepath.Join(gitopsPath, servicesDir, ServiceRepo)
 
-	CreateNewKustomiseFile(outputs, filepath.Join(overlaysDir, kustomize))
+	createPatchFiles(outputs, o.EnvName, o.AppName, o.ServicesGitRepo)
 
-	environmentName := fmt.Sprintf("%scicd-environment", o.Prefix)
+	CreatePatchKustomiseFile(outputs, filepath.Join(overlaysDir, kustomize))
 
-	files := createResourcesConfig(outputs, o.EnvName, o.EnvName, o.ServiceWebhookSecret, environmentName)
+	environmentName := namespaceNames(o.Prefix)
+
+	joinedPaths(overlaysDir, kustomize)
+
+	log.Println("The environment Name is", environmentName)
+
+	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, environmentName["cicd"])
 
 	_, err := writeResources(configPath, files)
 
@@ -97,7 +102,7 @@ func Add_Application(o *AddParameters) error {
 		return err
 	}
 
-	if err := addKustomize("bases", []string{"../base"}, filepath.Join(gitopsPath, appDir, o.AppName, overlays, kustomize)); err != nil {
+	if err := addKustomize("bases", []string{"../base"}, filepath.Join(gitopsPath, appDir, o.AppName, overlaysDir, kustomize)); err != nil {
 		return err
 	}
 
@@ -111,8 +116,8 @@ func Add_Application(o *AddParameters) error {
 		return err
 	}
 	kustomize1 := map[string][]string{
-		"bases":     []string{fmt.Sprintf("../../../../envs/%s/", environmentName)},
-		"resources": []string{"secret.yaml", "serviceaccount.yaml", "app-webhook-secret.yaml"},
+		"bases":     []string{fmt.Sprintf("../../../../envs/%s/", environmentName["cicd"])},
+		"resources": []string{"serviceaccount.yaml", "app-webhook-secret.yaml"},
 	}
 
 	if err := addModKustomize(kustomize1, filepath.Join(gitopsPath, servicesDir, ServiceRepo, baseDir, configDir, kustomize)); err != nil {
@@ -120,6 +125,10 @@ func Add_Application(o *AddParameters) error {
 	}
 
 	return nil
+}
+
+func joinedPaths(directory ...string) {
+
 }
 
 func addModKustomize(values map[string][]string, path string) error {
@@ -130,7 +139,7 @@ func addModKustomize(values map[string][]string, path string) error {
 	return marshalItemsToFile(path, content)
 }
 
-func createResourcesConfig(outputs map[string]interface{}, namespace, envName, serviceWebhookSecret, environmentName string) map[string]interface{} {
+func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret, environmentName string) map[string]interface{} {
 	sa := roles.CreateServiceAccount(meta.NamespacedName(environmentName, saName))
 	ServiceAcc := roles.AddSecretToSA(sa, secretName)
 	outputs[configSApath] = ServiceAcc
@@ -146,19 +155,19 @@ func createPatchFiles(outputs map[string]interface{}, name, repo, servicesRepo s
 		patchStringValue{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
-			Value: eventlisteners.CreateListenerTrigger(name, eventlisteners.StageCIDryRunFilters, servicesRepo, "github-pr-binding", "app-ci-template"),
+			Value: eventlisteners.CreateListenerTrigger("app-ci-build-from-pr", eventlisteners.StageCIDryRunFilters, servicesRepo, "github-pr-binding", "app-ci-template"),
 		},
 		patchStringValue{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
-			Value: eventlisteners.CreateListenerTrigger(name, eventlisteners.StageCDDeployFilters, servicesRepo, "github-push-binding", "app-cd-template"),
+			Value: eventlisteners.CreateListenerTrigger("app-cd-deploy-from-master", eventlisteners.StageCDDeployFilters, servicesRepo, "github-push-binding", "app-cd-template"),
 		},
 	}
 	outputs[PatchPath] = &t
 
 }
 
-func CreateNewKustomiseFile(outputs map[string]interface{}, path string) {
+func CreatePatchKustomiseFile(outputs map[string]interface{}, path string) {
 
 	bases := []string{"../base"}
 
