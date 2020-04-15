@@ -28,7 +28,7 @@ func New(outputFolder string, aferofs *afero.Afero, validation func() error) (ou
 	}, nil
 }
 
-// Write all outpout items to filesystem
+// Write all output items to filesystem.
 func (o *output) Write() error {
 	for filename, item := range o.Items {
 		err := o.writeToFile(filepath.Join(o.rootDir, filename), item)
