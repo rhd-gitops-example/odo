@@ -3,7 +3,6 @@ package pipelines
 import (
 	"errors"
 	"fmt"
-	"log"
 	"path/filepath"
 
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
@@ -81,15 +80,11 @@ func Add_Application(o *AddParameters) error {
 
 	configPath := filepath.Join(gitopsPath, servicesDir, ServiceRepo)
 
-	createPatchFiles(outputs, o.EnvName, o.AppName, o.ServicesGitRepo)
+	createPatchFiles(outputs, o.ServicesGitRepo)
 
 	CreatePatchKustomiseFile(outputs, filepath.Join(overlaysDir, kustomize))
 
 	environmentName := namespaceNames(o.Prefix)
-
-	joinedPaths(overlaysDir, kustomize)
-
-	log.Println("The environment Name is", environmentName)
 
 	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, environmentName["cicd"])
 
@@ -127,10 +122,6 @@ func Add_Application(o *AddParameters) error {
 	return nil
 }
 
-func joinedPaths(directory ...string) {
-
-}
-
 func addModKustomize(values map[string][]string, path string) error {
 	content := make([]interface{}, 0)
 	for name, items := range values {
@@ -150,7 +141,7 @@ func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret,
 	return outputs
 }
 
-func createPatchFiles(outputs map[string]interface{}, name, repo, servicesRepo string) {
+func createPatchFiles(outputs map[string]interface{}, servicesRepo string) {
 	t := []patchStringValue{
 		patchStringValue{
 			Op:    "add",

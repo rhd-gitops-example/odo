@@ -98,18 +98,18 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 	}
 
 	initCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
-	initCmd.MarkFlagRequired("gitops-repo")
 	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for gitops repository")
-	initCmd.MarkFlagRequired("gitops-webhook-secret")
 	initCmd.Flags().StringVar(&o.dockercfgjson, "dockercfgjson", "", "provide the dockercfg json path")
-	initCmd.MarkFlagRequired("dockercfgjson")
 	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	initCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
 	initCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
-	initCmd.MarkFlagRequired("image-repo")
 	initCmd.Flags().StringVar(&o.deploymentPath, "deployment-path", "deploy", "deployment folder path name")
 	initCmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
+	initCmd.MarkFlagRequired("gitops-repo")
+	initCmd.MarkFlagRequired("gitops-webhook-secret")
+	initCmd.MarkFlagRequired("dockercfgjson")
+	initCmd.MarkFlagRequired("image-repo")
 
 	return initCmd
 }
