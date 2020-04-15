@@ -6,13 +6,12 @@ import (
 	"path/filepath"
 
 	"github.com/openshift/odo/pkg/manifest/eventlisteners"
+	"sigs.k8s.io/kustomize/pkg/types"
 
 	"github.com/openshift/odo/pkg/manifest/meta"
 	"github.com/openshift/odo/pkg/manifest/roles"
 	"github.com/openshift/odo/pkg/manifest/secrets"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
-	"sigs.k8s.io/kustomize/api/resid"
-	"sigs.k8s.io/kustomize/api/types"
 )
 
 // AddParameters is a struct that provides flags for add application command
