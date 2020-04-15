@@ -12,8 +12,8 @@ import (
 	"github.com/openshift/odo/pkg/odo/cli/debug"
 	"github.com/openshift/odo/pkg/odo/cli/login"
 	"github.com/openshift/odo/pkg/odo/cli/logout"
+	"github.com/openshift/odo/pkg/odo/cli/manifest"
 	"github.com/openshift/odo/pkg/odo/cli/pipelines"
-	addApplication "github.com/openshift/odo/pkg/odo/cli/pipelines/service"
 	"github.com/openshift/odo/pkg/odo/cli/preference"
 	"github.com/openshift/odo/pkg/odo/cli/project"
 	"github.com/openshift/odo/pkg/odo/cli/service"
@@ -155,10 +155,8 @@ func NewCmdOdo(name, fullName string) *cobra.Command {
 		config.NewCmdConfiguration(config.RecommendedCommandName, util.GetFullName(fullName, config.RecommendedCommandName)),
 		preference.NewCmdPreference(preference.RecommendedCommandName, util.GetFullName(fullName, preference.RecommendedCommandName)),
 		debug.NewCmdDebug(debug.RecommendedCommandName, util.GetFullName(fullName, debug.RecommendedCommandName)),
-		pipelines.NewCmdComponent(pipelines.RecommendedCommandName, util.GetFullName(fullName, pipelines.RecommendedCommandName)),
-		pipelines.NewCmdInit(pipelines.InitRecommendedCommandName, util.GetFullName(fullName, pipelines.InitRecommendedCommandName)),
-		addApplication.NewCmdAddService(addApplication.AddServiceRecommendedCommandName, util.GetFullName(fullName, addApplication.AddServiceRecommendedCommandName)),
-		addApplication.NewCmdService(addApplication.ServiceRecommendedCommandName, util.GetFullName(fullName, addApplication.ServiceRecommendedCommandName)),
+		manifest.NewCmdManifest(manifest.RecommendedCommandName, util.GetFullName(fullName, manifest.RecommendedCommandName)),
+		pipelines.NewCmdPipelines(pipelines.RecommendedCommandName, util.GetFullName(fullName, pipelines.RecommendedCommandName)),
 	)
 
 	odoutil.VisitCommands(rootCmd, reconfigureCmdWithSubcmd)

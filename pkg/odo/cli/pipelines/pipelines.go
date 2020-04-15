@@ -4,16 +4,16 @@ import (
 	"fmt"
 
 	"github.com/openshift/odo/pkg/odo/cli/pipelines/service"
-	"github.com/spf13/cobra"
 
 	odoutil "github.com/openshift/odo/pkg/odo/util"
+	"github.com/spf13/cobra"
 )
 
 // RecommendedCommandName is the recommended pipelines command name.
 const RecommendedCommandName = "pipelines"
 
-// NewCmdComponent implements the component odo command
-func NewCmdComponent(name, fullName string) *cobra.Command {
+// NewCmdPipelines creates a new pipelines command
+func NewCmdPipelines(name, fullName string) *cobra.Command {
 
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
 	ServiceCmd := service.NewCmdAddService(service.ServiceRecommendedCommandName, odoutil.GetFullName(fullName, service.ServiceRecommendedCommandName))
