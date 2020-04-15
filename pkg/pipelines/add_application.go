@@ -4,8 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
+	"github.com/openshift/odo/pkg/manifest"
 	"github.com/openshift/odo/pkg/manifest/eventlisteners"
+	"github.com/openshift/odo/pkg/manifest/ioutils"
+	"github.com/openshift/odo/pkg/manifest/pipelines"
+	"github.com/openshift/odo/pkg/manifest/yaml"
+	"sigs.k8s.io/kustomize/pkg/gvk"
 	"sigs.k8s.io/kustomize/pkg/types"
 
 	"github.com/openshift/odo/pkg/manifest/meta"
@@ -50,11 +56,10 @@ type patchStringValue struct {
 	Value triggersv1.EventListenerTrigger `json:"value"`
 }
 
-// Add_Application function will initialise the gitops directory
 func Add_Application(o *AddParameters) error {
 
 	if !o.SkipChecks {
-		installed, err := checkTektonInstall()
+		installed, err := pipelines.CheckTektonInstall()
 		if err != nil {
 			return fmt.Errorf("failed to run Tekton Pipelines installation check: %w", err)
 		}
@@ -63,50 +68,49 @@ func Add_Application(o *AddParameters) error {
 		}
 	}
 
-	gitopsName := getGitopsRepoName(o.GitopsRepo)
-
 	ServiceRepo := getGitopsRepoName(o.ServicesGitRepo)
 
-	gitopsPath := filepath.Join(o.Output, gitopsName)
+	// we simpily output to the output dir, no gitops repo in the output path
+	gitopsPath := o.Output
 
 	outputs := map[string]interface{}{}
 
-	exists, _ := isExisting(gitopsPath)
+	exists, _ := ioutils.IsExisting(gitopsPath)
 
 	if !exists {
-		return fmt.Errorf("%s does not exist at %s", gitopsName, gitopsPath)
+		return fmt.Errorf("Ootput does not exist at %s", gitopsPath)
 	}
 
 	configPath := filepath.Join(gitopsPath, servicesDir, ServiceRepo)
 
 	createPatchFiles(outputs, o.ServicesGitRepo)
 
-	CreatePatchKustomiseFile(outputs, filepath.Join(overlaysDir, kustomize))
+	CreatePatchKustomiseFile(outputs, filepath.Join(overlaysDir, manifest.Kustomize))
 
-	environmentName := namespaceNames(o.Prefix)
+	environmentName := manifest.NamespaceNames(o.Prefix)
 
 	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, environmentName["cicd"])
 
-	_, err := writeResources(configPath, files)
+	_, err := yaml.WriteResources(configPath, files)
 
 	if err != nil {
 		return err
 	}
-	if err := addKustomize("bases", []string{"overlays"}, filepath.Join(gitopsPath, appDir, o.AppName, kustomize)); err != nil {
+	if err := yaml.AddKustomize("bases", []string{"overlays"}, filepath.Join(gitopsPath, appDir, o.AppName, manifest.Kustomize)); err != nil {
 		return err
 	}
 
-	if err := addKustomize("bases", []string{"../base"}, filepath.Join(gitopsPath, appDir, o.AppName, overlaysDir, kustomize)); err != nil {
+	if err := yaml.AddKustomize("bases", []string{"../base"}, filepath.Join(gitopsPath, appDir, o.AppName, overlaysDir, manifest.Kustomize)); err != nil {
 		return err
 	}
 
-	if err := addKustomize("bases", []string{fmt.Sprintf("../../../services/%s/overlays", ServiceRepo)}, filepath.Join(gitopsPath, appDir, o.AppName, baseDir, kustomize)); err != nil {
+	if err := yaml.AddKustomize("bases", []string{fmt.Sprintf("../../../services/%s/overlays", ServiceRepo)}, filepath.Join(gitopsPath, appDir, o.AppName, manifest.BaseDir, manifest.Kustomize)); err != nil {
 		return err
 	}
-	if err := addKustomize("bases", []string{"../config"}, filepath.Join(gitopsPath, servicesDir, ServiceRepo, baseDir, kustomize)); err != nil {
+	if err := yaml.AddKustomize("bases", []string{"../config"}, filepath.Join(gitopsPath, servicesDir, ServiceRepo, manifest.BaseDir, manifest.Kustomize)); err != nil {
 		return err
 	}
-	if err := addKustomize("bases", []string{"./config"}, filepath.Join(gitopsPath, servicesDir, ServiceRepo, baseDir, kustomize)); err != nil {
+	if err := yaml.AddKustomize("bases", []string{"./config"}, filepath.Join(gitopsPath, servicesDir, ServiceRepo, manifest.BaseDir, manifest.Kustomize)); err != nil {
 		return err
 	}
 	kustomize1 := map[string][]string{
@@ -114,7 +118,7 @@ func Add_Application(o *AddParameters) error {
 		"resources": []string{"serviceaccount.yaml", "app-webhook-secret.yaml"},
 	}
 
-	if err := addModKustomize(kustomize1, filepath.Join(gitopsPath, servicesDir, ServiceRepo, baseDir, configDir, kustomize)); err != nil {
+	if err := addModKustomize(kustomize1, filepath.Join(gitopsPath, servicesDir, ServiceRepo, manifest.BaseDir, configDir, manifest.Kustomize)); err != nil {
 		return err
 	}
 
@@ -126,7 +130,7 @@ func addModKustomize(values map[string][]string, path string) error {
 	for name, items := range values {
 		content = append(content, map[string]interface{}{name: items})
 	}
-	return marshalItemsToFile(path, content)
+	return yaml.MarshalItemToFile(path, content)
 }
 
 func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret, environmentName string) map[string]interface{} {
@@ -157,11 +161,12 @@ func createPatchFiles(outputs map[string]interface{}, servicesRepo string) {
 
 }
 
+// CreatePatchKustomiseFile creates patch kustomization file
 func CreatePatchKustomiseFile(outputs map[string]interface{}, path string) {
 
 	bases := []string{"../base"}
 
-	GVK := resid.Gvk{
+	GVK := gvk.Gvk{
 		Group:   "tekton.dev",
 		Version: "v1alpha1",
 		Kind:    "EventListener",
@@ -182,4 +187,8 @@ func CreatePatchKustomiseFile(outputs map[string]interface{}, path string) {
 	}
 	outputs[path] = &file
 
+}
+
+func getGitopsRepoName(repo string) string {
+	return strings.Split(repo, "/")[1]
 }
