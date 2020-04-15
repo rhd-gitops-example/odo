@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/odo/pkg/manifest/secrets"
 	"github.com/openshift/odo/pkg/manifest/tasks"
 	"github.com/openshift/odo/pkg/manifest/triggers"
+	"github.com/spf13/afero"
 
 	v1rbac "k8s.io/api/rbac/v1"
 )
@@ -105,7 +106,7 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	output, err := fs.New(o.Output, func() error {
+	output, err := fs.New(o.Output, &afero.Afero{Fs: afero.NewOsFs()}, func() error {
 		exists, err := ioutils.IsExisting(o.Output)
 		if exists {
 			return err

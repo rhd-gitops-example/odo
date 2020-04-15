@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/odo/pkg/manifest/out/fs"
 	"github.com/openshift/odo/pkg/manifest/roles"
 	"github.com/openshift/odo/pkg/manifest/yaml"
+	"github.com/spf13/afero"
 )
 
 const (
@@ -28,7 +29,7 @@ func Env(o *EnvParameters) error {
 
 	envPath := getEnvPath(o.EnvName, o.Prefix)
 
-	output, err := fs.New(o.Output, func() error {
+	output, err := fs.New(o.Output, &afero.Afero{Fs: afero.NewOsFs()}, func() error {
 		// check if the gitops dir exists
 		exists, err := ioutils.IsExisting(o.Output)
 		if !exists {

@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/spf13/afero"
 )
 
 func TestFilesystemWriter(t *testing.T) {
 	tmpDir, cleanUp := makeTempDir(t)
 	defer cleanUp()
-	output, err := New(tmpDir, func() error { return nil })
+	output, err := New(tmpDir, &afero.Afero{Fs: afero.NewOsFs()}, func() error { return nil })
 	if err != nil {
 		t.Fatalf("failed to create output : %v", err)
 	}

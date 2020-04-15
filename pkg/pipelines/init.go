@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/odo/pkg/manifest/ioutils"
 	"github.com/openshift/odo/pkg/manifest/out/fs"
 	pl "github.com/openshift/odo/pkg/manifest/pipelines"
+	"github.com/spf13/afero"
 
 	"github.com/openshift/odo/pkg/manifest/yaml"
 )
@@ -36,7 +37,7 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	output, err := fs.New(o.Output, func() error {
+	output, err := fs.New(o.Output, &afero.Afero{Fs: afero.NewOsFs()}, func() error {
 		// check if the gitops dir already exists
 		exists, err := ioutils.IsExisting(o.Output)
 		if exists {
