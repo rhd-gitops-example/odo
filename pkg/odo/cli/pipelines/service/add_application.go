@@ -108,6 +108,7 @@ func NewCmdAddService(name, fullName string) *cobra.Command {
 	addCmd.MarkFlagRequired("service-webhook-secret")
 	addCmd.MarkFlagRequired("env-name")
 	addCmd.MarkFlagRequired("service-git-repo")
+	addCmd.MarkFlagRequired("output")
 
 	return addCmd
 }
