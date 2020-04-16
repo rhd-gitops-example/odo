@@ -27,8 +27,9 @@ var (
 
 // BuildParameters encapsulates the parameters for the odo manifest build command.
 type BuildParameters struct {
-	manifest string
-	output   string // path to add Gitops resources
+	manifest      string
+	output        string // path to add Gitops resources
+	gitopsRepoURL string
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -53,6 +54,7 @@ func (io *BuildParameters) Run() error {
 	options := manifest.BuildParameters{
 		ManifestFilename: io.manifest,
 		OutputDir:        io.output,
+		RepositoryURL:    io.gitopsRepoURL,
 	}
 	return manifest.BuildResources(&options)
 }
@@ -72,5 +74,6 @@ func NewCmdBuild(name, fullName string) *cobra.Command {
 
 	buildCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
 	buildCmd.Flags().StringVar(&o.manifest, "manifest", "manifest.yaml", "path to manifest file")
+	buildCmd.Flags().StringVar(&o.gitopsRepoURL, "gitops-repo-url", "", "full URL for the repository where the manifest and configuration are stored")
 	return buildCmd
 }

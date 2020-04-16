@@ -26,7 +26,7 @@ type Manifest struct {
 	Environments []*Environment `json:"environments,omitempty"`
 }
 
-// GetCICDEnvironment returns CICD Environemnt
+// GetCICDEnvironment returns the CICD Environment if one exists.
 func (m *Manifest) GetCICDEnvironment() (*Environment, error) {
 	envs := []*Environment{}
 	for _, env := range m.Environments {
@@ -43,6 +43,23 @@ func (m *Manifest) GetCICDEnvironment() (*Environment, error) {
 	return envs[0], nil
 }
 
+// GetArgoCDEnvironment returns the ArgoCD Environment if one exists.
+func (m *Manifest) GetArgoCDEnvironment() (*Environment, error) {
+	envs := []*Environment{}
+	for _, env := range m.Environments {
+		if env.IsArgoCD {
+			envs = append(envs, env)
+		}
+	}
+	if len(envs) > 1 {
+		return nil, errors.New("found multiple ArgoCD environments")
+	}
+	if len(envs) == 0 {
+		return nil, errors.New("could not find ArgoCD environment")
+	}
+	return envs[0], nil
+}
+
 // Environment is a slice of Apps, these are the named apps in the namespace.
 //
 // The CICD environment will be used to automatically generate CI/CD resources
@@ -54,12 +71,19 @@ type Environment struct {
 	Apps      []*Application `json:"apps,omitempty"`
 	// TODO: this should check that there is 0 or 1 CICD environment in the
 	// manfifest.
-	IsCICD bool `json:"cicd,omitempty"`
+	IsCICD   bool `json:"cicd,omitempty"`
+	IsArgoCD bool `json:"argo,omitempty"`
 }
 
 // GoString return environment name
 func (e Environment) GoString() string {
 	return e.Name
+}
+
+// IsSpecial returns true if the environment is a special environment reserved
+// for specific files.
+func (e Environment) IsSpecial() bool {
+	return e.IsCICD || e.IsArgoCD
 }
 
 // Application has many services.
@@ -145,7 +169,10 @@ type byName []*Environment
 func (a byName) Len() int      { return len(a) }
 func (a byName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a byName) Less(i, j int) bool {
-	if a[j].IsCICD {
+	if a[i].IsSpecial() {
+		return false
+	}
+	if a[j].IsSpecial() {
 		return true
 	}
 	return a[i].Name < a[j].Name

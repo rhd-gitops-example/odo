@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/odo/pkg/manifest/tasks"
 	"github.com/openshift/odo/pkg/manifest/triggers"
 	"github.com/openshift/odo/pkg/manifest/yaml"
+	"github.com/spf13/afero"
 
 	v1rbac "k8s.io/api/rbac/v1"
 
@@ -133,8 +134,8 @@ func Init(o *InitParameters) error {
 	if err != nil {
 		return err
 	}
-
-	_, err = yaml.WriteResources(o.Output, outputs)
+	appFs := afero.NewOsFs()
+	_, err = yaml.WriteResources(appFs, o.Output, outputs)
 	return err
 }
 

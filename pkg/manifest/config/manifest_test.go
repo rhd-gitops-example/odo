@@ -146,15 +146,17 @@ func TestEnviromentSorting(t *testing.T) {
 		names []testEnv
 		want  []string
 	}{
-		{[]testEnv{{"prod", false}, {"staging", false}, {"dev", false}}, []string{"dev", "prod", "staging"}},
-		{[]testEnv{{"cicd", true}, {"staging", false}, {"dev", false}}, []string{"dev", "staging", "cicd"}},
-		{[]testEnv{{"m-cicd", true}, {"staging", false}, {"dev", false}}, []string{"dev", "staging", "m-cicd"}},
+		{[]testEnv{{"prod", false, false}, {"staging", false, false}, {"dev", false, false}}, []string{"dev", "prod", "staging"}},
+		{[]testEnv{{"cicd", true, false}, {"staging", false, false}, {"dev", false, false}}, []string{"dev", "staging", "cicd"}},
+		{[]testEnv{{"m-cicd", true, false}, {"staging", false, false}, {"dev", false, false}}, []string{"dev", "staging", "m-cicd"}},
+		{[]testEnv{{"m-cicd", true, false}, {"argo", false, true}, {"dev", false, false}}, []string{"dev", "m-cicd", "argo"}},
+		{[]testEnv{{"m-argo", false, true}, {"testing", false, false}, {"dev", false, false}}, []string{"dev", "testing", "m-argo"}},
 	}
 
 	for _, tt := range envTests {
 		envs := makeEnvs(tt.names)
 		sort.Sort(byName(envs))
-		if diff := cmp.Diff(envNames(envs), tt.want); diff != "" {
+		if diff := cmp.Diff(tt.want, envNames(envs)); diff != "" {
 			t.Errorf("sort(%#v): %s", envs, diff)
 		}
 	}
@@ -166,9 +168,9 @@ func TestFindCICDEnviroment(t *testing.T) {
 		want  string
 		err   string
 	}{
-		{[]testEnv{{"prod", false}, {"staging", false}, {"dev", false}}, "", "could not find CI/CD environment"},
-		{[]testEnv{{"test-cicd", true}, {"staging", false}, {"dev", false}}, "test-cicd", ""},
-		{[]testEnv{{"test-cicd", true}, {"oc-cicd", true}, {"dev", false}}, "", "found multiple CI/CD environments"},
+		{[]testEnv{{"prod", false, false}, {"staging", false, false}, {"dev", false, false}}, "", "could not find CI/CD environment"},
+		{[]testEnv{{"test-cicd", true, false}, {"staging", false, false}, {"dev", false, false}}, "test-cicd", ""},
+		{[]testEnv{{"test-cicd", true, false}, {"oc-cicd", true, false}, {"dev", false, false}}, "", "found multiple CI/CD environments"},
 	}
 
 	for i, tt := range envTests {
@@ -191,15 +193,16 @@ func TestFindCICDEnviroment(t *testing.T) {
 func makeEnvs(ns []testEnv) []*Environment {
 	n := make([]*Environment, len(ns))
 	for i, v := range ns {
-		n[i] = &Environment{Name: v.name, IsCICD: v.cicd}
+		n[i] = &Environment{Name: v.name, IsCICD: v.cicd, IsArgoCD: v.argocd}
 	}
 	return n
 
 }
 
 type testEnv struct {
-	name string
-	cicd bool
+	name   string
+	cicd   bool
+	argocd bool
 }
 
 type testVisitor struct {
