@@ -22,6 +22,8 @@ import (
 	"github.com/openshift/odo/pkg/manifest/tasks"
 	"github.com/openshift/odo/pkg/manifest/triggers"
 	"github.com/openshift/odo/pkg/manifest/yaml"
+
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 )
 
 const (
@@ -81,7 +83,7 @@ func Bootstrap(o *BootstrapParameters) error {
 	}
 
 	// Create Tasks
-	tasks := tasks.Generate(namespaces["cicd"])
+	tasks := generateTasks(namespaces["cicd"])
 	for _, task := range tasks {
 		outputs = append(outputs, task)
 	}
@@ -130,6 +132,15 @@ func Bootstrap(o *BootstrapParameters) error {
 	}
 
 	return yaml.MarshalOutput(os.Stdout, outputs)
+}
+
+// Moved the Generate() out of the tasks package to put it here as Bootstrap.go is dead
+// and we can clean up tasks package
+func generateTasks(ns string) []pipelinev1.Task {
+	return []pipelinev1.Task{
+		tasks.CreateDeployFromSourceTask(ns, "deploy"),
+		tasks.CreateDeployUsingKubectlTask(ns),
+	}
 }
 
 func createRoleBindings(ns map[string]string, sa *corev1.ServiceAccount) []interface{} {

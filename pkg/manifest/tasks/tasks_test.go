@@ -132,21 +132,3 @@ func TestCreateTaskResource(t *testing.T) {
 		t.Fatalf("createTaskResource() failed:\n%s", diff)
 	}
 }
-
-func TestCreateEnvFromSecret(t *testing.T) {
-	validEnv := corev1.EnvVar{
-		Name: "sampleName",
-		ValueFrom: &corev1.EnvVarSource{
-			SecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: "sampleSec",
-				},
-				Key: "sampleKey",
-			},
-		},
-	}
-	env := createEnvFromSecret("sampleName", "sampleSec", "sampleKey")
-	if diff := cmp.Diff(validEnv, env); diff != "" {
-		t.Fatalf("createEnvFromSecret() failed:\n%s", diff)
-	}
-}
