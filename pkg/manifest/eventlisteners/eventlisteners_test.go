@@ -31,6 +31,7 @@ func TestGenerateEventListener(t *testing.T) {
 								SecretRef: &triggersv1.SecretRef{
 									SecretName: "test",
 									SecretKey:  WebhookSecretKey,
+									Namespace:  "testing",
 								},
 							},
 						},
@@ -57,6 +58,7 @@ func TestGenerateEventListener(t *testing.T) {
 								SecretRef: &triggersv1.SecretRef{
 									SecretName: "test",
 									SecretKey:  WebhookSecretKey,
+									Namespace:  "testing",
 								},
 							},
 						},
@@ -138,7 +140,7 @@ func TestCreateListenerTrigger(t *testing.T) {
 			Name: "sampleTemplateName",
 		},
 	}
-	listenerTrigger := CreateListenerTrigger("sampleName", "sampleFilter %s", "sample", "sampleBindingName", "sampleTemplateName", "test")
+	listenerTrigger := CreateListenerTrigger("sampleName", "sampleFilter %s", "sample", "sampleBindingName", "sampleTemplateName", "test", "")
 	if diff := cmp.Diff(validListenerTrigger, listenerTrigger); diff != "" {
 		t.Fatalf("createListenerTrigger() failed:\n%s", diff)
 	}
@@ -165,7 +167,7 @@ func TestCreateGitHubInterceptor(t *testing.T) {
 			},
 		},
 	}
-	githubInterceptor := createGitHubInterceptor("test")
+	githubInterceptor := createGitHubInterceptor("test", "")
 	if diff := cmp.Diff(validGitHubInterceptor, *githubInterceptor); diff != "" {
 		t.Fatalf("createEventInterceptor() failed:\n%s", diff)
 	}
