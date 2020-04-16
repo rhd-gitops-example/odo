@@ -11,6 +11,7 @@ var (
 	pipelineTypeMeta = meta.TypeMeta("Pipeline", "tekton.dev/v1alpha1")
 )
 
+// CreateAppCIPipeline creates AppCIPipeline
 func CreateAppCIPipeline(name types.NamespacedName, isInternalRegistry bool) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
 		TypeMeta:   pipelineTypeMeta,
@@ -97,6 +98,7 @@ func CreateCIPipeline(name types.NamespacedName, stageNamespace string) *pipelin
 	}
 }
 
+// CreateAppCDPipeline creates AppCDPipelin
 func CreateAppCDPipeline(name types.NamespacedName, deploymentPath, devNamespace string, isInternalRegistry bool) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
 		TypeMeta:   pipelineTypeMeta,

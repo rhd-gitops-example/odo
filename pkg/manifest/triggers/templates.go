@@ -23,6 +23,7 @@ func GenerateTemplates(ns, saName, imageRepo string) []triggersv1.TriggerTemplat
 	}
 }
 
+// CreateDevCDDeployTemplate creates DevCDDeployTemplate
 func CreateDevCDDeployTemplate(ns, saName, imageRepo string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
@@ -41,6 +42,7 @@ func CreateDevCDDeployTemplate(ns, saName, imageRepo string) triggersv1.TriggerT
 	}
 }
 
+// CreateDevCIBuildPRTemplate creates DevCIBuildPRTemplate
 func CreateDevCIBuildPRTemplate(ns, saName, imageRepo string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta: triggerTemplateTypeMeta,
