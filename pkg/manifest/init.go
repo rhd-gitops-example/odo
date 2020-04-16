@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/manifest/config"
@@ -34,6 +35,8 @@ type InitParameters struct {
 	GitOpsWebhookSecret      string
 	Output                   string
 	Prefix                   string
+	ImageRepo                string
+	InternalRegistryHostname string
 	SkipChecks               bool
 }
 
@@ -78,21 +81,25 @@ const (
 	// Kustomize constants for kustomization.yaml
 	Kustomize = "kustomization.yaml"
 
-	namespacesPath     = "01-namespaces/cicd-environment.yaml"
-	rolesPath          = "02-rolebindings/pipeline-service-role.yaml"
-	rolebindingsPath   = "02-rolebindings/pipeline-service-rolebinding.yaml"
-	serviceAccountPath = "02-rolebindings/pipeline-service-account.yaml"
-	secretsPath        = "03-secrets/gitops-webhook-secret.yaml"
-	dockerConfigPath   = "03-secrets/docker-config.yaml"
-	tasksPath          = "04-tasks/deploy-from-source-task.yaml"
-	ciPipelinesPath    = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
-	cdPipelinesPath    = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
-	prBindingPath      = "06-bindings/github-pr-binding.yaml"
-	pushBindingPath    = "06-bindings/github-push-binding.yaml"
-	prTemplatePath     = "07-templates/ci-dryrun-from-pr-template.yaml"
-	pushTemplatePath   = "07-templates/cd-deploy-from-push-template.yaml"
-	eventListenerPath  = "08-eventlisteners/cicd-event-listener.yaml"
-	routePath          = "09-routes/gitops-webhook-event-listener.yaml"
+	namespacesPath           = "01-namespaces/cicd-environment.yaml"
+	rolesPath                = "02-rolebindings/pipeline-service-role.yaml"
+	rolebindingsPath         = "02-rolebindings/pipeline-service-rolebinding.yaml"
+	serviceAccountPath       = "02-rolebindings/pipeline-service-account.yaml"
+	secretsPath              = "03-secrets/gitops-webhook-secret.yaml"
+	dockerConfigPath         = "03-secrets/docker-config.yaml"
+	tasksPath                = "04-tasks/deploy-from-source-task.yaml"
+	ciPipelinesPath          = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
+	appCiPipelinesPath       = "05-pipelines/app-ci-pipeline.yaml"
+	appCdPipelinesPath       = "05-pipelines/app-cd-pipeline.yaml"
+	cdPipelinesPath          = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
+	prBindingPath            = "06-bindings/github-pr-binding.yaml"
+	pushBindingPath          = "06-bindings/github-push-binding.yaml"
+	prTemplatePath           = "07-templates/ci-dryrun-from-pr-template.yaml"
+	pushTemplatePath         = "07-templates/cd-deploy-from-push-template.yaml"
+	appCIBuildPRTemplatePath = "07-templates/app-ci-build-pr-template.yaml"
+	appCDBuildPRTemplatePath = "07-templates/app-cd-build-pr-template.yaml"
+	eventListenerPath        = "08-eventlisteners/cicd-event-listener.yaml"
+	routePath                = "09-routes/gitops-webhook-event-listener.yaml"
 
 	dockerSecretName = "regcred"
 	saName           = "pipeline"
@@ -113,12 +120,17 @@ func Init(o *InitParameters) error {
 		}
 	}
 
+	_, imageRepo, err := validatingImageRepo(o)
+	if err != nil {
+		return err
+	}
+
 	exists, err := ioutils.IsExisting(o.Output)
 	if exists {
 		return err
 	}
 
-	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret, o.DockerConfigJSONFileName)
+	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret, o.DockerConfigJSONFileName, imageRepo)
 	if err != nil {
 		return err
 	}
@@ -128,7 +140,7 @@ func Init(o *InitParameters) error {
 }
 
 // CreateResources creates resources assocated to pipelines
-func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJsonPath string) (map[string]interface{}, error) {
+func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJsonPath, imageRepo string) (map[string]interface{}, error) {
 
 	// key: path of the resource
 	// value: YAML content of the resource
@@ -163,9 +175,13 @@ func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJsonPath str
 	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, GetPipelinesDir("", prefix))
 	outputs[ciPipelinesPath] = pipelines.CreateCIPipeline(meta.NamespacedName(cicdNamespace, "ci-dryrun-from-pr-pipeline"), cicdNamespace)
 	outputs[cdPipelinesPath] = pipelines.CreateCDPipeline(meta.NamespacedName(cicdNamespace, "cd-deploy-from-push-pipeline"), cicdNamespace)
+	outputs[appCiPipelinesPath] = pipelines.CreateCIPipeline(meta.NamespacedName(cicdNamespace, "app-ci-pipeline"), cicdNamespace)
+	outputs[appCdPipelinesPath] = pipelines.CreateCDPipeline(meta.NamespacedName(cicdNamespace, "app-cd-pipeline"), cicdNamespace)
 	outputs[prBindingPath] = triggers.CreatePRBinding(cicdNamespace)
 	outputs[pushBindingPath] = triggers.CreatePushBinding(cicdNamespace)
 	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(cicdNamespace, saName)
+	outputs[appCIBuildPRTemplatePath] = triggers.CreateDevCIBuildPRTemplate(cicdNamespace, saName, imageRepo)
+	outputs[appCDBuildPRTemplatePath] = triggers.CreateDevCDDeployTemplate(cicdNamespace, saName, imageRepo)
 	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(cicdNamespace, saName)
 	outputs[eventListenerPath] = eventlisteners.Generate(gitOpsRepo, cicdNamespace, saName)
 
@@ -199,13 +215,13 @@ func CreateDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.Sealed
 
 }
 
-func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath string) (resources, error) {
+func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, imageRepo string) (resources, error) {
 	manifest := createManifest(prefix)
 	initialFiles := resources{
 		"manifest.yaml": manifest,
 	}
 
-	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath)
+	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, imageRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -289,4 +305,46 @@ func getResourceFiles(res resources) []string {
 // GetPipelinesDir gets pipelines directory
 func GetPipelinesDir(rootPath, prefix string) string {
 	return filepath.Join(rootPath, EnvsDir, AddPrefix(prefix, CICDDir), BaseDir, pipelineDir)
+}
+
+func validatingImageRepo(o *InitParameters) (bool, string, error) {
+	components := strings.Split(o.ImageRepo, "/")
+
+	// repo url has minimum of 2 components
+	if len(components) < 2 {
+		return false, "", imageRepoValidationErrors(o.ImageRepo)
+	}
+
+	for _, v := range components {
+		// check for empty components
+		if strings.TrimSpace(v) == "" {
+			return false, "", imageRepoValidationErrors(o.ImageRepo)
+		}
+		// check for white spaces
+		if len(v) > len(strings.TrimSpace(v)) {
+			return false, "", imageRepoValidationErrors(o.ImageRepo)
+		}
+	}
+
+	if len(components) == 2 {
+		if components[0] == "docker.io" || components[0] == "quay.io" {
+			// we recognize docker.io and quay.io.  It is missing one component
+			return false, "", imageRepoValidationErrors(o.ImageRepo)
+		}
+		// We have format like <project>/<app> which is an internal registry.
+		// We prepend the internal registry hostname.
+		return true, o.InternalRegistryHostname + "/" + o.ImageRepo, nil
+	}
+
+	// Check the first component to see if it is an internal registry
+	if len(components) == 3 {
+		return components[0] == o.InternalRegistryHostname, o.ImageRepo, nil
+	}
+
+	// > 3 components.  invalid repo
+	return false, "", imageRepoValidationErrors(o.ImageRepo)
+}
+
+func imageRepoValidationErrors(imageRepo string) error {
+	return fmt.Errorf("failed to parse image repo:%s, expected image repository in the form <registry>/<username>/<repository> or <project>/<app> for internal registry", imageRepo)
 }

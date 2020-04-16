@@ -1,7 +1,0 @@
-bases:
-- ../../../../envs/ghegde-cicd-environment/
----
-resources:
-- serviceaccount.yaml
-- app-webhook-secret.yaml
----

@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/kustomize/pkg/types"
 
 	"github.com/openshift/odo/pkg/manifest/meta"
-	"github.com/openshift/odo/pkg/manifest/roles"
 	"github.com/openshift/odo/pkg/manifest/secrets"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
@@ -83,7 +82,7 @@ func CreateApplication(o *AddParameters) error {
 	exists, _ := ioutils.IsExisting(gitopsPath)
 
 	if !exists {
-		return fmt.Errorf("Ootput does not exist at %s", gitopsPath)
+		return fmt.Errorf("Output does not exist at %s", gitopsPath)
 	}
 
 	configPath := filepath.Join(gitopsPath, servicesDir, ServiceRepo)
@@ -133,9 +132,7 @@ func addModKustomize(values map[string][]string, path string) error {
 }
 
 func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret, environmentName, secretName string) map[string]interface{} {
-	sa := roles.CreateServiceAccount(meta.NamespacedName(environmentName, saName))
-	ServiceAcc := roles.AddSecretToSA(sa, secretName)
-	outputs[configSApath] = ServiceAcc
+
 	githubSecret, _ := secrets.CreateSealedSecret(meta.NamespacedName(environmentName, secretName),
 		serviceWebhookSecret, eventlisteners.WebhookSecretKey)
 	outputs[webhookPath] = githubSecret
@@ -191,7 +188,7 @@ func CreatePatchKustomiseFile(outputs map[string]interface{}, path string) {
 func createKustomizeMod(outputs map[string]interface{}, path, environmentName string) {
 
 	bases := []string{fmt.Sprintf("../../../../environments/%s/overlays", environmentName)}
-	resources := []string{"serviceaccount.yaml", "app-webhook-secret.yaml"}
+	resources := []string{"app-webhook-secret.yaml"}
 
 	file := types.Kustomization{
 		Bases:     bases,
