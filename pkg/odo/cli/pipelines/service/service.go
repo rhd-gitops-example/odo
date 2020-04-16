@@ -1,34 +1,29 @@
 package service
 
 import (
-	"fmt"
+	"github.com/spf13/cobra"
 
 	odoutil "github.com/openshift/odo/pkg/odo/util"
-	"github.com/spf13/cobra"
 )
 
-// RecommendedCommandName is the recommended environment command name.
-const RecommendedCommandName = "service"
+// ServiceRecommendedCommandName is the recommended application command name.
+const ServiceRecommendedCommandName = "service"
 
-// NewCmd creates a new environment command
-func NewCmd(name, fullName string) *cobra.Command {
+// NewCmdService implements the component odo command
+func NewCmdService(name, fullName string) *cobra.Command {
 
-	addCmd := newCmdAdd(addRecommendedCommandName, odoutil.GetFullName(fullName, addRecommendedCommandName))
-
-	var cmd = &cobra.Command{
+	addServiceCmd := NewCmdAddService(AddServiceRecommendedCommandName, odoutil.GetFullName(fullName, AddServiceRecommendedCommandName))
+	var serviceCmd = &cobra.Command{
 		Use:   name,
-		Short: "Manage services in an environment",
-		Long:  "Manage services in a GitOps environment where service source repositories are synchronized",
-		Example: fmt.Sprintf("%s\n%s\n\n  See sub-commands individually for more examples",
-			fullName, addRecommendedCommandName),
+		Short: "Add a new service to GitOps",
 		Run: func(cmd *cobra.Command, args []string) {
 		},
 	}
 
-	cmd.Flags().AddFlagSet(addCmd.Flags())
-	cmd.AddCommand(addCmd)
+	serviceCmd.Flags().AddFlagSet(addServiceCmd.Flags())
+	serviceCmd.AddCommand(addServiceCmd)
 
-	cmd.Annotations = map[string]string{"command": "main"}
-	cmd.SetUsageTemplate(odoutil.CmdUsageTemplate)
-	return cmd
+	serviceCmd.Annotations = map[string]string{"command": "main"}
+	serviceCmd.SetUsageTemplate(odoutil.CmdUsageTemplate)
+	return serviceCmd
 }
