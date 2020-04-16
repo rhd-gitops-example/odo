@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -13,6 +14,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+=======
+// Copyright 2019 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package fs
 
@@ -22,7 +27,11 @@ import (
 )
 
 func TestJoin(t *testing.T) {
+<<<<<<< HEAD
 	fSys := MakeFakeFS()
+=======
+	fSys := MakeFsInMemory()
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	err := fSys.Mkdir("/foo")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
@@ -40,7 +49,11 @@ func TestJoin(t *testing.T) {
 }
 
 func TestHasPrefix_Slash(t *testing.T) {
+<<<<<<< HEAD
 	d, f, err := MakeFakeFS().CleanedAbs("/")
+=======
+	d, f, err := MakeFsInMemory().CleanedAbs("/")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -56,7 +69,11 @@ func TestHasPrefix_Slash(t *testing.T) {
 }
 
 func TestHasPrefix_SlashFoo(t *testing.T) {
+<<<<<<< HEAD
 	fSys := MakeFakeFS()
+=======
+	fSys := MakeFsInMemory()
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	err := fSys.Mkdir("/foo")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
@@ -77,7 +94,11 @@ func TestHasPrefix_SlashFoo(t *testing.T) {
 }
 
 func TestHasPrefix_SlashFooBar(t *testing.T) {
+<<<<<<< HEAD
 	fSys := MakeFakeFS()
+=======
+	fSys := MakeFsInMemory()
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	err := fSys.MkdirAll("/foo/bar")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)

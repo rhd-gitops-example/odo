@@ -72,6 +72,7 @@ func TestNewRepoSpecFromUrl(t *testing.T) {
 					if err != nil {
 						t.Errorf("problem %v", err)
 					}
+<<<<<<< HEAD
 					if rs.host != hostSpec {
 						bad = append(bad, []string{"host", uri, rs.host, hostSpec})
 					}
@@ -83,6 +84,19 @@ func TestNewRepoSpecFromUrl(t *testing.T) {
 					}
 					if rs.ref != hrefArg {
 						bad = append(bad, []string{"ref", uri, rs.ref, hrefArg})
+=======
+					if rs.Host != hostSpec {
+						bad = append(bad, []string{"host", uri, rs.Host, hostSpec})
+					}
+					if rs.OrgRepo != orgRepo {
+						bad = append(bad, []string{"orgRepo", uri, rs.OrgRepo, orgRepo})
+					}
+					if rs.Path != pathName {
+						bad = append(bad, []string{"path", uri, rs.Path, pathName})
+					}
+					if rs.Ref != hrefArg {
+						bad = append(bad, []string{"ref", uri, rs.Ref, hrefArg})
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 					}
 				}
 			}
@@ -169,6 +183,33 @@ func TestNewRepoSpecFromUrl_CloneSpecs(t *testing.T) {
 			absPath:   notCloned.Join("path"),
 			ref:       "branch",
 		},
+<<<<<<< HEAD
+=======
+		{
+			input:     "https://itfs.mycompany.com/collection/project/_git/somerepos",
+			cloneSpec: "https://itfs.mycompany.com/collection/project/_git/somerepos",
+			absPath:   notCloned.String(),
+			ref:       "",
+		},
+		{
+			input:     "https://itfs.mycompany.com/collection/project/_git/somerepos?version=v1.0.0",
+			cloneSpec: "https://itfs.mycompany.com/collection/project/_git/somerepos",
+			absPath:   notCloned.String(),
+			ref:       "v1.0.0",
+		},
+		{
+			input:     "https://itfs.mycompany.com/collection/project/_git/somerepos/somedir?version=v1.0.0",
+			cloneSpec: "https://itfs.mycompany.com/collection/project/_git/somerepos",
+			absPath:   notCloned.Join("somedir"),
+			ref:       "v1.0.0",
+		},
+		{
+			input:     "git::https://itfs.mycompany.com/collection/project/_git/somerepos",
+			cloneSpec: "https://itfs.mycompany.com/collection/project/_git/somerepos",
+			absPath:   notCloned.String(),
+			ref:       "",
+		},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 	for _, testcase := range testcases {
 		rs, err := NewRepoSpecFromUrl(testcase.input)
@@ -183,9 +224,15 @@ func TestNewRepoSpecFromUrl_CloneSpecs(t *testing.T) {
 			t.Errorf("AbsPath expected to be %v, but got %v on %s",
 				testcase.absPath, rs.AbsPath(), testcase.input)
 		}
+<<<<<<< HEAD
 		if rs.ref != testcase.ref {
 			t.Errorf("ref expected to be %v, but got %v on %s",
 				testcase.ref, rs.ref, testcase.input)
+=======
+		if rs.Ref != testcase.ref {
+			t.Errorf("ref expected to be %v, but got %v on %s",
+				testcase.ref, rs.Ref, testcase.input)
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		}
 	}
 }
@@ -220,6 +267,35 @@ func TestIsAzureHost(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
+=======
+func TestPeelQuery(t *testing.T) {
+	testcases := []struct {
+		input  string
+		expect [2]string
+	}{
+		{
+			input:  "somerepos?ref=v1.0.0",
+			expect: [2]string{"somerepos", "v1.0.0"},
+		},
+		{
+			input:  "somerepos?version=master",
+			expect: [2]string{"somerepos", "master"},
+		},
+		{
+			input:  "somerepos",
+			expect: [2]string{"somerepos", ""},
+		},
+	}
+	for _, testcase := range testcases {
+		path, ref := peelQuery(testcase.input)
+		if path != testcase.expect[0] || ref != testcase.expect[1] {
+			t.Errorf("peelQuery: expected (%s, %s) got (%s, %s) on %s", testcase.expect[0], testcase.expect[1], path, ref, testcase.input)
+		}
+	}
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 func TestIsAWSHost(t *testing.T) {
 	testcases := []struct {
 		input  string

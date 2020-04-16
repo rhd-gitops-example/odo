@@ -25,11 +25,19 @@ import (
 	"strings"
 	"testing"
 
+<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/constants"
 	"sigs.k8s.io/kustomize/pkg/git"
 
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/ifc"
+=======
+	"sigs.k8s.io/kustomize/v3/pkg/fs"
+	"sigs.k8s.io/kustomize/v3/pkg/git"
+	"sigs.k8s.io/kustomize/v3/pkg/ifc"
+	"sigs.k8s.io/kustomize/v3/pkg/pgmconfig"
+	"sigs.k8s.io/kustomize/v3/pkg/validators"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 type testData struct {
@@ -57,15 +65,28 @@ var testCases = []testData{
 }
 
 func MakeFakeFs(td []testData) fs.FileSystem {
+<<<<<<< HEAD
 	fSys := fs.MakeFakeFS()
+=======
+	fSys := fs.MakeFsInMemory()
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	for _, x := range td {
 		fSys.WriteFile("/"+x.path, []byte(x.expectedContent))
 	}
 	return fSys
 }
 
+<<<<<<< HEAD
 func TestLoaderLoad(t *testing.T) {
 	l1 := NewFileLoaderAtRoot(MakeFakeFs(testCases))
+=======
+func makeLoader() *fileLoader {
+	return NewFileLoaderAtRoot(validators.MakeFakeValidator(), MakeFakeFs(testCases))
+
+}
+func TestLoaderLoad(t *testing.T) {
+	l1 := makeLoader()
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if "/" != l1.Root() {
 		t.Fatalf("incorrect root: '%s'\n", l1.Root())
 	}
@@ -104,7 +125,11 @@ func TestLoaderLoad(t *testing.T) {
 }
 
 func TestLoaderNewSubDir(t *testing.T) {
+<<<<<<< HEAD
 	l1, err := NewFileLoaderAtRoot(MakeFakeFs(testCases)).New("foo/project")
+=======
+	l1, err := makeLoader().New("foo/project")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err != nil {
 		t.Fatalf("unexpected err: %v\n", err)
 	}
@@ -126,7 +151,11 @@ func TestLoaderNewSubDir(t *testing.T) {
 }
 
 func TestLoaderBadRelative(t *testing.T) {
+<<<<<<< HEAD
 	l1, err := NewFileLoaderAtRoot(MakeFakeFs(testCases)).New("foo/project/subdir1")
+=======
+	l1, err := makeLoader().New("foo/project/subdir1")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err != nil {
 		t.Fatalf("unexpected err: %v\n", err)
 	}
@@ -196,7 +225,11 @@ func TestLoaderBadRelative(t *testing.T) {
 }
 
 func TestLoaderMisc(t *testing.T) {
+<<<<<<< HEAD
 	l := NewFileLoaderAtRoot(MakeFakeFs(testCases))
+=======
+	l := makeLoader()
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	_, err := l.New("")
 	if err == nil {
 		t.Fatalf("Expected error for empty root location not returned")
@@ -207,6 +240,7 @@ func TestLoaderMisc(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 func TestRestrictedLoadingInRealLoader(t *testing.T) {
 	// Create a structure like this
 	//
@@ -233,11 +267,41 @@ func TestRestrictedLoadingInRealLoader(t *testing.T) {
 	contentForbidden := "don't be looking at me"
 	fSys.WriteFile(
 		filepath.Join(dir, "forbiddenData"), []byte(contentForbidden))
+=======
+const (
+	contentOk           = "hi there, i'm OK data"
+	contentExteriorData = "i am data from outside the root"
+)
+
+// Create a structure like this
+//
+//   /tmp/kustomize-test-random
+//   ├── base
+//   │   ├── okayData
+//   │   ├── symLinkToOkayData -> okayData
+//   │   └── symLinkToExteriorData -> ../exteriorData
+//   └── exteriorData
+//
+func commonSetupForLoaderRestrictionTest() (string, fs.FileSystem, error) {
+	dir, err := ioutil.TempDir("", "kustomize-test-")
+	if err != nil {
+		return "", nil, err
+	}
+	fSys := fs.MakeFsOnDisk()
+	fSys.Mkdir(filepath.Join(dir, "base"))
+
+	fSys.WriteFile(
+		filepath.Join(dir, "base", "okayData"), []byte(contentOk))
+
+	fSys.WriteFile(
+		filepath.Join(dir, "exteriorData"), []byte(contentExteriorData))
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 	os.Symlink(
 		filepath.Join(dir, "base", "okayData"),
 		filepath.Join(dir, "base", "symLinkToOkayData"))
 	os.Symlink(
+<<<<<<< HEAD
 		filepath.Join(dir, "forbiddenData"),
 		filepath.Join(dir, "base", "symLinkToForbiddenData"))
 
@@ -247,6 +311,17 @@ func TestRestrictedLoadingInRealLoader(t *testing.T) {
 
 	// Sanity checks - loading from perspective of "dir".
 	// Everything works, including reading from a subdirectory.
+=======
+		filepath.Join(dir, "exteriorData"),
+		filepath.Join(dir, "base", "symLinkToExteriorData"))
+	return dir, fSys, nil
+}
+
+// Make sure everything works when loading files
+// in or below the loader root.
+func doSanityChecksAndDropIntoBase(
+	t *testing.T, l ifc.Loader) ifc.Loader {
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	data, err := l.Load(path.Join("base", "okayData"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -254,11 +329,19 @@ func TestRestrictedLoadingInRealLoader(t *testing.T) {
 	if string(data) != contentOk {
 		t.Fatalf("unexpected content: %v", data)
 	}
+<<<<<<< HEAD
 	data, err = l.Load("forbiddenData")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if string(data) != contentForbidden {
+=======
+	data, err = l.Load("exteriorData")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(data) != contentExteriorData {
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		t.Fatalf("unexpected content: %v", data)
 	}
 
@@ -285,9 +368,31 @@ func TestRestrictedLoadingInRealLoader(t *testing.T) {
 	if string(data) != contentOk {
 		t.Fatalf("unexpected content: %v", data)
 	}
+<<<<<<< HEAD
 
 	// Reading symlink to forbiddenData fails.
 	_, err = l.Load("symLinkToForbiddenData")
+=======
+	return l
+}
+
+func TestRestrictionRootOnlyInRealLoader(t *testing.T) {
+	dir, fSys, err := commonSetupForLoaderRestrictionTest()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.RemoveAll(dir)
+
+	var l ifc.Loader
+
+	l = newLoaderOrDie(
+		RestrictionRootOnly, validators.MakeFakeValidator(), fSys, dir)
+
+	l = doSanityChecksAndDropIntoBase(t, l)
+
+	// Reading symlink to exteriorData fails.
+	_, err = l.Load("symLinkToExteriorData")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -297,7 +402,11 @@ func TestRestrictedLoadingInRealLoader(t *testing.T) {
 
 	// Attempt to read "up" fails, though earlier we were
 	// able to read this file when root was "..".
+<<<<<<< HEAD
 	_, err = l.Load("../forbiddenData")
+=======
+	_, err = l.Load("../exteriorData")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -306,6 +415,36 @@ func TestRestrictedLoadingInRealLoader(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
+=======
+func TestRestrictionNoneInRealLoader(t *testing.T) {
+	dir, fSys, err := commonSetupForLoaderRestrictionTest()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.RemoveAll(dir)
+
+	var l ifc.Loader
+
+	l = newLoaderOrDie(
+		RestrictionNone, validators.MakeFakeValidator(), fSys, dir)
+
+	l = doSanityChecksAndDropIntoBase(t, l)
+
+	// Reading symlink to exteriorData works.
+	_, err = l.Load("symLinkToExteriorData")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Attempt to read "up" works.
+	_, err = l.Load("../exteriorData")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 func splitOnNthSlash(v string, n int) (string, string) {
 	left := ""
 	for i := 0; i < n; i++ {
@@ -337,11 +476,20 @@ func TestNewLoaderAtGitClone(t *testing.T) {
 	pathInRepo := "foo/base"
 	url := rootUrl + "/" + pathInRepo
 	coRoot := "/tmp"
+<<<<<<< HEAD
 	fSys := fs.MakeFakeFS()
 	fSys.MkdirAll(coRoot)
 	fSys.MkdirAll(coRoot + "/" + pathInRepo)
 	fSys.WriteFile(
 		coRoot+"/"+pathInRepo+"/"+constants.KustomizationFileNames[0],
+=======
+	fSys := fs.MakeFsInMemory()
+	fSys.MkdirAll(coRoot)
+	fSys.MkdirAll(coRoot + "/" + pathInRepo)
+	fSys.WriteFile(
+		coRoot+"/"+pathInRepo+"/"+
+			pgmconfig.DefaultKustomizationFileName(),
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		[]byte(`
 whatever
 `))
@@ -351,7 +499,11 @@ whatever
 		t.Fatalf("unexpected err: %v\n", err)
 	}
 	l, err := newLoaderAtGitClone(
+<<<<<<< HEAD
 		repoSpec, fSys, nil,
+=======
+		repoSpec, validators.MakeFakeValidator(), fSys, nil,
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		git.DoNothingCloner(fs.ConfirmedDir(coRoot)))
 	if err != nil {
 		t.Fatalf("unexpected err: %v\n", err)
@@ -384,7 +536,11 @@ func TestLoaderDisallowsLocalBaseFromRemoteOverlay(t *testing.T) {
 	// Define an overlay-base structure in the file system.
 	topDir := "/whatever"
 	cloneRoot := topDir + "/someClone"
+<<<<<<< HEAD
 	fSys := fs.MakeFakeFS()
+=======
+	fSys := fs.MakeFsInMemory()
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	fSys.MkdirAll(topDir + "/highBase")
 	fSys.MkdirAll(cloneRoot + "/foo/base")
 	fSys.MkdirAll(cloneRoot + "/foo/overlay")
@@ -393,7 +549,12 @@ func TestLoaderDisallowsLocalBaseFromRemoteOverlay(t *testing.T) {
 
 	// Establish that a local overlay can navigate
 	// to the local bases.
+<<<<<<< HEAD
 	l1 = newLoaderOrDie(fSys, cloneRoot+"/foo/overlay")
+=======
+	l1 = newLoaderOrDie(
+		RestrictionRootOnly, validators.MakeFakeValidator(), fSys, cloneRoot+"/foo/overlay")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if l1.Root() != cloneRoot+"/foo/overlay" {
 		t.Fatalf("unexpected root %s", l1.Root())
 	}
@@ -429,7 +590,11 @@ func TestLoaderDisallowsLocalBaseFromRemoteOverlay(t *testing.T) {
 		t.Fatalf("unexpected err: %v\n", err)
 	}
 	l1, err = newLoaderAtGitClone(
+<<<<<<< HEAD
 		repoSpec, fSys, nil,
+=======
+		repoSpec, validators.MakeFakeValidator(), fSys, nil,
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		git.DoNothingCloner(fs.ConfirmedDir(cloneRoot)))
 	if err != nil {
 		t.Fatalf("unexpected err: %v\n", err)
@@ -459,7 +624,11 @@ func TestLoaderDisallowsLocalBaseFromRemoteOverlay(t *testing.T) {
 func TestLocalLoaderReferencingGitBase(t *testing.T) {
 	topDir := "/whatever"
 	cloneRoot := topDir + "/someClone"
+<<<<<<< HEAD
 	fSys := fs.MakeFakeFS()
+=======
+	fSys := fs.MakeFsInMemory()
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	fSys.MkdirAll(topDir)
 	fSys.MkdirAll(cloneRoot + "/foo/base")
 
@@ -468,7 +637,11 @@ func TestLocalLoaderReferencingGitBase(t *testing.T) {
 		t.Fatalf("unexpected err:  %v\n", err)
 	}
 	l1 := newLoaderAtConfirmedDir(
+<<<<<<< HEAD
 		root, fSys, nil,
+=======
+		RestrictionRootOnly, validators.MakeFakeValidator(), root, fSys, nil,
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		git.DoNothingCloner(fs.ConfirmedDir(cloneRoot)))
 	if l1.Root() != topDir {
 		t.Fatalf("unexpected root %s", l1.Root())
@@ -481,3 +654,70 @@ func TestLocalLoaderReferencingGitBase(t *testing.T) {
 		t.Fatalf("unexpected root %s", l2.Root())
 	}
 }
+<<<<<<< HEAD
+=======
+
+func TestRepoDirectCycleDetection(t *testing.T) {
+	topDir := "/cycles"
+	cloneRoot := topDir + "/someClone"
+	fSys := fs.MakeFsInMemory()
+	fSys.MkdirAll(topDir)
+	fSys.MkdirAll(cloneRoot)
+
+	root, err := demandDirectoryRoot(fSys, topDir)
+	if err != nil {
+		t.Fatalf("unexpected err: %v\n", err)
+	}
+	l1 := newLoaderAtConfirmedDir(
+		RestrictionRootOnly, validators.MakeFakeValidator(), root, fSys, nil,
+		git.DoNothingCloner(fs.ConfirmedDir(cloneRoot)))
+	p1 := "github.com/someOrg/someRepo/foo"
+	rs1, err := git.NewRepoSpecFromUrl(p1)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	l1.repoSpec = rs1
+	_, err = l1.New(p1)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if !strings.Contains(err.Error(), "cycle detected") {
+		t.Fatalf("unexpected err: %v", err)
+	}
+}
+
+func TestRepoIndirectCycleDetection(t *testing.T) {
+	topDir := "/cycles"
+	cloneRoot := topDir + "/someClone"
+	fSys := fs.MakeFsInMemory()
+	fSys.MkdirAll(topDir)
+	fSys.MkdirAll(cloneRoot)
+
+	root, err := demandDirectoryRoot(fSys, topDir)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	l0 := newLoaderAtConfirmedDir(
+		RestrictionRootOnly, validators.MakeFakeValidator(), root, fSys, nil,
+		git.DoNothingCloner(fs.ConfirmedDir(cloneRoot)))
+
+	p1 := "github.com/someOrg/someRepo1"
+	p2 := "github.com/someOrg/someRepo2"
+
+	l1, err := l0.New(p1)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	l2, err := l1.New(p2)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	_, err = l2.New(p1)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if !strings.Contains(err.Error(), "cycle detected") {
+		t.Fatalf("unexpected err: %v", err)
+	}
+}
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)

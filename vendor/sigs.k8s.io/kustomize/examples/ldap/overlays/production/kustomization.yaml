@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 bases:
+=======
+resources:
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - ../../base
 patchesStrategicMerge:
   - deployment.yaml

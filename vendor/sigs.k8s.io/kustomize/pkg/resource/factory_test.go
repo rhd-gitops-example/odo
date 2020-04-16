@@ -20,21 +20,35 @@ import (
 	"reflect"
 	"testing"
 
+<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/internal/loadertest"
 	"sigs.k8s.io/kustomize/pkg/patch"
 	. "sigs.k8s.io/kustomize/pkg/resource"
+=======
+	"sigs.k8s.io/kustomize/v3/internal/loadertest"
+	. "sigs.k8s.io/kustomize/v3/pkg/resource"
+	"sigs.k8s.io/kustomize/v3/pkg/types"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 func TestSliceFromPatches(t *testing.T) {
 
+<<<<<<< HEAD
 	patchGood1 := patch.StrategicMerge("patch1.yaml")
+=======
+	patchGood1 := types.PatchStrategicMerge("patch1.yaml")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	patch1 := `
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pooh
 `
+<<<<<<< HEAD
 	patchGood2 := patch.StrategicMerge("patch2.yaml")
+=======
+	patchGood2 := types.PatchStrategicMerge("patch2.yaml")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	patch2 := `
 apiVersion: v1
 kind: ConfigMap
@@ -46,11 +60,19 @@ metadata:
 ---
 ---
 `
+<<<<<<< HEAD
 	patchBad := patch.StrategicMerge("patch3.yaml")
 	patch3 := `
 WOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOT: woot
 `
 	patchList := patch.StrategicMerge("patch4.yaml")
+=======
+	patchBad := types.PatchStrategicMerge("patch3.yaml")
+	patch3 := `
+WOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOT: woot
+`
+	patchList := types.PatchStrategicMerge("patch4.yaml")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	patch4 := `
 apiVersion: v1
 kind: List
@@ -65,7 +87,11 @@ items:
     name: winnie
     namespace: hundred-acre-wood
 `
+<<<<<<< HEAD
 	patchList2 := patch.StrategicMerge("patch5.yaml")
+=======
+	patchList2 := types.PatchStrategicMerge("patch5.yaml")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	patch5 := `
 apiVersion: v1
 kind: DeploymentList
@@ -88,13 +114,21 @@ items:
   spec:
     <<: *hostAliases
 `
+<<<<<<< HEAD
 	patchList3 := patch.StrategicMerge("patch6.yaml")
+=======
+	patchList3 := types.PatchStrategicMerge("patch6.yaml")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	patch6 := `
 apiVersion: v1
 kind: List
 items:
 `
+<<<<<<< HEAD
 	patchList4 := patch.StrategicMerge("patch7.yaml")
+=======
+	patchList4 := types.PatchStrategicMerge("patch7.yaml")
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	patch7 := `
 apiVersion: v1
 kind: List
@@ -142,49 +176,81 @@ kind: List
 
 	tests := []struct {
 		name        string
+<<<<<<< HEAD
 		input       []patch.StrategicMerge
+=======
+		input       []types.PatchStrategicMerge
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		expectedOut []*Resource
 		expectedErr bool
 	}{
 		{
 			name:        "happy",
+<<<<<<< HEAD
 			input:       []patch.StrategicMerge{patchGood1, patchGood2},
+=======
+			input:       []types.PatchStrategicMerge{patchGood1, patchGood2},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			expectedOut: []*Resource{testDeployment, testConfigMap},
 			expectedErr: false,
 		},
 		{
 			name:        "badFileName",
+<<<<<<< HEAD
 			input:       []patch.StrategicMerge{patchGood1, "doesNotExist"},
+=======
+			input:       []types.PatchStrategicMerge{patchGood1, "doesNotExist"},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			expectedOut: []*Resource{},
 			expectedErr: true,
 		},
 		{
 			name:        "badData",
+<<<<<<< HEAD
 			input:       []patch.StrategicMerge{patchGood1, patchBad},
+=======
+			input:       []types.PatchStrategicMerge{patchGood1, patchBad},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			expectedOut: []*Resource{},
 			expectedErr: true,
 		},
 		{
 			name:        "listOfPatches",
+<<<<<<< HEAD
 			input:       []patch.StrategicMerge{patchList},
+=======
+			input:       []types.PatchStrategicMerge{patchList},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			expectedOut: []*Resource{testDeployment, testConfigMap},
 			expectedErr: false,
 		},
 		{
 			name:        "listWithAnchorReference",
+<<<<<<< HEAD
 			input:       []patch.StrategicMerge{patchList2},
+=======
+			input:       []types.PatchStrategicMerge{patchList2},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			expectedOut: []*Resource{testDeploymentA, testDeploymentB},
 			expectedErr: false,
 		},
 		{
 			name:        "listWithNoEntries",
+<<<<<<< HEAD
 			input:       []patch.StrategicMerge{patchList3},
+=======
+			input:       []types.PatchStrategicMerge{patchList3},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			expectedOut: []*Resource{},
 			expectedErr: false,
 		},
 		{
 			name:        "listWithNo'items:'",
+<<<<<<< HEAD
 			input:       []patch.StrategicMerge{patchList4},
+=======
+			input:       []types.PatchStrategicMerge{patchList4},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			expectedOut: []*Resource{},
 			expectedErr: false,
 		},

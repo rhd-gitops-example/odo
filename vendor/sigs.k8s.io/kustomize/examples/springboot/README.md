@@ -13,7 +13,11 @@ In the production environment we want to customize the following:
 - health check and readiness check.
 
 First make a place to work:
+<<<<<<< HEAD
 <!-- @makeDemoHome @test -->
+=======
+<!-- @makeDemoHome @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 ```
@@ -27,7 +31,11 @@ as HERE documents.
 
 Download them:
 
+<<<<<<< HEAD
 <!-- @downloadResources @test -->
+=======
+<!-- @downloadResources @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 CONTENT="https://raw.githubusercontent.com\
 /kubernetes-sigs/kustomize\
@@ -44,14 +52,22 @@ a file called `kustomization.yaml`.
 
 Start this file:
 
+<<<<<<< HEAD
 <!-- @kustomizeYaml @test -->
+=======
+<!-- @kustomizeYaml @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 touch $DEMO_HOME/kustomization.yaml
 ```
 
 ### Add the resources
 
+<<<<<<< HEAD
 <!-- @addResources @test -->
+=======
+<!-- @addResources @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cd $DEMO_HOME
 
@@ -71,7 +87,11 @@ cat kustomization.yaml
 
 ### Add configMap generator
 
+<<<<<<< HEAD
 <!-- @addConfigMap @test -->
+=======
+<!-- @addConfigMap @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 echo "app.name=Kustomize Demo" >$DEMO_HOME/application.properties
 
@@ -102,7 +122,11 @@ For Spring Boot application, we can set an active profile through the environmen
 the application will pick up an extra `application-<profile>.properties` file. With this, we can customize the configMap in two
 steps. Add an environment variable through the patch and add a file to the configMap.
 
+<<<<<<< HEAD
 <!-- @customizeConfigMap @test -->
+=======
+<!-- @customizeConfigMap @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$DEMO_HOME/patch.yaml
 apiVersion: apps/v1beta2
@@ -149,7 +173,11 @@ Arrange for the resources to begin with prefix
 _prod-_ (since they are meant for the _production_
 environment):
 
+<<<<<<< HEAD
 <!-- @customizeLabel @test -->
+=======
+<!-- @customizeLabel @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cd $DEMO_HOME
 kustomize edit set nameprefix 'prod-'
@@ -165,7 +193,11 @@ This `namePrefix` directive adds _prod-_ to all
 resource names, as can be seen by building the
 resources:
 
+<<<<<<< HEAD
 <!-- @build1 @test -->
+=======
+<!-- @build1 @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $DEMO_HOME | grep prod-
 ```
@@ -180,7 +212,11 @@ selector.
 add a label, but one can always edit
 `kustomization.yaml` directly:
 
+<<<<<<< HEAD
 <!-- @customizeLabels @test -->
+=======
+<!-- @customizeLabels @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >>$DEMO_HOME/kustomization.yaml
 commonLabels:
@@ -191,7 +227,11 @@ EOF
 Confirm that the resources now all have names prefixed
 by `prod-` and the label tuple `env:prod`:
 
+<<<<<<< HEAD
 <!-- @build2 @test -->
+=======
+<!-- @build2 @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $DEMO_HOME | grep -C 3 env
 ```
@@ -205,7 +245,11 @@ set JVM options accordingly.
 
 Download the patch `memorylimit_patch.yaml`. It contains the memory limits setup.
 
+<<<<<<< HEAD
 <!-- @downloadPatch @test -->
+=======
+<!-- @downloadPatch @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 curl -s  -o "$DEMO_HOME/#1.yaml" \
   "$CONTENT/overlays/production/{memorylimit_patch}.yaml"
@@ -243,7 +287,11 @@ has end points such as `/actuator/health` for this. We can customize the k8s dep
 
 Download the patch `healthcheck_patch.yaml`. It contains the liveness probes and readyness probes.
 
+<<<<<<< HEAD
 <!-- @downloadPatch @test -->
+=======
+<!-- @downloadPatch @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 curl -s  -o "$DEMO_HOME/#1.yaml" \
   "$CONTENT/overlays/production/{healthcheck_patch}.yaml"
@@ -281,7 +329,11 @@ The output contains
 
 Add these patches to the kustomization:
 
+<<<<<<< HEAD
 <!-- @addPatch @test -->
+=======
+<!-- @addPatch @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cd $DEMO_HOME
 kustomize edit add patch memorylimit_patch.yaml
@@ -301,7 +353,11 @@ The output of the following command can now be applied
 to the cluster (i.e. piped to `kubectl apply`) to
 create the production environment.
 
+<<<<<<< HEAD
 <!-- @finalBuild @test -->
+=======
+<!-- @finalBuild @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $DEMO_HOME  # | kubectl apply -f -
 ```

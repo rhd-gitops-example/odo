@@ -19,7 +19,11 @@ package resmap
 import (
 	"sort"
 
+<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/resid"
+=======
+	"sigs.k8s.io/kustomize/v3/pkg/resid"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 // IdSlice implements the sort interface.
@@ -30,8 +34,13 @@ var _ sort.Interface = IdSlice{}
 func (a IdSlice) Len() int      { return len(a) }
 func (a IdSlice) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a IdSlice) Less(i, j int) bool {
+<<<<<<< HEAD
 	if !a[i].Gvk().Equals(a[j].Gvk()) {
 		return a[i].Gvk().IsLessThan(a[j].Gvk())
+=======
+	if !a[i].Gvk.Equals(a[j].Gvk) {
+		return a[i].Gvk.IsLessThan(a[j].Gvk)
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 	return a[i].String() < a[j].String()
 }

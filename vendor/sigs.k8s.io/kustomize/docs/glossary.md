@@ -19,6 +19,10 @@
 [kubernetes]: #kubernetes
 [kustomize]: #kustomize
 [kustomization]: #kustomization
+<<<<<<< HEAD
+=======
+[kustomizations]: #kustomization
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 [off-the-shelf]: #off-the-shelf-configuration
 [overlay]: #overlay
 [overlays]: #overlay
@@ -31,9 +35,17 @@
 [rebase]: https://git-scm.com/docs/git-rebase
 [resource]: #resource
 [resources]: #resource
+<<<<<<< HEAD
 [rpm]: https://en.wikipedia.org/wiki/Rpm_(software)
 [strategic-merge]: https://github.com/kubernetes/community/blob/master/contributors/devel/strategic-merge-patch.md
 [target]: #target
+=======
+[root]: #kustomization-root
+[rpm]: https://en.wikipedia.org/wiki/Rpm_(software)
+[strategic-merge]: https://git.k8s.io/community/contributors/devel/sig-api-machinery/strategic-merge-patch.md
+[target]: #target
+[transformer]: #transformer
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 [variant]: #variant
 [variants]: #variant
 [workflow]: workflows.md
@@ -74,10 +86,18 @@ management in k8s.
 
 ## base
 
+<<<<<<< HEAD
 A _base_ is a [target] that some [overlay] modifies.
 
 Any target, including an [overlay], can be a base to
 another target.
+=======
+A _base_ is a [kustomization] referred to
+by some other [kustomization].
+
+Any kustomization, including an [overlay], can be a base to
+another kustomization.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 A base has no knowledge of the overlays that refer to it.
 
@@ -134,6 +154,15 @@ In brief, kustomize should
    specific languages, etc., frustrating the other
    goals.
 
+<<<<<<< HEAD
+=======
+## generator
+
+A generator makes resources that can be used as is,
+or fed into a [transformer].
+
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ## gitops
 
 Devops or CICD workflows that use a git repository as a
@@ -142,6 +171,7 @@ test or deploy) when that truth changes.
 
 ## kustomization
 
+<<<<<<< HEAD
 A _kustomization_ is a file called `kustomization.yaml` that
 describes a configuration consumable by [kustomize].
 
@@ -167,6 +197,105 @@ A kustomization contains fields falling into these categories:
  * Generators, for creating more resources
    (configmaps and secrets) which can then be
    customized.
+=======
+The term _kustomization_ refers to a
+`kustomization.yaml` file, or more generally to a
+directory (the [root]) containing the
+`kustomization.yaml` file and all the relative file
+paths that it immediately references (all the local
+data that doesn't require a URL specification).
+
+I.e. if someone gives you a _kustomization_ for use
+with [kustomize], it could be in the form of
+
+ * one file called `kustomization.yaml`,
+ * a tarball (containing that YAML file plus what it references),
+ * a git archive (ditto),
+ * a URL to a git repo (ditto), etc.
+
+A kustomization file contains [fields](fields.md)
+falling into four categories:
+
+ * _resources_ - what existing [resources] are to be customized.
+   Example fields: _resources_, _crds_.
+
+ * _generators_ - what _new_ resources should be created.
+   Example fields: _configMapGenerator_ (legacy),
+   _secretGenerator_ (legacy), _generators_ (v2.1).
+
+ * _transformers_ - what to _do_ to the aforementioned resources.
+   Example fields: _namePrefix_, _nameSuffix_, _images_,
+   _commonLabels_, _patchesJson6902_, etc. and the more
+   general _transformers_ (v2.1) field.
+
+ * _meta_ - fields which may influence all or some of
+   the above.  Example fields: _vars_, _namespace_,
+   _apiVersion_, _kind_, etc.
+
+
+## kustomization root
+
+The directory that immediately contains a
+`kustomization.yaml` file.
+
+When a kustomization file is processed, it may or may
+not be able to access files outside its root.
+
+Data files like resource YAML files, or text files
+containing _name=value_ pairs intended for a ConfigMap
+or Secret, or files representing a patch to be used in
+a patch transformation, must live _within or below_ the
+root, and as such are specified via _relative
+paths_ exclusively.
+
+A special flag (in v2.1), `--load_restrictions none`,
+is provided to relax this security feature, to, say,
+allow a patch file to be shared by more than one
+kustomization.
+
+Other kustomizations (other directories containing a
+`kustomization.yaml` file) may be referred to by URL, by
+absolute path, or by relative path.
+
+If kustomization __A__ depends on kustomization __B__, then
+
+ * __B__ may not _contain_ __A__.
+ * __B__ may not _depend on_ __A__, even transitively.
+
+__A__ may contain __B__, but in this case it might be
+simplest to have __A__ directly depend on __B__'s
+resources and eliminate __B__'s kustomization.yaml file
+(i.e. absorb __B__ into __A__).
+
+Conventionally, __B__ is in a directory that's sibling
+to __A__, or __B__ is off in a completely independent
+git repository, referencable from any kustomization.
+
+
+A common layout is
+
+> ```
+> ├── base
+> │   ├── deployment.yaml
+> │   ├── kustomization.yaml
+> │   └── service.yaml
+> └── overlays
+>     ├── dev
+>     │   ├── kustomization.yaml
+>     │   └── patch.yaml
+>     ├── prod
+>     │   ├── kustomization.yaml
+>     │   └── patch.yaml
+>     └── staging
+>         ├── kustomization.yaml
+>         └── patch.yaml
+> ```
+
+The three roots `dev`, `prod` and `staging`
+(presumably) all refer to the `base` root.  One would
+have to inspect the `kustomization.yaml` files to be
+sure.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 ## kubernetes
 
@@ -189,6 +318,7 @@ more than one version).
 
 ## kustomize
 
+<<<<<<< HEAD
 _kustomize_ is a command line tool supporting template-free
 customization of declarative configuration targetted to
 k8s-style objects.
@@ -197,6 +327,16 @@ _Targetted to k8s means_ that kustomize may need some
 limited understanding of API resources, k8s concepts
 like names, labels, namespaces, etc. and the semantics
 of resource patching.
+=======
+_kustomize_ is a command line tool supporting
+template-free, structured customization of declarative
+configuration targetted to k8s-style objects.
+
+_Targetted to k8s means_ that kustomize has some
+understanding of API resources, k8s concepts like
+names, labels, namespaces, etc. and the semantics of
+resource patching.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 kustomize is an implementation of [DAM].
 
@@ -226,6 +366,7 @@ own [overlays] to do further customization.
 
 ## overlay
 
+<<<<<<< HEAD
 An _overlay_ is a [target] that modifies (and thus
 depends on) another target.
 
@@ -234,6 +375,15 @@ path, URI or other method) some other kustomization,
 known as its [base].
 
 An overlay is unusable without its base.
+=======
+An _overlay_ is a kustomization that depends on
+another kustomization.
+
+The [kustomizations] an overlay refers to (via file
+path, URI or other method) are called [bases].
+
+An overlay is unusable without its bases.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 An overlay may act as a base to another overlay.
 
@@ -245,7 +395,11 @@ _production_ environment variants.
 These variants use the same overall resources, and vary
 in relatively simple ways, e.g. the number of replicas
 in a deployment, the CPU to a particular pod, the data
+<<<<<<< HEAD
 source used in a configmap, etc.
+=======
+source used in a ConfigMap, etc.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 One configures a cluster like this:
 
@@ -260,6 +414,10 @@ One configures a cluster like this:
 Usage of the base is implicit - the overlay's
 kustomization points to the base.
 
+<<<<<<< HEAD
+=======
+See also [root].
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 ## package
 
@@ -290,6 +448,7 @@ value, e.g. an image tag.
 
 By default, an SMP _replaces_ values.  This
 usually desired when the target value is a simple
+<<<<<<< HEAD
 string, but may not be desired when the target 
 value is a list.
 
@@ -298,6 +457,15 @@ default behavior, add a _directive_.  Recognized
 directives include _replace_ (the default), _merge_
 (avoid replacing a list), _delete_ and a few more
 (see [these notes][strategic-merge]).
+=======
+string, but may not be desired when the target
+value is a list.
+
+To change this
+default behavior, add a _directive_.  Recognized
+directives in YAML patches are _replace_ (the default)
+and _delete_ (see [these notes][strategic-merge]).
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 Note that for custom resources, SMPs are treated as
 [json merge patches][JSONMergePatch].
@@ -318,6 +486,17 @@ A _patchJson6902_ can do almost everything a
 _patchStrategicMerge_ can do, but with a briefer
 syntax.  See this [example][patchExampleJson6902].
 
+<<<<<<< HEAD
+=======
+## plugin
+
+A chunk of code used by kustomize, but not necessarily
+compiled into kustomize, to generate and/or transform a
+kubernetes resource as part of a kustomization.
+
+Details [here](plugins).
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ## resource
 
 A _resource_ in the context of a REST-ful API is the
@@ -325,15 +504,29 @@ target object of an HTTP operation like _GET_, _PUT_ or
 _POST_.  k8s offers a REST-ful API surface to interact
 with clients.
 
+<<<<<<< HEAD
 A _resource_, in the context of kustomization file,
 is a path to a [YAML] or [JSON] file describing
 a k8s API object, like a Deployment or a
 ConfigmMap.
+=======
+A _resource_, in the context of a kustomization, is a
+[root] relative path to a [YAML] or [JSON] file
+describing a k8s API object, like a Deployment or a
+ConfigMap, or it's a path to a kustomization, or a URL
+that resolves to a kustomization.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 More generally, a resource can be any correct YAML file
 that [defines an object](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/#required-fields)
 with a _kind_ and a _metadata/name_ field.
 
+<<<<<<< HEAD
+=======
+## root
+
+See [kustomization root][root].
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 ## sub-target / sub-application / sub-package
 
@@ -348,14 +541,28 @@ The _target_ is the argument to `kustomize build`, e.g.:
 >  kustomize build $target
 > ```
 
+<<<<<<< HEAD
 `$target` must be a path or a url to a directory that
 immediately contains a [kustomization].
+=======
+`$target` must be a path or a url to a [kustomization].
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 The target contains, or refers to, all the information
 needed to create customized resources to send to the
 [apply] operation.
 
+<<<<<<< HEAD
 A target is a [base] or an [overlay].
+=======
+A target can be a [base] or an [overlay].
+
+## transformer
+
+A transformer can modify a resource, or merely
+visit it and collect information about it in the
+course of a `kustomize build`.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 ## variant
 

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -13,6 +14,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+=======
+// Copyright 2019 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package fs
 
@@ -27,7 +32,11 @@ import (
 type ConfirmedDir string
 
 // NewTmpConfirmedDir returns a temporary dir, else error.
+<<<<<<< HEAD
 // The directory is cleaned, no symlinks, etc. so its
+=======
+// The directory is cleaned, no symlinks, etc. so it's
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // returned as a ConfirmedDir.
 func NewTmpConfirmedDir() (ConfirmedDir, error) {
 	n, err := ioutil.TempDir("", "kustomize-")
@@ -36,13 +45,21 @@ func NewTmpConfirmedDir() (ConfirmedDir, error) {
 	}
 
 	// In MacOs `ioutil.TempDir` creates a directory
+<<<<<<< HEAD
 	// with root in the `/var` folder, which is in turn a symlinked path
 	// to `/private/var`.
+=======
+	// with root in the `/var` folder, which is in turn
+	// a symlinked path to `/private/var`.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	// Function `filepath.EvalSymlinks`is used to
 	// resolve the real absolute path.
 	deLinked, err := filepath.EvalSymlinks(n)
 	return ConfirmedDir(deLinked), err
+<<<<<<< HEAD
 
+=======
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // HasPrefix returns true if the directory argument

@@ -16,15 +16,26 @@ limitations under the License.
 
 package transformers
 
+<<<<<<< HEAD
 import "sigs.k8s.io/kustomize/pkg/resmap"
+=======
+import "sigs.k8s.io/kustomize/v3/pkg/resmap"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 // noOpTransformer contains a no-op transformer.
 type noOpTransformer struct{}
 
+<<<<<<< HEAD
 var _ Transformer = &noOpTransformer{}
 
 // NewNoOpTransformer constructs a noOpTransformer.
 func NewNoOpTransformer() Transformer {
+=======
+var _ resmap.Transformer = &noOpTransformer{}
+
+// NewNoOpTransformer constructs a noOpTransformer.
+func NewNoOpTransformer() resmap.Transformer {
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	return &noOpTransformer{}
 }
 

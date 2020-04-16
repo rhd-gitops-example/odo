@@ -22,7 +22,11 @@ Steps:
 
 First define a place to work:
 
+<<<<<<< HEAD
 <!-- @makeWorkplace @test -->
+=======
+<!-- @makeWorkplace @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 ```
@@ -44,7 +48,11 @@ To keep this document shorter, the base resources are
 off in a supplemental data directory rather than
 declared here as HERE documents.  Download them:
 
+<<<<<<< HEAD
 <!-- @downloadBase @test -->
+=======
+<!-- @downloadBase @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 BASE=$DEMO_HOME/base
 mkdir -p $BASE
@@ -57,7 +65,11 @@ curl -s -o "$BASE/#1.yaml" "https://raw.githubusercontent.com\
 
 Look at the directory:
 
+<<<<<<< HEAD
 <!-- @runTree @test -->
+=======
+<!-- @runTree @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 tree $DEMO_HOME
 ```
@@ -78,7 +90,11 @@ One could immediately apply these resources to a
 cluster:
 
 > ```
+<<<<<<< HEAD
 > kubectl apply -f $DEMO_HOME/base
+=======
+> kubectl apply -k $DEMO_HOME/base
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 > ```
 
 to instantiate the _hello_ service.  `kubectl`
@@ -88,7 +104,11 @@ would only recognize the resource files.
 
 The `base` directory has a [kustomization] file:
 
+<<<<<<< HEAD
 <!-- @showKustomization @test -->
+=======
+<!-- @showKustomization @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 more $BASE/kustomization.yaml
 ```
@@ -96,7 +116,11 @@ more $BASE/kustomization.yaml
 Optionally, run `kustomize` on the base to emit
 customized resources to `stdout`:
 
+<<<<<<< HEAD
 <!-- @buildBase @test -->
+=======
+<!-- @buildBase @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $BASE
 ```
@@ -106,14 +130,22 @@ kustomize build $BASE
 A first customization step could be to change the _app
 label_ applied to all resources:
 
+<<<<<<< HEAD
 <!-- @addLabel @test -->
+=======
+<!-- @addLabel @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 sed -i.bak 's/app: hello/app: my-hello/' \
     $BASE/kustomization.yaml
 ```
 
 See the effect:
+<<<<<<< HEAD
 <!-- @checkLabel @test -->
+=======
+<!-- @checkLabel @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $BASE | grep -C 3 app:
 ```
@@ -127,7 +159,11 @@ Create a _staging_ and _production_ [overlay]:
  * Web server greetings from these cluster
    [variants] will differ from each other.
 
+<<<<<<< HEAD
 <!-- @overlayDirectories @test -->
+=======
+<!-- @overlayDirectories @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 OVERLAYS=$DEMO_HOME/overlays
 mkdir -p $OVERLAYS/staging
@@ -139,7 +175,11 @@ mkdir -p $OVERLAYS/production
 In the `staging` directory, make a kustomization
 defining a new name prefix, and some different labels.
 
+<<<<<<< HEAD
 <!-- @makeStagingKustomization @test -->
+=======
+<!-- @makeStagingKustomization @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<'EOF' >$OVERLAYS/staging/kustomization.yaml
 namePrefix: staging-
@@ -148,7 +188,11 @@ commonLabels:
   org: acmeCorporation
 commonAnnotations:
   note: Hello, I am staging!
+<<<<<<< HEAD
 bases:
+=======
+resources:
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 - ../../base
 patchesStrategicMerge:
 - map.yaml
@@ -162,7 +206,11 @@ greeting from _Good Morning!_ to _Have a pineapple!_
 
 Also, enable the _risky_ flag.
 
+<<<<<<< HEAD
 <!-- @stagingMap @test -->
+=======
+<!-- @stagingMap @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$OVERLAYS/staging/map.yaml
 apiVersion: v1
@@ -180,7 +228,11 @@ EOF
 In the production directory, make a kustomization
 with a different name prefix and labels.
 
+<<<<<<< HEAD
 <!-- @makeProductionKustomization @test -->
+=======
+<!-- @makeProductionKustomization @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$OVERLAYS/production/kustomization.yaml
 namePrefix: production-
@@ -189,7 +241,11 @@ commonLabels:
   org: acmeCorporation
 commonAnnotations:
   note: Hello, I am production!
+<<<<<<< HEAD
 bases:
+=======
+resources:
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 - ../../base
 patchesStrategicMerge:
 - deployment.yaml
@@ -202,7 +258,11 @@ EOF
 Make a production patch that increases the replica
 count (because production takes more traffic).
 
+<<<<<<< HEAD
 <!-- @productionDeployment @test -->
+=======
+<!-- @productionDeployment @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$OVERLAYS/production/deployment.yaml
 apiVersion: apps/v1
@@ -228,7 +288,11 @@ EOF
 
 Review the directory structure and differences:
 
+<<<<<<< HEAD
 <!-- @listFiles @test -->
+=======
+<!-- @listFiles @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 tree $DEMO_HOME
 ```
@@ -288,12 +352,20 @@ something like
 
 The individual resource sets are:
 
+<<<<<<< HEAD
 <!-- @buildStaging @test -->
+=======
+<!-- @buildStaging @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/staging
 ```
 
+<<<<<<< HEAD
 <!-- @buildProduction @test -->
+=======
+<!-- @buildProduction @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/production
 ```

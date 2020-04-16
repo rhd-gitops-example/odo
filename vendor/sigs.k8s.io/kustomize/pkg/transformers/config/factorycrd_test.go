@@ -20,9 +20,15 @@ import (
 	"reflect"
 	"testing"
 
+<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/gvk"
 	"sigs.k8s.io/kustomize/pkg/ifc"
 	"sigs.k8s.io/kustomize/pkg/internal/loadertest"
+=======
+	"sigs.k8s.io/kustomize/v3/internal/loadertest"
+	"sigs.k8s.io/kustomize/v3/pkg/gvk"
+	"sigs.k8s.io/kustomize/v3/pkg/ifc"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 // This defines two CRD's:  Bee and MyKind.

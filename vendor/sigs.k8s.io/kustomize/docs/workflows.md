@@ -11,8 +11,14 @@
 [patches]: glossary.md#patch
 [rebase]: https://git-scm.com/docs/git-rebase
 [resources]: glossary.md#resource
+<<<<<<< HEAD
 [workflowBespoke]: workflowBespoke.jpg
 [workflowOts]: workflowOts.jpg
+=======
+[workflowBespoke]: images/workflowBespoke.jpg
+[workflowOts]: images/workflowOts.jpg
+[kubectl-v1.14.0]:https://kubernetes.io/blog/2019/03/25/kubernetes-1-14-release-announcement/
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 # workflows
 
@@ -71,6 +77,14 @@ Run kustomize, and pipe the output to [apply].
 > kustomize build ~/ldap/overlays/production | kubectl apply -f -
 > ```
 
+<<<<<<< HEAD
+=======
+You can also use [kubectl-v1.14.0] to apply your [variants].
+> ```
+> kubectl apply -k ~/ldap/overlays/staging
+> kubectl apply -k ~/ldap/overlays/production
+> ```
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 ## Off-the-shelf configuration
 
@@ -120,6 +134,15 @@ distinct repository.
 > kustomize build ~/ldap/overlays/production | kubectl apply -f -
 > ```
 
+<<<<<<< HEAD
+=======
+You can also use [kubectl-v1.14.0] to apply your [variants].
+> ```
+> kubectl apply -k ~/ldap/overlays/staging
+> kubectl apply -k ~/ldap/overlays/production
+> ```
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 #### 5) (optionally) capture changes from upstream
 
 The user can periodically [rebase] their [base] to

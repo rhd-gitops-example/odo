@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -13,6 +14,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+=======
+// Copyright 2019 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package kunstruct
 
@@ -20,26 +25,50 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+<<<<<<< HEAD
+=======
+	"strconv"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
+<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/k8sdeps/configmapandsecret"
 	"sigs.k8s.io/kustomize/pkg/ifc"
 	"sigs.k8s.io/kustomize/pkg/types"
+=======
+	"sigs.k8s.io/kustomize/v3/k8sdeps/configmapandsecret"
+	"sigs.k8s.io/kustomize/v3/pkg/ifc"
+	"sigs.k8s.io/kustomize/v3/pkg/types"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 // KunstructuredFactoryImpl hides construction using apimachinery types.
 type KunstructuredFactoryImpl struct {
+<<<<<<< HEAD
 	cmFactory     *configmapandsecret.ConfigMapFactory
 	secretFactory *configmapandsecret.SecretFactory
+=======
+	hasher *kustHash
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 var _ ifc.KunstructuredFactory = &KunstructuredFactoryImpl{}
 
 // NewKunstructuredFactoryImpl returns a factory.
 func NewKunstructuredFactoryImpl() ifc.KunstructuredFactory {
+<<<<<<< HEAD
 	return &KunstructuredFactoryImpl{}
+=======
+	return &KunstructuredFactoryImpl{hasher: NewKustHash()}
+}
+
+// Hasher returns a kunstructured hasher
+// input: kunstructured; output: string hash.
+func (kf *KunstructuredFactoryImpl) Hasher() ifc.KunstructuredHasher {
+	return kf.hasher
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // SliceFromBytes returns a slice of Kunstructured.
@@ -79,6 +108,7 @@ func (kf *KunstructuredFactoryImpl) FromMap(
 }
 
 // MakeConfigMap returns an instance of Kunstructured for ConfigMap
+<<<<<<< HEAD
 func (kf *KunstructuredFactoryImpl) MakeConfigMap(args *types.ConfigMapArgs, options *types.GeneratorOptions) (ifc.Kunstructured, error) {
 	cm, err := kf.cmFactory.MakeConfigMap(args, options)
 	if err != nil {
@@ -100,6 +130,31 @@ func (kf *KunstructuredFactoryImpl) MakeSecret(args *types.SecretArgs, options *
 func (kf *KunstructuredFactoryImpl) Set(ldr ifc.Loader) {
 	kf.cmFactory = configmapandsecret.NewConfigMapFactory(ldr)
 	kf.secretFactory = configmapandsecret.NewSecretFactory(ldr)
+=======
+func (kf *KunstructuredFactoryImpl) MakeConfigMap(
+	ldr ifc.Loader,
+	options *types.GeneratorOptions,
+	args *types.ConfigMapArgs) (ifc.Kunstructured, error) {
+	o, err := configmapandsecret.NewFactory(
+		ldr, options).MakeConfigMap(args)
+	if err != nil {
+		return nil, err
+	}
+	return NewKunstructuredFromObject(o)
+}
+
+// MakeSecret returns an instance of Kunstructured for Secret
+func (kf *KunstructuredFactoryImpl) MakeSecret(
+	ldr ifc.Loader,
+	options *types.GeneratorOptions,
+	args *types.SecretArgs) (ifc.Kunstructured, error) {
+	o, err := configmapandsecret.NewFactory(
+		ldr, options).MakeSecret(args)
+	if err != nil {
+		return nil, err
+	}
+	return NewKunstructuredFromObject(o)
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // validate validates that u has kind and name
@@ -114,5 +169,35 @@ func (kf *KunstructuredFactoryImpl) validate(u unstructured.Unstructured) error 
 	if u.GetName() == "" {
 		return fmt.Errorf("missing metadata.name in object %v", u)
 	}
+<<<<<<< HEAD
 	return nil
 }
+=======
+
+	if result, path := checkListItemNil(u.Object); result {
+		return fmt.Errorf("empty item at %v in object %v", path, u)
+	}
+	return nil
+}
+
+func checkListItemNil(in interface{}) (bool, string) {
+	switch v := in.(type) {
+	case map[string]interface{}:
+		for key, s := range v {
+			if result, path := checkListItemNil(s); result {
+				return result, key + "/" + path
+			}
+		}
+	case []interface{}:
+		for index, s := range v {
+			if s == nil {
+				return true, ""
+			}
+			if result, path := checkListItemNil(s); result {
+				return result, "[" + strconv.Itoa(index) + "]/" + path
+			}
+		}
+	}
+	return false, ""
+}
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)

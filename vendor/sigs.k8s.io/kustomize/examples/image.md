@@ -3,14 +3,22 @@
 
 Define a place to work:
 
+<<<<<<< HEAD
 <!-- @makeWorkplace @test -->
+=======
+<!-- @makeWorkplace @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 ```
 
 Make a `kustomization` containing a pod resource
 
+<<<<<<< HEAD
 <!-- @createKustomization @test -->
+=======
+<!-- @createKustomization @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$DEMO_HOME/kustomization.yaml
 resources:
@@ -20,7 +28,11 @@ EOF
 
 Declare the pod resource
 
+<<<<<<< HEAD
 <!-- @createDeployment @test -->
+=======
+<!-- @createDeployment @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$DEMO_HOME/pod.yaml
 apiVersion: v1
@@ -46,7 +58,11 @@ The image `busybox` and tag `1.29.0` can be changed by adding `images` in `kusto
 
 
 Add `images`:
+<<<<<<< HEAD
 <!-- @addImages @test -->
+=======
+<!-- @addImages @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cd $DEMO_HOME
 kustomize edit set image busybox=alpine:3.6
@@ -61,14 +77,22 @@ The following `images` will be added to `kustomization.yaml`:
 > ```
 
 Now build this `kustomization`
+<<<<<<< HEAD
 <!-- @kustomizeBuild @test -->
+=======
+<!-- @kustomizeBuild @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $DEMO_HOME
 ```
 
 Confirm that this replaces _both_ busybox images and tags for `alpine:3.6`:
 
+<<<<<<< HEAD
 <!-- @confirmImages @test -->
+=======
+<!-- @confirmImages @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 test 2 = \
   $(kustomize build $DEMO_HOME | grep alpine:3.6 | wc -l); \

@@ -20,7 +20,11 @@ import (
 	"reflect"
 	"testing"
 
+<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/ifc"
+=======
+	"sigs.k8s.io/kustomize/v3/pkg/ifc"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 func TestSliceFromBytes(t *testing.T) {
@@ -143,6 +147,25 @@ metadata:
 			expectedErr: true,
 		},
 		{
+<<<<<<< HEAD
+=======
+			name: "nil value in list",
+			input: []byte(`
+apiVersion: builtin
+kind: ConfigMapGenerator
+metadata:
+  name: kube100-site
+  labels:
+    app: web
+    testList:
+      - testA
+      - 
+`),
+			expectedOut: nil,
+			expectedErr: true,
+		},
+		{
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			name: "List",
 			input: []byte(`
 apiVersion: v1

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -13,11 +14,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+=======
+// Copyright 2019 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package target_test
 
 import (
 	"testing"
+<<<<<<< HEAD
 )
 
 // TODO(monopole): Add a feature test example covering secret generation.
@@ -37,6 +43,14 @@ import (
 
 func writeMediumBase(th *KustTestHarness) {
 	th.writeK("/app/base", `
+=======
+
+	"sigs.k8s.io/kustomize/v3/pkg/kusttest"
+)
+
+func writeMediumBase(th *kusttest_test.KustTestHarness) {
+	th.WriteK("/app/base", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 namePrefix: baseprefix-
 commonLabels:
   foo: bar
@@ -46,7 +60,11 @@ resources:
 - deployment/deployment.yaml
 - service/service.yaml
 `)
+<<<<<<< HEAD
 	th.writeF("/app/base/service/service.yaml", `
+=======
+	th.WriteF("/app/base/service/service.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 kind: Service
 metadata:
@@ -59,8 +77,13 @@ spec:
   selector:
     app: mungebot
 `)
+<<<<<<< HEAD
 	th.writeF("/app/base/deployment/deployment.yaml", `
 apiVersion: extensions/v1beta1
+=======
+	th.WriteF("/app/base/deployment/deployment.yaml", `
+apiVersion: apps/v1
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Deployment
 metadata:
   name: mungebot
@@ -85,6 +108,7 @@ spec:
 }
 
 func TestMediumBase(t *testing.T) {
+<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/base")
 	writeMediumBase(th)
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
@@ -109,6 +133,16 @@ spec:
     foo: bar
 ---
 apiVersion: extensions/v1beta1
+=======
+	th := kusttest_test.NewKustTestHarness(t, "/app/base")
+	writeMediumBase(th)
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	th.AssertActualEqualsExpected(m, `
+apiVersion: apps/v1
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Deployment
 metadata:
   annotations:
@@ -138,13 +172,38 @@ spec:
         name: nginx
         ports:
         - containerPort: 80
+<<<<<<< HEAD
+=======
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    baseAnno: This is a base annotation
+  labels:
+    app: mungebot
+    foo: bar
+  name: baseprefix-mungebot-service
+spec:
+  ports:
+  - port: 7002
+  selector:
+    app: mungebot
+    foo: bar
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 `)
 }
 
 func TestMediumOverlay(t *testing.T) {
+<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/overlay")
 	writeMediumBase(th)
 	th.writeK("/app/overlay", `
+=======
+	th := kusttest_test.NewKustTestHarness(t, "/app/overlay")
+	writeMediumBase(th)
+	th.WriteK("/app/overlay", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 namePrefix: test-infra-
 commonLabels:
   app: mungebot
@@ -152,20 +211,35 @@ commonLabels:
   repo: test-infra
 commonAnnotations:
   note: This is a test annotation
+<<<<<<< HEAD
 bases:
+=======
+resources:
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 - ../base
 patchesStrategicMerge:
 - deployment/deployment.yaml
 configMapGenerator:
 - name: app-env
+<<<<<<< HEAD
   env: configmap/app.env
 - name: app-config
   files:
   - configmap/app-init.ini
+=======
+  env: configmap/db.env
+  envs:
+  - configmap/units.ini
+  - configmap/food.ini
+- name: app-config
+  files:
+  - nonsense=configmap/dummy.txt
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 images:
 - name: nginx
   newTag: 1.8.0`)
 
+<<<<<<< HEAD
 	th.writeF("/app/overlay/configmap/app.env", `
 DB_USERNAME=admin
 DB_PASSWORD=somepw
@@ -176,6 +250,27 @@ BAR=baz
 `)
 	th.writeF("/app/overlay/deployment/deployment.yaml", `
 apiVersion: extensions/v1beta1
+=======
+	th.WriteF("/app/overlay/configmap/db.env", `
+DB_USERNAME=admin
+DB_PASSWORD=somepw
+`)
+	th.WriteF("/app/overlay/configmap/units.ini", `
+LENGTH=kilometer
+ENERGY=electronvolt
+`)
+	th.WriteF("/app/overlay/configmap/food.ini", `
+FRUIT=banana
+LEGUME=chickpea
+`)
+	th.WriteF("/app/overlay/configmap/dummy.txt",
+		`Lorem ipsum dolor sit amet, consectetur
+adipiscing elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua. 
+`)
+	th.WriteF("/app/overlay/deployment/deployment.yaml", `
+apiVersion: apps/v1
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Deployment
 metadata:
   name: mungebot
@@ -207,6 +302,7 @@ spec:
           name: app-env
         name: app-env
 `)
+<<<<<<< HEAD
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
 	if err != nil {
 		t.Fatalf("Err: %v", err)
@@ -267,6 +363,14 @@ spec:
     repo: test-infra
 ---
 apiVersion: extensions/v1beta1
+=======
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	th.AssertActualEqualsExpected(m, `
+apiVersion: apps/v1
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Deployment
 metadata:
   annotations:
@@ -303,7 +407,11 @@ spec:
           valueFrom:
             configMapKeyRef:
               key: somekey
+<<<<<<< HEAD
               name: test-infra-app-env-bh449c299k
+=======
+              name: test-infra-app-env-ffmd9b969m
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
         - name: foo
           value: bar
         image: nginx:1.8.0
@@ -314,7 +422,11 @@ spec:
         - configMapRef:
             name: someConfigMap
         - configMapRef:
+<<<<<<< HEAD
             name: test-infra-app-env-bh449c299k
+=======
+            name: test-infra-app-env-ffmd9b969m
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
         image: busybox
         name: busybox
         volumeMounts:
@@ -322,7 +434,65 @@ spec:
           name: app-env
       volumes:
       - configMap:
+<<<<<<< HEAD
           name: test-infra-app-env-bh449c299k
         name: app-env
+=======
+          name: test-infra-app-env-ffmd9b969m
+        name: app-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    baseAnno: This is a base annotation
+    note: This is a test annotation
+  labels:
+    app: mungebot
+    foo: bar
+    org: kubernetes
+    repo: test-infra
+  name: test-infra-baseprefix-mungebot-service
+spec:
+  ports:
+  - port: 7002
+  selector:
+    app: mungebot
+    foo: bar
+    org: kubernetes
+    repo: test-infra
+---
+apiVersion: v1
+data:
+  DB_PASSWORD: somepw
+  DB_USERNAME: admin
+  ENERGY: electronvolt
+  FRUIT: banana
+  LEGUME: chickpea
+  LENGTH: kilometer
+kind: ConfigMap
+metadata:
+  annotations:
+    note: This is a test annotation
+  labels:
+    app: mungebot
+    org: kubernetes
+    repo: test-infra
+  name: test-infra-app-env-ffmd9b969m
+---
+apiVersion: v1
+data:
+  nonsense: "Lorem ipsum dolor sit amet, consectetur\nadipiscing elit, sed do eiusmod
+    tempor\nincididunt ut labore et dolore magna aliqua. \n"
+kind: ConfigMap
+metadata:
+  annotations:
+    note: This is a test annotation
+  labels:
+    app: mungebot
+    org: kubernetes
+    repo: test-infra
+  name: test-infra-app-config-f462h769f9
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 `)
 }

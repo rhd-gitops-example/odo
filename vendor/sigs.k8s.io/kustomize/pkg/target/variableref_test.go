@@ -17,6 +17,7 @@ limitations under the License.
 package target_test
 
 import (
+<<<<<<< HEAD
 	"testing"
 )
 
@@ -32,6 +33,383 @@ configMapGenerator:
   literals:
     - foo=bar
     - baz=qux
+=======
+	"strings"
+	"testing"
+
+	"sigs.k8s.io/kustomize/v3/pkg/kusttest"
+)
+
+func TestBasicVariableRef(t *testing.T) {
+	th := kusttest_test.NewKustTestHarness(t, "/app")
+	th.WriteK("/app", `
+namePrefix: base-
+resources:
+- pod.yaml
+vars:
+- name: POD_NAME
+  objref:
+    apiVersion: v1
+    kind: Pod
+    name: clown
+  fieldref:
+    fieldpath: metadata.name
+`)
+
+	th.WriteF("/app/pod.yaml", `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clown
+spec:
+  containers:
+  - name: frown
+    image: frown
+    command:
+    - echo
+    - "$(POD_NAME)"
+    env:
+      - name: FOO
+        value: "$(POD_NAME)"
+`)
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	th.AssertActualEqualsExpected(m, `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: base-clown
+spec:
+  containers:
+  - command:
+    - echo
+    - base-clown
+    env:
+    - name: FOO
+      value: base-clown
+    image: frown
+    name: frown
+`)
+}
+
+func TestBasicVarCollision(t *testing.T) {
+	th := kusttest_test.NewKustTestHarness(t, "/app/overlay")
+	th.WriteK("/app/base1", `
+namePrefix: base1-
+resources:
+- pod.yaml
+vars:
+- name: POD_NAME
+  objref:
+    apiVersion: v1
+    kind: Pod
+    name: kelley
+  fieldref:
+    fieldpath: metadata.name
+`)
+	th.WriteF("/app/base1/pod.yaml", `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kelley
+spec:
+  containers:
+  - name: smile
+    image: smile
+    command:
+    - echo
+    - "$(POD_NAME)"
+    env:
+      - name: FOO
+        value: "$(POD_NAME)"
+`)
+
+	th.WriteK("/app/base2", `
+namePrefix: base2-
+resources:
+- pod.yaml
+vars:
+- name: POD_NAME
+  objref:
+    apiVersion: v1
+    kind: Pod
+    name: grimaldi
+  fieldref:
+    fieldpath: metadata.name
+`)
+	th.WriteF("/app/base2/pod.yaml", `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grimaldi
+spec:
+  containers:
+  - name: dance
+    image: dance
+    command:
+    - echo
+    - "$(POD_NAME)"
+    env:
+      - name: FOO
+        value: "$(POD_NAME)"
+`)
+
+	th.WriteK("/app/overlay", `
+resources:
+- ../base1
+- ../base2
+`)
+	_, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err == nil {
+		t.Fatalf("should have an error")
+	}
+	if !strings.Contains(err.Error(), "var 'POD_NAME' already encountered") {
+		t.Fatalf("unexpected err: %v", err)
+	}
+}
+
+func TestVarPropagatesUp(t *testing.T) {
+	th := kusttest_test.NewKustTestHarness(t, "/app/overlay")
+	th.WriteK("/app/base1", `
+namePrefix: base1-
+resources:
+- pod.yaml
+vars:
+- name: POD_NAME1
+  objref:
+    apiVersion: v1
+    kind: Pod
+    name: kelley
+  fieldref:
+    fieldpath: metadata.name
+`)
+	th.WriteF("/app/base1/pod.yaml", `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kelley
+spec:
+  containers:
+  - name: smile
+    image: smile
+    command:
+    - echo
+    - "$(POD_NAME1)"
+    env:
+      - name: FOO
+        value: "$(POD_NAME1)"
+`)
+
+	th.WriteK("/app/base2", `
+namePrefix: base2-
+resources:
+- pod.yaml
+vars:
+- name: POD_NAME2
+  objref:
+    apiVersion: v1
+    kind: Pod
+    name: grimaldi
+  fieldref:
+    fieldpath: metadata.name
+`)
+	th.WriteF("/app/base2/pod.yaml", `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grimaldi
+spec:
+  containers:
+  - name: dance
+    image: dance
+    command:
+    - echo
+    - "$(POD_NAME2)"
+    env:
+      - name: FOO
+        value: "$(POD_NAME2)"
+`)
+
+	th.WriteK("/app/overlay", `
+resources:
+- pod.yaml
+- ../base1
+- ../base2
+`)
+	th.WriteF("/app/overlay/pod.yaml", `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: circus
+spec:
+  containers:
+  - name: ring
+    image: ring
+    command:
+    - echo
+    - "$(POD_NAME1)"
+    - "$(POD_NAME2)"
+    env:
+      - name: P1
+        value: "$(POD_NAME1)"
+      - name: P2
+        value: "$(POD_NAME2)"
+`)
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	th.AssertActualEqualsExpected(m, `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: circus
+spec:
+  containers:
+  - command:
+    - echo
+    - base1-kelley
+    - base2-grimaldi
+    env:
+    - name: P1
+      value: base1-kelley
+    - name: P2
+      value: base2-grimaldi
+    image: ring
+    name: ring
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: base1-kelley
+spec:
+  containers:
+  - command:
+    - echo
+    - base1-kelley
+    env:
+    - name: FOO
+      value: base1-kelley
+    image: smile
+    name: smile
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: base2-grimaldi
+spec:
+  containers:
+  - command:
+    - echo
+    - base2-grimaldi
+    env:
+    - name: FOO
+      value: base2-grimaldi
+    image: dance
+    name: dance
+`)
+}
+
+// Not so much a bug as a desire for local variables
+// with less than global scope.  Currently all variables
+// are global.  So if a base with a variable is included
+// twice, it's a collision, so it's denied.
+func TestBug506(t *testing.T) {
+	th := kusttest_test.NewKustTestHarness(t, "/app/top")
+	th.WriteK("/app/base", `
+namePrefix: base-
+resources:
+- pod.yaml
+vars:
+- name: POD_NAME
+  objref:
+    apiVersion: v1
+    kind: Pod
+    name: myServerPod
+  fieldref:
+    fieldpath: metadata.name
+`)
+	th.WriteF("/app/base/pod.yaml", `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myServerPod
+spec:
+  containers:
+    - name: myServer
+      image: whatever
+      env:
+        - name: POD_NAME
+          value: $(POD_NAME)
+`)
+	th.WriteK("/app/o1", `
+nameprefix: p1-
+resources:
+- ../base
+`)
+	th.WriteK("/app/o2", `
+nameprefix: p2-
+resources:
+- ../base
+`)
+	th.WriteK("/app/top", `
+resources:
+- ../o1
+- ../o2
+`)
+
+	const presumablyDesired = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: p1-base-myServerPod
+spec:
+  containers:
+  - env:
+    - name: POD_NAME
+      value: p1-base-myServerPod
+    image: whatever
+    name: myServer
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: p2-base-myServerPod
+spec:
+  containers:
+  - env:
+    - name: POD_NAME
+      value: p2-base-myServerPod
+    image: whatever
+    name: myServer
+`
+	_, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err == nil {
+		t.Fatalf("should have an error")
+	}
+	if !strings.Contains(err.Error(), "var 'POD_NAME' already encountered") {
+		t.Fatalf("unexpected err: %v", err)
+	}
+}
+
+func TestVarRefBig(t *testing.T) {
+	th := kusttest_test.NewKustTestHarness(t, "/app/overlay/staging")
+	th.WriteK("/app/base", `
+namePrefix: base-
+resources:
+- role-stuff.yaml
+- services.yaml
+- statefulset.yaml
+- cronjob.yaml
+- pdb.yaml
+configMapGenerator:
+- name: test-config-map
+  literals:
+  - foo=bar
+  - baz=qux
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 vars:
  - name: CDB_PUBLIC_SVC
    objref:
@@ -47,6 +425,16 @@ vars:
         apiVersion: apps/v1beta1
    fieldref:
         fieldpath: metadata.name
+<<<<<<< HEAD
+=======
+ - name: CDB_HTTP_PORT
+   objref:
+        kind: StatefulSet
+        name: cockroachdb
+        apiVersion: apps/v1beta1
+   fieldref:
+        fieldpath: spec.template.spec.containers[0].ports[1].containerPort
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
  - name: CDB_STATEFULSET_SVC
    objref:
         kind: Service
@@ -62,7 +450,11 @@ vars:
         apiVersion: v1
    fieldref:
         fieldpath: metadata.name`)
+<<<<<<< HEAD
 	th.writeF("/app/base/cronjob.yaml", `
+=======
+	th.WriteF("/app/base/cronjob.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
@@ -85,7 +477,58 @@ spec:
               - name: CDB_PUBLIC_SVC
                 value: "$(CDB_PUBLIC_SVC)"
 `)
+<<<<<<< HEAD
 	th.writeF("/app/base/cockroachdb-statefulset-secure.yaml", `
+=======
+	th.WriteF("/app/base/services.yaml", `
+apiVersion: v1
+kind: Service
+metadata:
+  name: cockroachdb
+  labels:
+    app: cockroachdb
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+    # Enable automatic monitoring of all instances when Prometheus is running in the cluster.
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "_status/vars"
+    prometheus.io/port: "8080"
+spec:
+  ports:
+  - port: 26257
+    targetPort: 26257
+    name: grpc
+  - port: $(CDB_HTTP_PORT)
+    targetPort: $(CDB_HTTP_PORT)
+    name: http
+  clusterIP: None
+  selector:
+    app: cockroachdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # This service is meant to be used by clients of the database. It exposes a ClusterIP that will
+  # automatically load balance connections to the different database pods.
+  name: cockroachdb-public
+  labels:
+    app: cockroachdb
+spec:
+  ports:
+  # The main port, served by gRPC, serves Postgres-flavor SQL, internode
+  # traffic and the cli.
+  - port: 26257
+    targetPort: 26257
+    name: grpc
+  # The secondary port serves the UI as well as health and debug endpoints.
+  - port: $(CDB_HTTP_PORT)
+    targetPort: $(CDB_HTTP_PORT)
+    name: http
+  selector:
+    app: cockroachdb
+`)
+	th.WriteF("/app/base/role-stuff.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -153,6 +596,7 @@ subjects:
 - kind: ServiceAccount
   name: cockroachdb
   namespace: default
+<<<<<<< HEAD
 ---
 apiVersion: v1
 kind: Service
@@ -200,6 +644,10 @@ spec:
   selector:
     app: cockroachdb
 ---
+=======
+`)
+	th.WriteF("/app/base/pdb.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
@@ -211,7 +659,12 @@ spec:
     matchLabels:
       app: cockroachdb
   maxUnavailable: 1
+<<<<<<< HEAD
 ---
+=======
+`)
+	th.WriteF("/app/base/statefulset.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
@@ -320,6 +773,7 @@ spec:
         requests:
           storage: 1Gi
 `)
+<<<<<<< HEAD
 	th.writeK("/app/overlay/staging", `
 namePrefix: dev-
 bases:
@@ -330,6 +784,18 @@ bases:
 		t.Fatalf("Err: %v", err)
 	}
 	th.assertActualEqualsExpected(m, `
+=======
+	th.WriteK("/app/overlay/staging", `
+namePrefix: dev-
+resources:
+- ../../base
+`)
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	th.AssertActualEqualsExpected(m, `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -399,6 +865,7 @@ subjects:
   namespace: default
 ---
 apiVersion: v1
+<<<<<<< HEAD
 data:
   baz: qux
   foo: bar
@@ -413,6 +880,20 @@ metadata:
     app: cockroachdb
   name: dev-base-cockroachdb-public
 spec:
+=======
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/path: _status/vars
+    prometheus.io/port: "8080"
+    prometheus.io/scrape: "true"
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  labels:
+    app: cockroachdb
+  name: dev-base-cockroachdb
+spec:
+  clusterIP: None
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   ports:
   - name: grpc
     port: 26257
@@ -426,6 +907,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+<<<<<<< HEAD
   annotations:
     prometheus.io/path: _status/vars
     prometheus.io/port: "8080"
@@ -436,6 +918,12 @@ metadata:
   name: dev-base-cockroachdb
 spec:
   clusterIP: None
+=======
+  labels:
+    app: cockroachdb
+  name: dev-base-cockroachdb-public
+spec:
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   ports:
   - name: grpc
     port: 26257
@@ -573,16 +1061,36 @@ spec:
   selector:
     matchLabels:
       app: cockroachdb
+<<<<<<< HEAD
+=======
+---
+apiVersion: v1
+data:
+  baz: qux
+  foo: bar
+kind: ConfigMap
+metadata:
+  name: dev-base-test-config-map-b2g2dmd64b
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 `)
 }
 
 func TestVariableRefIngress(t *testing.T) {
+<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/overlay")
 	th.writeK("/app/base", `
 resources:
 - deployment.yaml
 - ingress.yaml
 - service.yaml
+=======
+	th := kusttest_test.NewKustTestHarness(t, "/app/overlay")
+	th.WriteK("/app/base", `
+resources:
+- service.yaml
+- deployment.yaml
+- ingress.yaml
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 vars:
 - name: DEPLOYMENT_NAME
@@ -593,7 +1101,11 @@ vars:
   fieldref:
     fieldpath: metadata.name
 `)
+<<<<<<< HEAD
 	th.writeF("/app/base/deployment.yaml", `
+=======
+	th.WriteF("/app/base/deployment.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -616,8 +1128,13 @@ spec:
         - name: http
           containerPort: 80
 `)
+<<<<<<< HEAD
 	th.writeF("/app/base/ingress.yaml", `
 apiVersion: extensions/v1beta1
+=======
+	th.WriteF("/app/base/ingress.yaml", `
+apiVersion: networking.k8s.io/v1beta1
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Ingress
 metadata:
   name: nginx
@@ -635,8 +1152,14 @@ spec:
   tls:
   - hosts:
     - $(DEPLOYMENT_NAME).example.com
+<<<<<<< HEAD
 `)
 	th.writeF("/app/base/service.yaml", `
+=======
+    secretName: $(DEPLOYMENT_NAME).example.com-tls
+`)
+	th.WriteF("/app/base/service.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 kind: Service
 metadata:
@@ -650,6 +1173,7 @@ spec:
     protocol: TCP
     targetPort: http
 `)
+<<<<<<< HEAD
 	th.writeK("/app/overlay", `
 nameprefix: kustomized-
 bases:
@@ -660,6 +1184,18 @@ bases:
 		t.Fatalf("Err: %v", err)
 	}
 	th.assertActualEqualsExpected(m, `
+=======
+	th.WriteK("/app/overlay", `
+nameprefix: kustomized-
+resources:
+- ../base
+`)
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	th.AssertActualEqualsExpected(m, `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 kind: Service
 metadata:
@@ -695,7 +1231,11 @@ spec:
         - containerPort: 80
           name: http
 ---
+<<<<<<< HEAD
 apiVersion: extensions/v1beta1
+=======
+apiVersion: networking.k8s.io/v1beta1
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Ingress
 metadata:
   labels:
@@ -713,12 +1253,22 @@ spec:
   tls:
   - hosts:
     - kustomized-nginx.example.com
+<<<<<<< HEAD
 `)
 }
 
 func TestVariableRefMounthPath(t *testing.T) {
 	th := NewKustTestHarness(t, "/app/base")
 	th.writeK("/app/base", `
+=======
+    secretName: kustomized-nginx.example.com-tls
+`)
+}
+
+func TestVariableRefMountPath(t *testing.T) {
+	th := kusttest_test.NewKustTestHarness(t, "/app/base")
+	th.WriteK("/app/base", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 resources:
 - deployment.yaml
 - namespace.yaml
@@ -731,11 +1281,19 @@ vars:
     name: my-namespace
 
 `)
+<<<<<<< HEAD
 	th.writeF("/app/base/deployment.yaml", `
   apiVersion: apps/v1
   kind: Deployment
   metadata:
     name: my-deployment 
+=======
+	th.WriteF("/app/base/deployment.yaml", `
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: my-deployment
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   spec:
     template:
       spec:
@@ -752,13 +1310,18 @@ vars:
         - name: my-volume
           emptyDir: {}
 `)
+<<<<<<< HEAD
 	th.writeF("/app/base/namespace.yaml", `
+=======
+	th.WriteF("/app/base/namespace.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   apiVersion: v1
   kind: Namespace
   metadata:
     name: my-namespace
 `)
 
+<<<<<<< HEAD
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
 	if err != nil {
 		t.Fatalf("Err: %v", err)
@@ -769,6 +1332,13 @@ kind: Namespace
 metadata:
   name: my-namespace
 ---
+=======
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	th.AssertActualEqualsExpected(m, `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -788,12 +1358,25 @@ spec:
       volumes:
       - emptyDir: {}
         name: my-volume
+<<<<<<< HEAD
+=======
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-namespace
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 `)
 }
 
 func TestVariableRefMaps(t *testing.T) {
+<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/base")
 	th.writeK("/app/base", `
+=======
+	th := kusttest_test.NewKustTestHarness(t, "/app/base")
+	th.WriteK("/app/base", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 resources:
 - deployment.yaml
 - namespace.yaml
@@ -804,7 +1387,11 @@ vars:
     kind: Namespace
     name: my-namespace
 `)
+<<<<<<< HEAD
 	th.writeF("/app/base/deployment.yaml", `
+=======
+	th.WriteF("/app/base/deployment.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -816,15 +1403,22 @@ vars:
       spec:
         containers:
         - name: app
+<<<<<<< HEAD
           image: busybox  
 `)
 	th.writeF("/app/base/namespace.yaml", `
+=======
+          image: busybox
+`)
+	th.WriteF("/app/base/namespace.yaml", `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   apiVersion: v1
   kind: Namespace
   metadata:
     name: my-namespace
 `)
 
+<<<<<<< HEAD
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
 	if err != nil {
 		t.Fatalf("Err: %v", err)
@@ -835,6 +1429,13 @@ kind: Namespace
 metadata:
   name: my-namespace
 ---
+=======
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	th.AssertActualEqualsExpected(m, `
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -847,5 +1448,157 @@ spec:
       containers:
       - image: busybox
         name: app
+<<<<<<< HEAD
+=======
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-namespace
+`)
+}
+
+func TestVaribaleRefDifferentPrefix(t *testing.T) {
+	th := kusttest_test.NewKustTestHarness(t, "/app/base")
+	th.WriteK("/app/base", `
+namePrefix: base-
+resources:
+- dev
+- test
+`)
+
+	th.WriteK("/app/base/dev", `
+namePrefix: dev-
+resources:
+- elasticsearch-dev-service.yml
+vars:
+- name: elasticsearch-dev-service-name
+  objref:
+    kind: Service
+    name: elasticsearch
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.name
+
+`)
+	th.WriteF("/app/base/dev/elasticsearch-dev-service.yml", `
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+spec:
+  template:
+    spec:
+      containers:
+        - name: elasticsearch
+          env:
+            - name: DISCOVERY_SERVICE
+              value: "$(elasticsearch-dev-service-name).monitoring.svc.cluster.local"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+spec:
+  ports:
+    - name: transport
+      port: 9300
+      protocol: TCP
+  clusterIP: None
+`)
+
+	th.WriteK("/app/base/test", `
+namePrefix: test-
+resources:
+- elasticsearch-test-service.yml
+vars:
+- name: elasticsearch-test-service-name
+  objref:
+    kind: Service
+    name: elasticsearch
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.name
+`)
+	th.WriteF("/app/base/test/elasticsearch-test-service.yml", `
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+spec:
+  template:
+    spec:
+      containers:
+        - name: elasticsearch
+          env:
+            - name: DISCOVERY_SERVICE
+              value: "$(elasticsearch-test-service-name).monitoring.svc.cluster.local"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+spec:
+  ports:
+    - name: transport
+      port: 9300
+      protocol: TCP
+  clusterIP: None
+`)
+
+	m, err := th.MakeKustTarget().MakeCustomizedResMap()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+
+	th.AssertActualEqualsExpected(m, `
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: base-dev-elasticsearch
+spec:
+  template:
+    spec:
+      containers:
+      - env:
+        - name: DISCOVERY_SERVICE
+          value: base-dev-elasticsearch.monitoring.svc.cluster.local
+        name: elasticsearch
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: base-dev-elasticsearch
+spec:
+  clusterIP: None
+  ports:
+  - name: transport
+    port: 9300
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: base-test-elasticsearch
+spec:
+  template:
+    spec:
+      containers:
+      - env:
+        - name: DISCOVERY_SERVICE
+          value: base-test-elasticsearch.monitoring.svc.cluster.local
+        name: elasticsearch
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: base-test-elasticsearch
+spec:
+  clusterIP: None
+  ports:
+  - name: transport
+    port: 9300
+    protocol: TCP
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 `)
 }

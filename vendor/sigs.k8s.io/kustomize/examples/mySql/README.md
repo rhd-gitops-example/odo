@@ -11,7 +11,11 @@ In the production environment we want:
 - MySQL to use persistent disk for storing data.
 
 First make a place to work:
+<<<<<<< HEAD
 <!-- @makeDemoHome @test -->
+=======
+<!-- @makeDemoHome @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 ```
@@ -25,7 +29,11 @@ as HERE documents.
 
 Download them:
 
+<<<<<<< HEAD
 <!-- @downloadResources @test -->
+=======
+<!-- @downloadResources @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 curl -s  -o "$DEMO_HOME/#1.yaml" "https://raw.githubusercontent.com\
 /kubernetes-sigs/kustomize\
@@ -40,14 +48,22 @@ a file called `kustomization.yaml`.
 
 Start this file:
 
+<<<<<<< HEAD
 <!-- @kustomizeYaml @test -->
+=======
+<!-- @kustomizeYaml @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 touch $DEMO_HOME/kustomization.yaml
 ```
 
 ### Add the resources
 
+<<<<<<< HEAD
 <!-- @addResources @test -->
+=======
+<!-- @addResources @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cd $DEMO_HOME
 
@@ -73,7 +89,11 @@ Arrange for the MySQL resources to begin with prefix
 _prod-_ (since they are meant for the _production_
 environment):
 
+<<<<<<< HEAD
 <!-- @customizeLabel @test -->
+=======
+<!-- @customizeLabel @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cd $DEMO_HOME
 
@@ -91,7 +111,11 @@ cat kustomization.yaml
 This `namePrefix` directive adds _prod-_ to all
 resource names.
 
+<<<<<<< HEAD
 <!-- @genNamePrefixConfig @test -->
+=======
+<!-- @genNamePrefixConfig @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $DEMO_HOME
 ```
@@ -134,7 +158,11 @@ selector.
 `kustomize` does not have `edit set label` command to add
 a label, but one can always edit `kustomization.yaml` directly:
 
+<<<<<<< HEAD
 <!-- @customizeLabels @test -->
+=======
+<!-- @customizeLabels @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 sed -i.bak 's/app: helloworld/app: prod/' \
     $DEMO_HOME/kustomization.yaml
@@ -153,7 +181,11 @@ environment. So we want to use Persistent Disk in
 production. kustomize lets you apply `patchesStrategicMerge` to the
 resources.
 
+<<<<<<< HEAD
 <!-- @createPatchFile @test -->
+=======
+<!-- @createPatchFile @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<'EOF' > $DEMO_HOME/persistent-disk.yaml
 apiVersion: apps/v1beta2 # for versions before 1.9.0 use apps/v1beta2
@@ -173,7 +205,11 @@ EOF
 
 Add the patch file to `kustomization.yaml`:
 
+<<<<<<< HEAD
 <!-- @specifyPatch @test -->
+=======
+<!-- @specifyPatch @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<'EOF' >> $DEMO_HOME/kustomization.yaml
 patchesStrategicMerge:
@@ -199,7 +235,11 @@ The output of the following command can now be applied
 to the cluster (i.e. piped to `kubectl apply`) to
 create the production environment.
 
+<<<<<<< HEAD
 <!-- @finalInflation @test -->
+=======
+<!-- @finalInflation @testAgainstLatestRelease -->
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $DEMO_HOME  # | kubectl apply -f -
 ```

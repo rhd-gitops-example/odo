@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,10 +16,23 @@ limitations under the License.
 */
 
 // Package validator provides functions to validate labels, annotations, namespace using apimachinery
+=======
+// Copyright 2019 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package validator provides functions to validate labels, annotations,
+// namespaces and configmap/secret keys using apimachinery functions.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 package validator
 
 import (
 	"errors"
+<<<<<<< HEAD
+=======
+	"fmt"
+	"strings"
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	v1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -33,6 +47,27 @@ func NewKustValidator() *KustValidator {
 	return &KustValidator{}
 }
 
+<<<<<<< HEAD
+=======
+func (v *KustValidator) ErrIfInvalidKey(k string) error {
+	if errs := validation.IsConfigMapKey(k); len(errs) != 0 {
+		return fmt.Errorf(
+			"%q is not a valid key name: %s",
+			k, strings.Join(errs, ";"))
+	}
+	return nil
+}
+
+func (v *KustValidator) IsEnvVarName(k string) error {
+	if errs := validation.IsEnvVarName(k); len(errs) != 0 {
+		return fmt.Errorf(
+			"%q is not a valid key name: %s",
+			k, strings.Join(errs, ";"))
+	}
+	return nil
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // MakeAnnotationValidator returns a MapValidatorFunc using apimachinery.
 func (v *KustValidator) MakeAnnotationValidator() func(map[string]string) error {
 	return func(x map[string]string) error {
@@ -44,6 +79,26 @@ func (v *KustValidator) MakeAnnotationValidator() func(map[string]string) error 
 	}
 }
 
+<<<<<<< HEAD
+=======
+// MakeAnnotationNameValidator returns a MapValidatorFunc using apimachinery.
+func (v *KustValidator) MakeAnnotationNameValidator() func([]string) error {
+	return func(x []string) error {
+		errs := field.ErrorList{}
+		fldPath := field.NewPath("field")
+		for _, k := range x {
+			for _, msg := range validation.IsQualifiedName(strings.ToLower(k)) {
+				errs = append(errs, field.Invalid(fldPath, k, msg))
+			}
+		}
+		if len(errs) > 0 {
+			return errors.New(errs.ToAggregate().Error())
+		}
+		return nil
+	}
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // MakeLabelValidator returns a MapValidatorFunc using apimachinery.
 func (v *KustValidator) MakeLabelValidator() func(map[string]string) error {
 	return func(x map[string]string) error {
@@ -55,6 +110,24 @@ func (v *KustValidator) MakeLabelValidator() func(map[string]string) error {
 	}
 }
 
+<<<<<<< HEAD
+=======
+// MakeLabelNameValidator returns a ArrayValidatorFunc using apimachinery.
+func (v *KustValidator) MakeLabelNameValidator() func([]string) error {
+	return func(x []string) error {
+		errs := field.ErrorList{}
+		fldPath := field.NewPath("field")
+		for _, k := range x {
+			errs = append(errs, v1validation.ValidateLabelName(k, fldPath)...)
+		}
+		if len(errs) > 0 {
+			return errors.New(errs.ToAggregate().Error())
+		}
+		return nil
+	}
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // ValidateNamespace validates a string is a valid namespace using apimachinery.
 func (v *KustValidator) ValidateNamespace(s string) []string {
 	return validation.IsDNS1123Label(s)

@@ -1,4 +1,5 @@
 os:
+<<<<<<< HEAD
 # TODO: Enable this when we can get the tests to work
 #  - windows
   - linux
@@ -9,10 +10,30 @@ addons:
     packages: tree
   homebrew:
     packages: tree
+=======
+  - linux
+  - osx
+# TODO: Uncomment when tests running on Windows.
+#  - windows
+
+addons:
+  apt:
+    packages:
+    - tree
+  homebrew:
+    packages:
+    - tree
+    update: true
+
+# Only clone the most recent commit.
+git:
+  depth: 1
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 language: go
 
 go:
+<<<<<<< HEAD
   - 1.11.x
 
 go_import_path: sigs.k8s.io/kustomize
@@ -40,6 +61,20 @@ install:
 
 script:
   - ./bin/pre-commit.sh
+=======
+  - "1.12"
+
+go_import_path: sigs.k8s.io/kustomize
+
+before_install:
+  - source ./travis/consider-early-travis-exit.sh
+
+# Skip the install process; let pre-commit.sh do it.
+install: true
+
+script:
+  - ./travis/pre-commit.sh
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 # TBD. Suppressing for now.
 notifications:

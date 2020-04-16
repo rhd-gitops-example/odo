@@ -19,8 +19,13 @@ package config
 import (
 	"log"
 
+<<<<<<< HEAD
 	"github.com/ghodss/yaml"
 	"sigs.k8s.io/kustomize/pkg/ifc"
+=======
+	"sigs.k8s.io/kustomize/v3/pkg/ifc"
+	"sigs.k8s.io/yaml"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 // Factory makes instances of TransformerConfig.

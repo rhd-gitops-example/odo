@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -13,6 +14,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+=======
+// Copyright 2019 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package gvk
 
@@ -35,6 +40,32 @@ func FromKind(k string) Gvk {
 	}
 }
 
+<<<<<<< HEAD
+=======
+// FromString makes a Gvk with a string,
+// which is constructed by String() function
+func FromString(s string) Gvk {
+	values := strings.Split(s, separator)
+	g := values[0]
+	if g == noGroup {
+		g = ""
+	}
+	v := values[1]
+	if v == noVersion {
+		v = ""
+	}
+	k := values[2]
+	if k == noKind {
+		k = ""
+	}
+	return Gvk{
+		Group:   g,
+		Version: v,
+		Kind:    k,
+	}
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // Values that are brief but meaningful in logs.
 const (
 	noGroup   = "~G"
@@ -69,6 +100,7 @@ func (x Gvk) Equals(o Gvk) bool {
 // a Service should come before things that refer to it.
 // Namespace should be first.
 // In some cases order just specified to provide determinism.
+<<<<<<< HEAD
 var order = []string{
 	"Namespace",
 	"StorageClass",
@@ -76,6 +108,16 @@ var order = []string{
 	"MutatingWebhookConfiguration",
 	"ValidatingWebhookConfiguration",
 	"ServiceAccount",
+=======
+var orderFirst = []string{
+	"Namespace",
+	"ResourceQuota",
+	"StorageClass",
+	"CustomResourceDefinition",
+	"MutatingWebhookConfiguration",
+	"ServiceAccount",
+	"PodSecurityPolicy",
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	"Role",
 	"ClusterRole",
 	"RoleBinding",
@@ -83,21 +125,40 @@ var order = []string{
 	"ConfigMap",
 	"Secret",
 	"Service",
+<<<<<<< HEAD
+=======
+	"LimitRange",
+	"PriorityClass",
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	"Deployment",
 	"StatefulSet",
 	"CronJob",
 	"PodDisruptionBudget",
 }
+<<<<<<< HEAD
 var typeOrders = func() map[string]int {
 	m := map[string]int{}
 	for i, n := range order {
 		m[n] = i
+=======
+var orderLast = []string{
+	"ValidatingWebhookConfiguration",
+}
+var typeOrders = func() map[string]int {
+	m := map[string]int{}
+	for i, n := range orderFirst {
+		m[n] = -len(orderFirst) + i
+	}
+	for i, n := range orderLast {
+		m[n] = 1 + i
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 	return m
 }()
 
 // IsLessThan returns true if self is less than the argument.
 func (x Gvk) IsLessThan(o Gvk) bool {
+<<<<<<< HEAD
 	indexI, foundI := typeOrders[x.Kind]
 	indexJ, foundJ := typeOrders[o.Kind]
 	if foundI && foundJ {
@@ -110,6 +171,12 @@ func (x Gvk) IsLessThan(o Gvk) bool {
 	}
 	if !foundI && foundJ {
 		return false
+=======
+	indexI := typeOrders[x.Kind]
+	indexJ := typeOrders[o.Kind]
+	if indexI != indexJ {
+		return indexI < indexJ
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 	return x.String() < o.String()
 }
@@ -151,6 +218,7 @@ func (x Gvk) IsSelected(selector *Gvk) bool {
 	return true
 }
 
+<<<<<<< HEAD
 var clusterLevelKinds = []string{
 	"APIService",
 	"ClusterRoleBinding",
@@ -177,4 +245,41 @@ func ClusterLevelGvks() []Gvk {
 		result = append(result, Gvk{Kind: k})
 	}
 	return result
+=======
+var notNamespaceableKinds = []string{
+	"APIService",
+	"CSIDriver",
+	"CSINode",
+	"CertificateSigningRequest",
+	"ClusterRole",
+	"ClusterRoleBinding",
+	"ComponentStatus",
+	"CustomResourceDefinition",
+	"MutatingWebhookConfiguration",
+	"Namespace",
+	"Node",
+	"PersistentVolume",
+	"PodSecurityPolicy",
+	"PodSecurityPolicy",
+	"PriorityClass",
+	"RuntimeClass",
+	"SelfSubjectAccessReview",
+	"SelfSubjectRulesReview",
+	"StorageClass",
+	"SubjectAccessReview",
+	"TokenReview",
+	"ValidatingWebhookConfiguration",
+	"VolumeAttachment",
+}
+
+// IsNamespaceableKind returns true if x is a namespaceable Gvk
+// Implements https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/#not-all-objects-are-in-a-namespace
+func (x Gvk) IsNamespaceableKind() bool {
+	for _, k := range notNamespaceableKinds {
+		if k == x.Kind {
+			return false
+		}
+	}
+	return true
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }

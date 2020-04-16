@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -13,6 +14,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+=======
+// Copyright 2019 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package configmapandsecret
 
@@ -22,9 +27,16 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/loader"
 	"sigs.k8s.io/kustomize/pkg/types"
+=======
+	"sigs.k8s.io/kustomize/v3/pkg/fs"
+	"sigs.k8s.io/kustomize/v3/pkg/loader"
+	"sigs.k8s.io/kustomize/v3/pkg/types"
+	"sigs.k8s.io/kustomize/v3/pkg/validators"
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 func makeEnvSecret(name string) *corev1.Secret {
@@ -96,7 +108,11 @@ func TestConstructSecret(t *testing.T) {
 				GeneratorArgs: types.GeneratorArgs{
 					Name: "envSecret",
 					DataSources: types.DataSources{
+<<<<<<< HEAD
 						EnvSource: "secret/app.env",
+=======
+						EnvSources: []string{"secret/app.env"},
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 					},
 				},
 			},
@@ -135,12 +151,22 @@ func TestConstructSecret(t *testing.T) {
 		},
 	}
 
+<<<<<<< HEAD
 	fSys := fs.MakeFakeFS()
 	fSys.WriteFile("/secret/app.env", []byte("DB_USERNAME=admin\nDB_PASSWORD=somepw\n"))
 	fSys.WriteFile("/secret/app-init.ini", []byte("FOO=bar\nBAR=baz\n"))
 	f := NewSecretFactory(loader.NewFileLoaderAtRoot(fSys))
 	for _, tc := range testCases {
 		cm, err := f.MakeSecret(&tc.input, tc.options)
+=======
+	fSys := fs.MakeFsInMemory()
+	fSys.WriteFile("/secret/app.env", []byte("DB_USERNAME=admin\nDB_PASSWORD=somepw\n"))
+	fSys.WriteFile("/secret/app-init.ini", []byte("FOO=bar\nBAR=baz\n"))
+	ldr := loader.NewFileLoaderAtRoot(validators.MakeFakeValidator(), fSys)
+	for _, tc := range testCases {
+		f := NewFactory(ldr, tc.options)
+		cm, err := f.MakeSecret(&tc.input)
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

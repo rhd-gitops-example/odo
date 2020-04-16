@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -13,6 +14,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+=======
+// Copyright 2019 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 // Package validators defines a FakeValidator that can be used in tests
 package validators
@@ -48,16 +53,45 @@ func MakeFakeValidator() *FakeValidator {
 	return &FakeValidator{}
 }
 
+<<<<<<< HEAD
+=======
+// ErrIfInvalidKey returns nil
+func (v *FakeValidator) ErrIfInvalidKey(k string) error {
+	return nil
+}
+
+// IsEnvVarName returns nil
+func (v *FakeValidator) IsEnvVarName(k string) error {
+	return nil
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // MakeAnnotationValidator returns a nil function
 func (v *FakeValidator) MakeAnnotationValidator() func(map[string]string) error {
 	return nil
 }
 
+<<<<<<< HEAD
+=======
+// MakeAnnotationNameValidator returns a nil function
+func (v *FakeValidator) MakeAnnotationNameValidator() func([]string) error {
+	return nil
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // MakeLabelValidator returns a nil function
 func (v *FakeValidator) MakeLabelValidator() func(map[string]string) error {
 	return nil
 }
 
+<<<<<<< HEAD
+=======
+// MakeLabelNameValidator returns a nil function
+func (v *FakeValidator) MakeLabelNameValidator() func([]string) error {
+	return nil
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // ValidateNamespace validates namespace by regexp
 func (v *FakeValidator) ValidateNamespace(s string) []string {
 	pattern := regexp.MustCompile(`^[a-zA-Z].*`)
@@ -78,6 +112,17 @@ func (v *FakeValidator) Validator(_ map[string]string) error {
 	return errors.New(SAD)
 }
 
+<<<<<<< HEAD
+=======
+func (v *FakeValidator) ValidatorArray(_ []string) error {
+	v.called = true
+	if v.happy {
+		return nil
+	}
+	return errors.New(SAD)
+}
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // VerifyCall returns true if Validator was used.
 func (v *FakeValidator) VerifyCall() {
 	if !v.called {

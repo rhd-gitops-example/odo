@@ -52,6 +52,12 @@ nameReference:
   - path: spec/initContainers/envFrom/configMapRef/name
     version: v1
     kind: Pod
+<<<<<<< HEAD
+=======
+  - path: spec/volumes/projected/sources/configMap/name
+    version: v1
+    kind: Pod
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/template/spec/volumes/configMap/name
     kind: Deployment
   - path: spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
@@ -74,6 +80,11 @@ nameReference:
     kind: ReplicaSet
   - path: spec/template/spec/initContainers/envFrom/configMapRef/name
     kind: ReplicaSet
+<<<<<<< HEAD
+=======
+  - path: spec/template/spec/volumes/projected/sources/configMap/name
+    kind: ReplicaSet
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/template/spec/volumes/configMap/name
     kind: DaemonSet
   - path: spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
@@ -84,6 +95,11 @@ nameReference:
     kind: DaemonSet
   - path: spec/template/spec/initContainers/envFrom/configMapRef/name
     kind: DaemonSet
+<<<<<<< HEAD
+=======
+  - path: spec/template/spec/volumes/projected/sources/configMap/name
+    kind: DaemonSet
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/template/spec/volumes/configMap/name
     kind: StatefulSet
   - path: spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
@@ -105,16 +121,29 @@ nameReference:
   - path: spec/template/spec/containers/envFrom/configMapRef/name
     kind: Job
   - path: spec/template/spec/initContainers/envFrom/configMapRef/name
+    kind: Job
+<<<<<<< HEAD
+  - path: spec/jobTemplate/spec/template/spec/volumes/configMap/name
+    kind: CronJob
+=======
+  - path: spec/template/spec/volumes/projected/sources/configMap/name
     kind: Job
   - path: spec/jobTemplate/spec/template/spec/volumes/configMap/name
     kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/volumes/projected/sources/configMap/name
+    kind: CronJob
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/jobTemplate/spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
     kind: CronJob
   - path: spec/jobTemplate/spec/template/spec/initContainers/env/valueFrom/configMapKeyRef/name
     kind: CronJob
   - path: spec/jobTemplate/spec/template/spec/containers/envFrom/configMapRef/name
     kind: CronJob
+<<<<<<< HEAD
   - path: spec/jobTemplate/spec/template/spec/initContainers/envFrom/configmapRef/name
+=======
+  - path: spec/jobTemplate/spec/template/spec/initContainers/envFrom/configMapRef/name
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
     kind: CronJob
 
 - kind: Secret
@@ -138,6 +167,12 @@ nameReference:
   - path: spec/imagePullSecrets/name
     version: v1
     kind: Pod
+<<<<<<< HEAD
+=======
+  - path: spec/volumes/projected/sources/secret/name
+    version: v1
+    kind: Pod
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/template/spec/volumes/secret/secretName
     kind: Deployment
   - path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
@@ -164,6 +199,11 @@ nameReference:
     kind: ReplicaSet
   - path: spec/template/spec/imagePullSecrets/name
     kind: ReplicaSet
+<<<<<<< HEAD
+=======
+  - path: spec/template/spec/volumes/projected/sources/secret/name
+    kind: ReplicaSet
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/template/spec/volumes/secret/secretName
     kind: DaemonSet
   - path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
@@ -176,6 +216,11 @@ nameReference:
     kind: DaemonSet
   - path: spec/template/spec/imagePullSecrets/name
     kind: DaemonSet
+<<<<<<< HEAD
+=======
+  - path: spec/template/spec/volumes/projected/sources/secret/name
+    kind: DaemonSet
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/template/spec/volumes/secret/secretName
     kind: StatefulSet
   - path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
@@ -201,9 +246,18 @@ nameReference:
   - path: spec/template/spec/initContainers/envFrom/secretRef/name
     kind: Job
   - path: spec/template/spec/imagePullSecrets/name
+    kind: Job
+<<<<<<< HEAD
+  - path: spec/jobTemplate/spec/template/spec/volumes/secret/secretName
+    kind: CronJob
+=======
+  - path: spec/template/spec/volumes/projected/sources/secret/name
     kind: Job
   - path: spec/jobTemplate/spec/template/spec/volumes/secret/secretName
     kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/volumes/projected/sources/secret/name
+    kind: CronJob
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/jobTemplate/spec/template/spec/containers/env/valueFrom/secretKeyRef/name
     kind: CronJob
   - path: spec/jobTemplate/spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
@@ -220,6 +274,11 @@ nameReference:
     kind: Ingress
   - path: metadata/annotations/nginx.ingress.kubernetes.io\/auth-secret
     kind: Ingress
+<<<<<<< HEAD
+=======
+  - path: metadata/annotations/nginx.ingress.kubernetes.io\/auth-tls-secret
+    kind: Ingress
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: imagePullSecrets/name
     kind: ServiceAccount
   - path: parameters/secretName
@@ -248,6 +307,15 @@ nameReference:
   - path: spec/service/name
     kind: APIService
     group: apiregistration.k8s.io
+<<<<<<< HEAD
+=======
+  - path: webhooks/clientConfig/service
+    kind: ValidatingWebhookConfiguration
+    group: admissionregistration.k8s.io
+  - path: webhooks/clientConfig/service
+    kind: MutatingWebhookConfiguration
+    group: admissionregistration.k8s.io
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 - kind: Role
   group: rbac.authorization.k8s.io
@@ -269,10 +337,17 @@ nameReference:
 - kind: ServiceAccount
   version: v1
   fieldSpecs:
+<<<<<<< HEAD
   - path: subjects/name
     kind: RoleBinding
     group: rbac.authorization.k8s.io
   - path: subjects/name
+=======
+  - path: subjects
+    kind: RoleBinding
+    group: rbac.authorization.k8s.io
+  - path: subjects
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
     kind: ClusterRoleBinding
     group: rbac.authorization.k8s.io
   - path: spec/serviceAccountName
@@ -286,7 +361,11 @@ nameReference:
   - path: spec/jobTemplate/spec/template/spec/serviceAccountName
     kind: CronJob
   - path: spec/template/spec/serviceAccountName
+<<<<<<< HEAD
     kind: job
+=======
+    kind: Job
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   - path: spec/template/spec/serviceAccountName
     kind: DaemonSet
 
@@ -313,5 +392,21 @@ nameReference:
   fieldSpecs:
   - path: spec/volumeName
     kind: PersistentVolumeClaim
+<<<<<<< HEAD
+=======
+  - path: rules/resourceNames
+    kind: ClusterRole
+
+- kind: StorageClass
+  version: v1
+  group: storage.k8s.io
+  fieldSpecs:
+  - path: spec/storageClassName
+    kind: PersistentVolume
+  - path: spec/storageClassName
+    kind: PersistentVolumeClaim
+  - path: spec/volumeClaimTemplates/spec/storageClassName
+    kind: StatefulSet
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 `
 )

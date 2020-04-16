@@ -4,7 +4,10 @@
 *.dll
 *.so
 *.dylib
+<<<<<<< HEAD
 kustomize
+=======
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 # Test binary, build with `go test -c`
 *.test

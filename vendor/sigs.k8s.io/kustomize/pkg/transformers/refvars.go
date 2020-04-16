@@ -1,7 +1,27 @@
+<<<<<<< HEAD
+=======
+/*
+Copyright 2018 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 package transformers
 
 import (
 	"fmt"
+<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/expansion"
 	"sigs.k8s.io/kustomize/pkg/resmap"
 	"sigs.k8s.io/kustomize/pkg/transformers/config"
@@ -12,13 +32,29 @@ type RefVarTransformer struct {
 	replacementCounts map[string]int
 	fieldSpecs        []config.FieldSpec
 	mappingFunc       func(string) string
+=======
+	"sigs.k8s.io/kustomize/v3/pkg/expansion"
+	"sigs.k8s.io/kustomize/v3/pkg/resmap"
+	"sigs.k8s.io/kustomize/v3/pkg/transformers/config"
+)
+
+type RefVarTransformer struct {
+	varMap            map[string]interface{}
+	replacementCounts map[string]int
+	fieldSpecs        []config.FieldSpec
+	mappingFunc       func(string) interface{}
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // NewRefVarTransformer returns a new RefVarTransformer
 // that replaces $(VAR) style variables with values.
 // The fieldSpecs are the places to look for occurrences of $(VAR).
 func NewRefVarTransformer(
+<<<<<<< HEAD
 	varMap map[string]string, fs []config.FieldSpec) *RefVarTransformer {
+=======
+	varMap map[string]interface{}, fs []config.FieldSpec) *RefVarTransformer {
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	return &RefVarTransformer{
 		varMap:     varMap,
 		fieldSpecs: fs,
@@ -32,7 +68,11 @@ func NewRefVarTransformer(
 func (rv *RefVarTransformer) replaceVars(in interface{}) (interface{}, error) {
 	switch vt := in.(type) {
 	case []interface{}:
+<<<<<<< HEAD
 		var xs []string
+=======
+		var xs []interface{}
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		for _, a := range in.([]interface{}) {
 			xs = append(xs, expansion.Expand(a.(string), rv.mappingFunc))
 		}
@@ -43,16 +83,37 @@ func (rv *RefVarTransformer) replaceVars(in interface{}) (interface{}, error) {
 		for k, v := range inMap {
 			s, ok := v.(string)
 			if !ok {
+<<<<<<< HEAD
 				return nil, fmt.Errorf("%#v is expected to be %T", v, s)
 			}
 			xs[k] = expansion.Expand(s, rv.mappingFunc)
+=======
+				// This field not contain a $(VAR) since it is not
+				// of string type. For instance .spec.replicas: 3 in
+				// a Deployment object
+				xs[k] = v
+			} else {
+				// This field can potentially contains a $(VAR) since it is
+				// of string type. For instance .spec.replicas: $(REPLICAS)
+				// in a Deployment object
+				xs[k] = expansion.Expand(s, rv.mappingFunc)
+			}
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		}
 		return xs, nil
 	case interface{}:
 		s, ok := in.(string)
 		if !ok {
+<<<<<<< HEAD
 			return nil, fmt.Errorf("%#v is expected to be %T", in, s)
 		}
+=======
+			// This field not contain a $(VAR) since it is not of string type.
+			return in, nil
+		}
+		// This field can potentially contain a $(VAR) since it is
+		// of string type.
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		return expansion.Expand(s, rv.mappingFunc), nil
 	case nil:
 		return nil, nil
@@ -79,10 +140,17 @@ func (rv *RefVarTransformer) Transform(m resmap.ResMap) error {
 	rv.replacementCounts = make(map[string]int)
 	rv.mappingFunc = expansion.MappingFuncFor(
 		rv.replacementCounts, rv.varMap)
+<<<<<<< HEAD
 	for id, res := range m {
 		for _, fieldSpec := range rv.fieldSpecs {
 			if id.Gvk().IsSelected(&fieldSpec.Gvk) {
 				if err := mutateField(
+=======
+	for _, res := range m.Resources() {
+		for _, fieldSpec := range rv.fieldSpecs {
+			if res.OrgId().IsSelected(&fieldSpec.Gvk) {
+				if err := MutateField(
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 					res.Map(), fieldSpec.PathSlice(),
 					false, rv.replaceVars); err != nil {
 					return err

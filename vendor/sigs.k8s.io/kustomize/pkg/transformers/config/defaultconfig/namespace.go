@@ -21,5 +21,12 @@ const (
 namespace:
 - path: metadata/namespace
   create: true
+<<<<<<< HEAD
+=======
+- path: subjects
+  kind: RoleBinding
+- path: subjects
+  kind: ClusterRoleBinding
+>>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 `
 )
