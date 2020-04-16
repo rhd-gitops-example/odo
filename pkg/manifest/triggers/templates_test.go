@@ -17,7 +17,7 @@ const (
 func TestCreateDevCDDeployTemplate(t *testing.T) {
 	validDevCDTemplate := triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "dev-cd-deploy-from-master-template")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "app-cd-template")),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 				{
@@ -47,7 +47,7 @@ func TestCreateDevCDDeployTemplate(t *testing.T) {
 func TestCreateDevCIBuildPRTemplate(t *testing.T) {
 	validdevCIPRTemplate := triggersv1.TriggerTemplate{
 		TypeMeta: triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "dev-ci-build-from-pr-template"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testns", "app-ci-template"),
 			statusTrackerAnnotations("dev-ci-build-from-pr", "Dev CI Build")),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
