@@ -103,9 +103,10 @@ const (
 	routePath                = "09-routes/gitops-webhook-event-listener.yaml"
 
 	dockerSecretName = "regcred"
-	saName           = "pipeline"
-	roleName         = "pipelines-service-role"
-	roleBindingName  = "pipelines-service-role-binding"
+
+	saName          = "pipeline"
+	roleName        = "pipelines-service-role"
+	roleBindingName = "pipelines-service-role-binding"
 )
 
 // Init bootstraps a GitOps manifest and repository structure.
