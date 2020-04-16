@@ -24,7 +24,7 @@ var (
 )
 
 // Generate will create the required eventlisteners.
-func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
+func Generate(githubRepo, ns, saName, secretName string) triggersv1.EventListener {
 	return triggersv1.EventListener{
 		TypeMeta:   eventListenerTypeMeta,
 		ObjectMeta: createListenerObjectMeta("cicd-event-listener", ns),
@@ -37,6 +37,8 @@ func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
 					githubRepo,
 					"github-pr-binding",
 					"ci-dryrun-from-pr-template",
+					secretName,
+					ns,
 				),
 				CreateListenerTrigger(
 					"cd-deploy-from-push",
@@ -44,6 +46,8 @@ func Generate(githubRepo, ns, saName string) triggersv1.EventListener {
 					githubRepo,
 					"github-push-binding",
 					"cd-deploy-from-push-template",
+					secretName,
+					ns,
 				),
 			},
 		},
@@ -58,23 +62,24 @@ func createEventInterceptor(filter string, repoName string) *triggersv1.EventInt
 	}
 }
 
-func createGitHubInterceptor() *triggersv1.EventInterceptor {
+func createGitHubInterceptor(secretName, ns string) *triggersv1.EventInterceptor {
 	return &triggersv1.EventInterceptor{
 		GitHub: &triggersv1.GitHubInterceptor{
 			SecretRef: &triggersv1.SecretRef{
-				SecretName: GitOpsWebhookSecret,
+				SecretName: secretName,
 				SecretKey:  WebhookSecretKey,
+				Namespace:  ns,
 			},
 		},
 	}
 }
 
-func CreateListenerTrigger(name string, filter string, repoName string, binding string, template string) triggersv1.EventListenerTrigger {
+func CreateListenerTrigger(name, filter, repoName, binding, template, secretName, secretNs string) triggersv1.EventListenerTrigger {
 	return triggersv1.EventListenerTrigger{
 		Name: name,
 		Interceptors: []*triggersv1.EventInterceptor{
 			createEventInterceptor(filter, repoName),
-			createGitHubInterceptor(),
+			createGitHubInterceptor(secretName, secretNs),
 		},
 		Bindings: []*triggersv1.EventListenerBinding{
 			createListenerBinding(binding),

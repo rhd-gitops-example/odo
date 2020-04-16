@@ -72,7 +72,7 @@ func TestDeployUsingKubectlTask(t *testing.T) {
 			},
 		},
 	}
-	task := generateDeployUsingKubectlTask(testNS)
+	task := CreateDeployUsingKubectlTask(testNS)
 	if diff := cmp.Diff(validTask, task); diff != "" {
 		t.Fatalf("GenerateDeployUsingKubectlTask() failed:\n%s", diff)
 	}

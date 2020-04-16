@@ -87,7 +87,8 @@ const (
 	serviceAccountPath       = "02-rolebindings/pipeline-service-account.yaml"
 	secretsPath              = "03-secrets/gitops-webhook-secret.yaml"
 	dockerConfigPath         = "03-secrets/docker-config.yaml"
-	tasksPath                = "04-tasks/deploy-from-source-task.yaml"
+	gitopsTasksPath          = "04-tasks/deploy-from-source-task.yaml"
+	appTaskPath              = "04-tasks/deploy-using-kubectl-task.yaml"
 	ciPipelinesPath          = "05-pipelines/ci-dryrun-from-pr-pipeline.yaml"
 	appCiPipelinesPath       = "05-pipelines/app-ci-pipeline.yaml"
 	appCdPipelinesPath       = "05-pipelines/app-cd-pipeline.yaml"
@@ -172,18 +173,21 @@ func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJSONPath, im
 
 	outputs[rolebindingsPath] = roles.CreateRoleBinding(meta.NamespacedName(cicdNamespace, roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
 
-	outputs[tasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, GetPipelinesDir("", prefix))
+	outputs[gitopsTasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, GetPipelinesDir("", prefix))
+	outputs[appTaskPath] = tasks.CreateDeployUsingKubectlTask(cicdNamespace)
 	outputs[ciPipelinesPath] = pipelines.CreateCIPipeline(meta.NamespacedName(cicdNamespace, "ci-dryrun-from-pr-pipeline"), cicdNamespace)
 	outputs[cdPipelinesPath] = pipelines.CreateCDPipeline(meta.NamespacedName(cicdNamespace, "cd-deploy-from-push-pipeline"), cicdNamespace)
-	outputs[appCiPipelinesPath] = pipelines.CreateCIPipeline(meta.NamespacedName(cicdNamespace, "app-ci-pipeline"), cicdNamespace)
-	outputs[appCdPipelinesPath] = pipelines.CreateCDPipeline(meta.NamespacedName(cicdNamespace, "app-cd-pipeline"), cicdNamespace)
+
+	outputs[appCiPipelinesPath] = pipelines.CreateAppCIPipeline(meta.NamespacedName(cicdNamespace, "app-ci-pipeline"), false)
+	outputs[appCdPipelinesPath] = pipelines.CreateAppCDPipeline(meta.NamespacedName(cicdNamespace, "app-cd-pipeline"), "deploy", "", false)
+
 	outputs[prBindingPath] = triggers.CreatePRBinding(cicdNamespace)
 	outputs[pushBindingPath] = triggers.CreatePushBinding(cicdNamespace)
 	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(cicdNamespace, saName)
 	outputs[appCIBuildPRTemplatePath] = triggers.CreateDevCIBuildPRTemplate(cicdNamespace, saName, imageRepo)
 	outputs[appCDBuildPRTemplatePath] = triggers.CreateDevCDDeployTemplate(cicdNamespace, saName, imageRepo)
 	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(cicdNamespace, saName)
-	outputs[eventListenerPath] = eventlisteners.Generate(gitOpsRepo, cicdNamespace, saName)
+	outputs[eventListenerPath] = eventlisteners.Generate(gitOpsRepo, cicdNamespace, saName, eventlisteners.GitOpsWebhookSecret)
 
 	outputs[routePath] = routes.Generate(cicdNamespace)
 	return outputs, nil

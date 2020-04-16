@@ -14,7 +14,7 @@ var (
 func Generate(ns string) []pipelinev1.Task {
 	return []pipelinev1.Task{
 		CreateDeployFromSourceTask(ns, "deploy"),
-		generateDeployUsingKubectlTask(ns),
+		CreateDeployUsingKubectlTask(ns),
 	}
 }
 

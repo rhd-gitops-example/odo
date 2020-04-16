@@ -5,7 +5,7 @@ import (
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 )
 
-func generateDeployUsingKubectlTask(ns string) pipelinev1.Task {
+func CreateDeployUsingKubectlTask(ns string) pipelinev1.Task {
 	return pipelinev1.Task{
 		TypeMeta:   taskTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "deploy-using-kubectl-task")),

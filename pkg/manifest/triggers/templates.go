@@ -26,7 +26,7 @@ func GenerateTemplates(ns, saName, imageRepo string) []triggersv1.TriggerTemplat
 func CreateDevCDDeployTemplate(ns, saName, imageRepo string) triggersv1.TriggerTemplate {
 	return triggersv1.TriggerTemplate{
 		TypeMeta:   triggerTemplateTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "dev-cd-deploy-from-master-template")),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "app-cd-template")),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{
 				createTemplateParamSpec("gitsha", "The specific commit SHA."),
@@ -45,7 +45,7 @@ func CreateDevCIBuildPRTemplate(ns, saName, imageRepo string) triggersv1.Trigger
 	return triggersv1.TriggerTemplate{
 		TypeMeta: triggerTemplateTypeMeta,
 		ObjectMeta: meta.ObjectMeta(
-			meta.NamespacedName(ns, "dev-ci-build-from-pr-template"),
+			meta.NamespacedName(ns, "app-ci-template"),
 			statusTrackerAnnotations("dev-ci-build-from-pr", "Dev CI Build")),
 		Spec: triggersv1.TriggerTemplateSpec{
 			Params: []pipelinev1.ParamSpec{

@@ -16,7 +16,6 @@ import (
 
 	"github.com/openshift/odo/pkg/manifest/meta"
 	"github.com/openshift/odo/pkg/manifest/secrets"
-	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
 // AddParameters is a struct that provides flags for add application command
@@ -38,11 +37,13 @@ const (
 	overlaysDir      = "overlays"
 
 	// PatchPath path to eventlistener patch yaml
-	PatchPath = "overlays/eventlistener_patch.yaml"
+	PatchPath         = "overlays/eventlistener_patch.yaml"
+	pipelinePatchPath = "overlays/pipeline_patch.yaml"
 
 	servicesDir      = "services"
 	secretPath       = "base/config/secret.yaml"
 	webhookPath      = "base/config/app-webhook-secret.yaml"
+	rolebindingPath  = "base/config/edit-rolebinding.yaml"
 	kustomizeModPath = "base/config/kustomization.yaml"
 	secretName       = "secret"
 )
@@ -51,9 +52,9 @@ const (
 // correctly populate the data.
 
 type patchStringValue struct {
-	Op    string                          `json:"op"`
-	Path  string                          `json:"path"`
-	Value triggersv1.EventListenerTrigger `json:"value"`
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
 }
 
 // CreateApplication creates an application
@@ -82,9 +83,13 @@ func CreateApplication(o *AddParameters) error {
 		return fmt.Errorf("Output does not exist at %s", gitopsPath)
 	}
 
-	configPath := filepath.Join(gitopsPath, servicesDir, ServiceRepo)
+	// check if the environment exists
+	exists, _ = ioutils.IsExisting(filepath.Join(gitopsPath, "environments", o.EnvName))
+	if !exists {
+		return fmt.Errorf("Environment %s doesn't exist at %s", o.EnvName, gitopsPath)
+	}
 
-	createPatchFiles(outputs, o.ServiceGitRepo)
+	configPath := filepath.Join(gitopsPath, servicesDir, ServiceRepo)
 
 	CreatePatchKustomiseFile(outputs, filepath.Join(overlaysDir, manifest.Kustomize))
 
@@ -93,7 +98,10 @@ func CreateApplication(o *AddParameters) error {
 	createKustomizeMod(outputs, kustomizeModPath, environmentName["cicd"])
 
 	secretName := fmt.Sprintf("svc-%s-secret", ServiceRepo)
-	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, environmentName["cicd"], secretName)
+	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, o.EnvName, secretName)
+
+	createPatchFiles(outputs, o.ServiceGitRepo, o.EnvName, secretName)
+	createPipelinePatch(outputs, o.EnvName)
 
 	_, err := yaml.WriteResources(configPath, files)
 
@@ -138,21 +146,31 @@ func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret,
 	return outputs
 }
 
-func createPatchFiles(outputs map[string]interface{}, serviceRepo string) {
+func createPatchFiles(outputs map[string]interface{}, serviceRepo, ns, secretName string) {
 	t := []patchStringValue{
 		{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
-			Value: eventlisteners.CreateListenerTrigger("app-ci-build-from-pr", eventlisteners.StageCIDryRunFilters, serviceRepo, "github-pr-binding", "app-ci-template"),
+			Value: eventlisteners.CreateListenerTrigger("app-ci-build-from-pr", eventlisteners.StageCIDryRunFilters, serviceRepo, "github-pr-binding", "app-ci-template", secretName, ns),
 		},
 		{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
-			Value: eventlisteners.CreateListenerTrigger("app-cd-deploy-from-master", eventlisteners.StageCDDeployFilters, serviceRepo, "github-push-binding", "app-cd-template"),
+			Value: eventlisteners.CreateListenerTrigger("app-cd-deploy-from-master", eventlisteners.StageCDDeployFilters, serviceRepo, "github-push-binding", "app-cd-template", secretName, ns),
 		},
 	}
 	outputs[PatchPath] = t
 
+}
+
+func createPipelinePatch(outputs map[string]interface{}, ns string) {
+	outputs[pipelinePatchPath] = []patchStringValue{
+		{
+			Op:    "replace",
+			Path:  "/spec/tasks/1/params/2/value",
+			Value: ns,
+		},
+	}
 }
 
 // CreatePatchKustomiseFile creates patch kustomization file
@@ -174,6 +192,10 @@ func CreatePatchKustomiseFile(outputs map[string]interface{}, path string) {
 			Target: target,
 			Path:   "eventlistener_patch.yaml",
 		},
+		{
+			Target: pipelineTarget(),
+			Path:   "pipeline_patch.yaml",
+		},
 	}
 	file := types.Kustomization{
 		Bases:           bases,
@@ -183,14 +205,25 @@ func CreatePatchKustomiseFile(outputs map[string]interface{}, path string) {
 
 }
 
+func pipelineTarget() *types.PatchTarget {
+	return &types.PatchTarget{
+		Gvk: gvk.Gvk{
+			Group:   "tekton.dev",
+			Version: "v1alpha1",
+			Kind:    "Pipeline",
+		},
+		Name: "app-cd-pipeline",
+	}
+}
+
 func createKustomizeMod(outputs map[string]interface{}, path, environmentName string) {
 
 	bases := []string{fmt.Sprintf("../../../../environments/%s/overlays", environmentName)}
 	resources := []string{"app-webhook-secret.yaml"}
 
 	file := types.Kustomization{
-		Bases:     bases,
 		Resources: resources,
+		Bases:     bases,
 	}
 
 	outputs[path] = file

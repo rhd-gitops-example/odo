@@ -102,7 +102,7 @@ func Bootstrap(o *BootstrapParameters) error {
 	outputs = append(outputs, createPipelines(namespaces, isInternalRegistry, o.DeploymentPath)...)
 
 	// Create Event Listener
-	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"], saName)
+	eventListener := eventlisteners.Generate(o.GitRepo, namespaces["cicd"], saName, eventlisteners.GitOpsWebhookSecret)
 	outputs = append(outputs, eventListener)
 
 	// Create route

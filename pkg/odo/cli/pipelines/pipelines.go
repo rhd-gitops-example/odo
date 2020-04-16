@@ -16,7 +16,7 @@ const RecommendedCommandName = "pipelines"
 func NewCmdPipelines(name, fullName string) *cobra.Command {
 
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
-	ServiceCmd := service.NewCmdAddService(service.ServiceRecommendedCommandName, odoutil.GetFullName(fullName, service.ServiceRecommendedCommandName))
+	ServiceCmd := service.NewCmdService(service.ServiceRecommendedCommandName, odoutil.GetFullName(fullName, service.ServiceRecommendedCommandName))
 	var pipelinesCmd = &cobra.Command{
 		Use:   name,
 		Short: "Manage pipelines",
