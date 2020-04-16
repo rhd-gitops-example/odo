@@ -6,7 +6,7 @@ import (
 	odoutil "github.com/openshift/odo/pkg/odo/util"
 )
 
-// erviceRecommendedCommandName is the recommended application command name.
+// ServiceRecommendedCommandName is the recommended application command name.
 const ServiceRecommendedCommandName = "service"
 
 // NewCmdService implements the component odo command

@@ -33,10 +33,10 @@ type InitParameters struct {
 	DockerConfigJSONFileName string
 	GitOpsRepo               string
 	GitOpsWebhookSecret      string
-	Output                   string
-	Prefix                   string
 	ImageRepo                string
 	InternalRegistryHostname string
+	Output                   string
+	Prefix                   string
 	SkipChecks               bool
 }
 
@@ -140,7 +140,7 @@ func Init(o *InitParameters) error {
 }
 
 // CreateResources creates resources assocated to pipelines
-func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJsonPath, imageRepo string) (map[string]interface{}, error) {
+func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJSONPath, imageRepo string) (map[string]interface{}, error) {
 
 	// key: path of the resource
 	// value: YAML content of the resource
@@ -159,8 +159,8 @@ func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJsonPath, im
 
 	sa := roles.CreateServiceAccount(meta.NamespacedName(cicdNamespace, saName))
 
-	if dockerConfigJsonPath != "" {
-		dockerSecret, err := CreateDockerSecret(dockerConfigJsonPath, cicdNamespace)
+	if dockerConfigJSONPath != "" {
+		dockerSecret, err := CreateDockerSecret(dockerConfigJSONPath, cicdNamespace)
 		if err != nil {
 			return nil, err
 		}

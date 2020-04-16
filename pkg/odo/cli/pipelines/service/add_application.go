@@ -17,32 +17,33 @@ const (
 )
 
 var (
+	// AddExample an example/description of the command
 	AddExample = ktemplates.Examples(`
   # Add applications to OpenShift pipelines in a cluster
   %[1]s
   `)
 
-	AddLongDesc  = ktemplates.LongDesc(`Add applications with GitOps CI/CD Pipelines`)
-	AddShortDesc = `Add bootstrapped Application repo pipelines`
+	// AddLongDesc long description of the command
+	AddLongDesc = ktemplates.LongDesc(`Add an application to GitOps CI/CD Pipelines`)
+
+	// AddShortDesc short description of the command
+	AddShortDesc = `Add an application repo to GitOps`
 )
 
-// AddParameter encapsulates the parameters for the odo pipelines service add command.
+// AddParameters encapsulates the parameters for the odo pipelines service add command.
 type AddParameters struct {
-	gitopsRepo           string
-	gitopsWebhookSecret  string
+	appName              string
+	envName              string
 	output               string
 	prefix               string
-	appName              string
-	serviceWebhookSecret string
-	serviceImageRepo     string
-	envName              string
 	serviceGitRepo       string
+	serviceWebhookSecret string
 	skipChecks           bool
 
 	*genericclioptions.Context
 }
 
-// NewAddParameters() bootstraps a AddParameters instance.
+// NewAddParameters  bootstraps a AddParameters instance.
 func NewAddParameters() *AddParameters {
 	return &AddParameters{}
 }
@@ -70,16 +71,13 @@ func (io *AddParameters) Validate() error {
 // Run runs the project bootstrap command.
 func (io *AddParameters) Run() error {
 	options := pipelines.AddParameters{
-		GitopsRepo:           io.gitopsRepo,
-		GitopsWebhookSecret:  io.gitopsWebhookSecret,
-		Output:               io.output,
 		AppName:              io.appName,
-		ServiceWebhookSecret: io.serviceWebhookSecret,
-		ServiceImageRepo:     io.serviceImageRepo,
 		EnvName:              io.envName,
-		ServiceGitRepo:       io.serviceGitRepo,
-		SkipChecks:           io.skipChecks,
+		Output:               io.output,
 		Prefix:               io.prefix,
+		ServiceGitRepo:       io.serviceGitRepo,
+		ServiceWebhookSecret: io.serviceWebhookSecret,
+		SkipChecks:           io.skipChecks,
 	}
 
 	return pipelines.CreateApplication(&options)
@@ -99,15 +97,12 @@ func NewCmdAddService(name, fullName string) *cobra.Command {
 		},
 	}
 
-	addCmd.Flags().StringVar(&o.gitopsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
-	addCmd.Flags().StringVar(&o.gitopsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for gitops repository")
-	addCmd.Flags().StringVar(&o.output, "output", "", "folder path to add Gitops resources")
-	addCmd.Flags().StringVar(&o.prefix, "prefix", "", "add a prefix to the environment names")
-	addCmd.Flags().StringVar(&o.appName, "app-name", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
-	addCmd.Flags().StringVar(&o.serviceWebhookSecret, "service-webhook-secret", "", "Provide the webhook secret of the app git repository")
-	addCmd.Flags().StringVar(&o.serviceImageRepo, "service-image-repo", "", "Image repository name in form <username>/<repository>")
+	addCmd.Flags().StringVar(&o.output, "output", "", "file path to output folder")
+	addCmd.Flags().StringVar(&o.prefix, "prefix", "", "a prefix to the environment names")
+	addCmd.Flags().StringVar(&o.appName, "app-name", "", "application name")
+	addCmd.Flags().StringVar(&o.serviceWebhookSecret, "service-webhook-secret", "", "Webhook secret of the service Git repository")
 	addCmd.Flags().StringVar(&o.envName, "env-name", "", "Add the name of the environment(namespace) to which the pipelines should be bootstrapped")
-	addCmd.Flags().StringVar(&o.serviceGitRepo, "service-git-repo", "", "Add the docker auth.json file path")
+	addCmd.Flags().StringVar(&o.serviceGitRepo, "service-git-repo", "", "service Git repository in this form <username>/<repository>")
 	addCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", true, "skip Tekton installation checks")
 	addCmd.MarkFlagRequired("app-name")
 	addCmd.MarkFlagRequired("service-webhook-secret")

@@ -42,17 +42,16 @@ func TestCompleteAddParameters(t *testing.T) {
 func TestValidateAddParameters(t *testing.T) {
 	optionTests := []struct {
 		name        string
-		gitRepo     string
 		errMsgGit   string
 		serviceRepo string
 		errMsgApp   string
 	}{
-		{"invalid repo", "test", "repo must be org/repo", "test2", "repo must be org/repo"},
-		{"valid repo", "test/repo", "", "test2/repo", ""},
+		{"invalid repo", "repo must be org/repo", "test2", "repo must be org/repo"},
+		{"valid repo", "", "test2/repo", ""},
 	}
 
 	for _, tt := range optionTests {
-		o := AddParameters{gitopsRepo: tt.gitRepo, prefix: "test", serviceGitRepo: tt.serviceRepo}
+		o := AddParameters{prefix: "test", serviceGitRepo: tt.serviceRepo}
 
 		err := o.Validate()
 

@@ -23,12 +23,9 @@ import (
 type AddParameters struct {
 	AppName              string
 	EnvName              string
-	GitopsRepo           string
-	GitopsWebhookSecret  string
 	Output               string
 	Prefix               string
 	ServiceWebhookSecret string
-	ServiceImageRepo     string
 	ServiceGitRepo       string
 	SkipChecks           bool
 }
@@ -39,8 +36,10 @@ const (
 	configDir        = "config"
 	configSApath     = "base/config/serviceaccount.yaml"
 	overlaysDir      = "overlays"
+
 	// PatchPath path to eventlistener patch yaml
-	PatchPath        = "overlays/eventlistener_patch.yaml"
+	PatchPath = "overlays/eventlistener_patch.yaml"
+
 	servicesDir      = "services"
 	secretPath       = "base/config/secret.yaml"
 	webhookPath      = "base/config/app-webhook-secret.yaml"
@@ -72,8 +71,6 @@ func CreateApplication(o *AddParameters) error {
 
 	ServiceRepo := getGitopsRepoName(o.ServiceGitRepo)
 
-	secretName := fmt.Sprintf("svc-%s-secret", ServiceRepo)
-
 	// we simpily output to the output dir, no gitops repo in the output path
 	gitopsPath := o.Output
 
@@ -95,6 +92,7 @@ func CreateApplication(o *AddParameters) error {
 
 	createKustomizeMod(outputs, kustomizeModPath, environmentName["cicd"])
 
+	secretName := fmt.Sprintf("svc-%s-secret", ServiceRepo)
 	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, environmentName["cicd"], secretName)
 
 	_, err := yaml.WriteResources(configPath, files)

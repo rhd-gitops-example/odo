@@ -102,8 +102,7 @@ func NewCmdInit(name, fullName string) *cobra.Command {
 	initCmd.MarkFlagRequired("output")
 	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
 	initCmd.Flags().StringVar(&o.dockercfgjson, "dockercfgjson", "", "dockercfg json pathname")
-	initCmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "", "dockercfg json pathname")
-	initCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "dockercfg json pathname")
-
+	initCmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
+	initCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
 	return initCmd
 }
