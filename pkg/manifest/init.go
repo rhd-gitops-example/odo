@@ -307,6 +307,8 @@ func GetPipelinesDir(rootPath, prefix string) string {
 	return filepath.Join(rootPath, EnvsDir, AddPrefix(prefix, CICDDir), BaseDir, pipelineDir)
 }
 
+// validatingImageRepo validates the input image repo.  It determines if it is
+// for internal registry and prepend internal registry hostname if neccessary.
 func validatingImageRepo(o *InitParameters) (bool, string, error) {
 	components := strings.Split(o.ImageRepo, "/")
 
