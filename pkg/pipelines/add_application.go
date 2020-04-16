@@ -30,7 +30,7 @@ type AddParameters struct {
 }
 
 const (
-	appDir           = "apps"
+	appDir           = "applications"
 	appWebhookSecret = "app-webhook-secret"
 	configDir        = "config"
 	configSApath     = "base/config/serviceaccount.yaml"
@@ -98,7 +98,7 @@ func CreateApplication(o *AddParameters) error {
 	createKustomizeMod(outputs, []string{fmt.Sprintf("../../../../environments/%s/overlays", environmentName["cicd"])}, []string{"app-webhook-secret.yaml"}, kustomizeModPath)
 	kustomizeModPath := filepath.Join(gitopsPath, fmt.Sprintf("/environments/%s/base/kustomization.yaml", o.EnvName))
 
-	createKustomizeEnv([]string{fmt.Sprintf("../../../apps/%s/overlays", o.AppName)}, []string{"namespace.yaml", "rolebinding.yaml"}, kustomizeModPath)
+	createKustomizeEnv([]string{fmt.Sprintf("../../../%s/%s/overlays", appDir, o.AppName)}, []string{"namespace.yaml", "rolebinding.yaml"}, kustomizeModPath)
 
 	secretName := fmt.Sprintf("svc-%s-secret", ServiceRepo)
 	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, o.EnvName, secretName)

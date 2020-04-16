@@ -52,6 +52,7 @@ func createBuildImageTask(name string, isInternalRegistry bool) pipelinev1.Pipel
 
 }
 
+// CreateCDPipeline creates CreateCDPipeline
 func CreateCDPipeline(name types.NamespacedName, stageNamespace string) *pipelinev1.Pipeline {
 	return &pipelinev1.Pipeline{
 		TypeMeta:   pipelineTypeMeta,
