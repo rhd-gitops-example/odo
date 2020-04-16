@@ -53,7 +53,6 @@ metadata:
   namespace: test
 ---
 `
-
 	l := loadertest.NewFakeLoader("/whatever/project")
 	if ferr := l.AddFile("/whatever/project/deployment.yaml", []byte(resourceStr)); ferr != nil {
 		t.Fatalf("Error adding fake file: %v\n", ferr)

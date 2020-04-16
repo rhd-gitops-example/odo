@@ -18,11 +18,12 @@ package config
 
 import (
 	"reflect"
+	"testing"
+
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/gvk"
 	"sigs.k8s.io/kustomize/pkg/ifc"
 	"sigs.k8s.io/kustomize/pkg/loader"
-	"testing"
 )
 
 func TestMakeDefaultConfig(t *testing.T) {

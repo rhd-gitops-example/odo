@@ -18,9 +18,10 @@ package transformers
 
 import (
 	"fmt"
+	"testing"
+
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/pkg/ifc"
-	"testing"
 )
 
 type noopMutator struct {

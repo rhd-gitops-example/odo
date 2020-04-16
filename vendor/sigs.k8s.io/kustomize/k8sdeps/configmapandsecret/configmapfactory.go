@@ -23,8 +23,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
-	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/kustomize/k8sdeps/kv"
 	"sigs.k8s.io/kustomize/pkg/ifc"

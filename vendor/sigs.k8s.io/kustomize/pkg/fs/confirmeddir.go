@@ -42,7 +42,6 @@ func NewTmpConfirmedDir() (ConfirmedDir, error) {
 	// resolve the real absolute path.
 	deLinked, err := filepath.EvalSymlinks(n)
 	return ConfirmedDir(deLinked), err
-
 }
 
 // HasPrefix returns true if the directory argument
