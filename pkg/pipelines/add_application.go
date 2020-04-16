@@ -95,7 +95,10 @@ func CreateApplication(o *AddParameters) error {
 
 	environmentName := manifest.NamespaceNames(o.Prefix)
 
-	createKustomizeMod(outputs, kustomizeModPath, environmentName["cicd"])
+	createKustomizeMod(outputs, []string{fmt.Sprintf("../../../../environments/%s/overlays", environmentName["cicd"])}, []string{"app-webhook-secret.yaml"}, kustomizeModPath)
+	kustomizeModPath := filepath.Join(gitopsPath, fmt.Sprintf("/environments/%s/base/kustomization.yaml", o.EnvName))
+
+	createKustomizeEnv([]string{fmt.Sprintf("../../../apps/%s/overlays", o.AppName)}, []string{"namespace.yaml", "rolebinding.yaml"}, kustomizeModPath)
 
 	secretName := fmt.Sprintf("svc-%s-secret", ServiceRepo)
 	files := createResourcesConfig(outputs, o.ServiceWebhookSecret, o.EnvName, secretName)
@@ -127,14 +130,6 @@ func CreateApplication(o *AddParameters) error {
 	}
 
 	return nil
-}
-
-func addModKustomize(values map[string][]string, path string) error {
-	content := make([]interface{}, 0)
-	for name, items := range values {
-		content = append(content, map[string]interface{}{name: items})
-	}
-	return yaml.MarshalItemToFile(path, content)
 }
 
 func createResourcesConfig(outputs map[string]interface{}, serviceWebhookSecret, environmentName, secretName string) map[string]interface{} {
@@ -216,18 +211,29 @@ func pipelineTarget() *types.PatchTarget {
 	}
 }
 
-func createKustomizeMod(outputs map[string]interface{}, path, environmentName string) {
+func createKustomizeMod(outputs map[string]interface{}, basesParams, resourcesParams []string, path string) {
 
-	bases := []string{fmt.Sprintf("../../../../environments/%s/overlays", environmentName)}
-	resources := []string{"app-webhook-secret.yaml"}
+	bases := basesParams
+	resources := resourcesParams
+
+	file := types.Kustomization{
+		Resources: resources,
+		Bases:     bases,
+	}
+	outputs[path] = file
+}
+
+func createKustomizeEnv(basesParams, resourcesParams []string, path string) {
+
+	bases := basesParams
+	resources := resourcesParams
 
 	file := types.Kustomization{
 		Resources: resources,
 		Bases:     bases,
 	}
 
-	outputs[path] = file
-
+	yaml.MarshalItemToFile(path, file)
 }
 
 func getGitopsRepoName(repo string) string {
