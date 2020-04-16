@@ -5,7 +5,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/openshift/odo/pkg/manifest/config"
+	res "github.com/openshift/odo/pkg/manifest/resources"
 )
 
 func TestCreateManifest(t *testing.T) {
@@ -35,7 +37,7 @@ func TestInitialFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := resources{
+	want := res.Resources{
 		"manifest.yaml": createManifest(prefix),
 	}
 
@@ -45,9 +47,9 @@ func TestInitialFiles(t *testing.T) {
 	}
 	files := getResourceFiles(cicdResources)
 
-	want = merge(addPrefixToResources("environments/tst-cicd/base/pipelines", cicdResources), want)
+	want = res.Merge(addPrefixToResources("environments/tst-cicd/base/pipelines", cicdResources), want)
 
-	want = merge(addPrefixToResources("environments/tst-cicd", getCICDKustomization(files)), want)
+	want = res.Merge(addPrefixToResources("environments/tst-cicd", getCICDKustomization(files)), want)
 
 	if diff := cmp.Diff(want, got, cmpopts.IgnoreMapEntries(ignoreSecrets)); diff != "" {
 		t.Fatalf("outputs didn't match: %s\n", diff)
@@ -62,7 +64,7 @@ func ignoreSecrets(k string, v interface{}) bool {
 }
 
 func TestGetCICDKustomization(t *testing.T) {
-	want := resources{
+	want := res.Resources{
 		"base/kustomization.yaml": map[string]interface{}{
 			"bases": []string{"./pipelines"},
 		},
@@ -116,11 +118,11 @@ func TestMerge(t *testing.T) {
 		"test-2": "value-2",
 	}
 
-	want := resources{
+	want := res.Resources{
 		"test-1": "value-1",
 		"test-2": "value-2",
 	}
-	if diff := cmp.Diff(want, merge(map1, map2)); diff != "" {
+	if diff := cmp.Diff(want, res.Merge(map1, map2)); diff != "" {
 		t.Fatalf("merge failed: %s\n", diff)
 	}
 	if diff := cmp.Diff(map2, map3); diff != "" {

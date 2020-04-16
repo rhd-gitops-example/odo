@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/openshift/odo/pkg/manifest/config"
+	res "github.com/openshift/odo/pkg/manifest/resources"
 	"github.com/spf13/afero"
 )
 
@@ -66,6 +67,6 @@ func (b *envBuilder) Environment(env *config.Environment) error {
 		return err
 	}
 	envFiles[filepath.Join(overlaysPath, "kustomization.yaml")] = &Kustomization{Bases: []string{relPath}}
-	b.files = merge(envFiles, b.files)
+	b.files = res.Merge(envFiles, b.files)
 	return nil
 }

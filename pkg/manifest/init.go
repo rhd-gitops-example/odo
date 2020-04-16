@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/odo/pkg/manifest/ioutils"
 	"github.com/openshift/odo/pkg/manifest/meta"
 	"github.com/openshift/odo/pkg/manifest/pipelines"
+	res "github.com/openshift/odo/pkg/manifest/resources"
 	"github.com/openshift/odo/pkg/manifest/roles"
 	"github.com/openshift/odo/pkg/manifest/routes"
 	"github.com/openshift/odo/pkg/manifest/secrets"
@@ -25,8 +26,6 @@ import (
 
 	ssv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealed-secrets/v1alpha1"
 )
-
-type resources map[string]interface{}
 
 // InitParameters is a struct that provides flags for the Init command.
 type InitParameters struct {
@@ -217,9 +216,9 @@ func CreateDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.Sealed
 
 }
 
-func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, imageRepo string) (resources, error) {
+func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, imageRepo string) (res.Resources, error) {
 	manifest := createManifest(prefix)
-	initialFiles := resources{
+	initialFiles := res.Resources{
 		"manifest.yaml": manifest,
 	}
 
@@ -230,10 +229,10 @@ func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, ima
 	files := getResourceFiles(cicdResources)
 
 	prefixedResources := addPrefixToResources(pipelinesPath(manifest), cicdResources)
-	initialFiles = merge(prefixedResources, initialFiles)
+	initialFiles = res.Merge(prefixedResources, initialFiles)
 
 	cicdKustomizations := addPrefixToResources(cicdEnvironmentPath(manifest), getCICDKustomization(files))
-	initialFiles = merge(cicdKustomizations, initialFiles)
+	initialFiles = res.Merge(cicdKustomizations, initialFiles)
 
 	return initialFiles, nil
 }
@@ -249,8 +248,8 @@ func createManifest(prefix string) *config.Manifest {
 	}
 }
 
-func getCICDKustomization(files []string) resources {
-	return resources{
+func getCICDKustomization(files []string) res.Resources {
+	return res.Resources{
 		"base/kustomization.yaml": map[string]interface{}{
 			"bases": []string{"./pipelines"},
 		},
@@ -271,7 +270,7 @@ func pipelinesPath(m *config.Manifest) string {
 	return filepath.Join(cicdEnvironmentPath(m), "base/pipelines")
 }
 
-func addPrefixToResources(prefix string, files resources) map[string]interface{} {
+func addPrefixToResources(prefix string, files res.Resources) map[string]interface{} {
 	updated := map[string]interface{}{}
 	for k, v := range files {
 		updated[filepath.Join(prefix, k)] = v
@@ -279,23 +278,12 @@ func addPrefixToResources(prefix string, files resources) map[string]interface{}
 	return updated
 }
 
-func merge(from, to resources) resources {
-	merged := resources{}
-	for k, v := range to {
-		merged[k] = v
-	}
-	for k, v := range from {
-		merged[k] = v
-	}
-	return merged
-}
-
 // TODO: this should probably use the .FindCICDEnvironment on the manifest.
 func cicdEnvironmentPath(m *config.Manifest) string {
 	return pathForEnvironment(m.Environments[0])
 }
 
-func getResourceFiles(res resources) []string {
+func getResourceFiles(res res.Resources) []string {
 	files := []string{}
 	for k := range res {
 		files = append(files, k)

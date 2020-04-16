@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/odo/pkg/manifest/config"
 	"github.com/openshift/odo/pkg/manifest/meta"
+	res "github.com/openshift/odo/pkg/manifest/resources"
 	"github.com/openshift/odo/pkg/manifest/yaml"
 )
 
@@ -31,7 +32,7 @@ func BuildResources(o *BuildParameters) error {
 
 func buildResources(m *config.Manifest) map[string]interface{} {
 	resources := map[string]interface{}{}
-	resources = merge(buildEnvironments(m), resources)
+	resources = res.Merge(buildEnvironments(m), resources)
 	return resources
 }
 
