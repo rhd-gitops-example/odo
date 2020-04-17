@@ -25,6 +25,13 @@ type BootstrapOptions struct {
 	SkipChecks               bool // Don't check that the local cluster has Tekton installed
 }
 
+var defaultPipelines = &config.Pipelines{
+	Integration: &config.TemplateBinding{
+		Template: "app-ci-template",
+		Binding:  "github-pr-binding",
+	},
+}
+
 // Bootstrap bootstraps a GitOps manifest and repository structure.
 func Bootstrap(o *BootstrapOptions) error {
 	bootstrapped, err := bootstrapResources(o)
@@ -65,6 +72,7 @@ func bootstrapEnvironments(prefix, repoURL string, ns map[string]string) ([]*con
 				return nil, err
 			}
 			env.Apps = []*config.Application{app}
+			env.Pipelines = defaultPipelines
 		}
 		envs = append(envs, env)
 	}

@@ -33,7 +33,8 @@ func TestBootstrapManifest(t *testing.T) {
 		"manifest.yaml": &config.Manifest{
 			Environments: []*config.Environment{
 				{
-					Name: "tst-dev",
+					Pipelines: defaultPipelines,
+					Name:      "tst-dev",
 					Apps: []*config.Application{
 						{
 							Name: "http-api",
