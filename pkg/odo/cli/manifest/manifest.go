@@ -24,10 +24,11 @@ func NewCmdManifest(name, fullName string) *cobra.Command {
 	}
 
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
-	manifestCmd.Flags().AddFlagSet(initCmd.Flags())
-	manifestCmd.AddCommand(initCmd)
-
+	bootstrapCmd := NewCmdBootstrap(BootstrapRecommendedCommandName, odoutil.GetFullName(fullName, BootstrapRecommendedCommandName))
 	envCmd := environment.NewCmdEnv(environment.EnvRecommendedCommandName, odoutil.GetFullName(fullName, environment.EnvRecommendedCommandName))
+
+	manifestCmd.AddCommand(initCmd)
+	manifestCmd.AddCommand(bootstrapCmd)
 	manifestCmd.AddCommand(envCmd)
 
 	buildCmd := NewCmdBuild(BuildRecommendedCommandName, odoutil.GetFullName(fullName, BuildRecommendedCommandName))

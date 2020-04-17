@@ -10,17 +10,15 @@ import (
 	res "github.com/openshift/odo/pkg/manifest/resources"
 )
 
+var testCICDEnv = &config.Environment{Name: "tst-cicd", IsCICD: true}
+
 func TestCreateManifest(t *testing.T) {
 	want := &config.Manifest{
 		Environments: []*config.Environment{
-			{
-				Name:   "tst-cicd",
-				IsCICD: true,
-			},
+			testCICDEnv,
 		},
 	}
-	got := createManifest("tst-")
-
+	got := createManifest(testCICDEnv)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("manifest didn't match: %s\n", diff)
 	}
@@ -38,7 +36,7 @@ func TestInitialFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := res.Resources{
-		"manifest.yaml": createManifest(prefix),
+		"manifest.yaml": createManifest(testCICDEnv),
 	}
 
 	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook, "", imageRepo)

@@ -140,7 +140,7 @@ func Init(o *InitParameters) error {
 	return err
 }
 
-// CreateResources creates resources assocated to pipelines
+// CreateResources creates resources assocated to pipelines.
 func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJSONPath, imageRepo string) (map[string]interface{}, error) {
 	// key: path of the resource
 	// value: YAML content of the resource
@@ -218,7 +218,7 @@ func CreateDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.Sealed
 }
 
 func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, imageRepo string) (res.Resources, error) {
-	manifest := createManifest(prefix)
+	manifest := createManifest(&config.Environment{Name: prefix + "cicd", IsCICD: true})
 	initialFiles := res.Resources{
 		"manifest.yaml": manifest,
 	}
@@ -238,14 +238,9 @@ func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, ima
 	return initialFiles, nil
 }
 
-func createManifest(prefix string) *config.Manifest {
+func createManifest(envs ...*config.Environment) *config.Manifest {
 	return &config.Manifest{
-		Environments: []*config.Environment{
-			{
-				Name:   prefix + "cicd",
-				IsCICD: true,
-			},
-		},
+		Environments: envs,
 	}
 }
 
