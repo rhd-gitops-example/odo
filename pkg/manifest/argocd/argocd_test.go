@@ -44,7 +44,7 @@ func TestBuildCreatesArgoCD(t *testing.T) {
 		},
 	}
 
-	files, err := Build(testRepoURL, m)
+	files, err := Build(ArgoCDNamespace, testRepoURL, m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestBuildCreatesArgoCD(t *testing.T) {
 	want := res.Resources{
 		"environments/argocd/config/test-dev-http-api-app.yaml": &argoappv1.Application{
 			TypeMeta:   applicationTypeMeta,
-			ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", "test-dev-http-api")),
+			ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ArgoCDNamespace, "test-dev-http-api")),
 			Spec: argoappv1.ApplicationSpec{
 				Source: makeSource(testEnv, testEnv.Apps[0], testRepoURL),
 				Destination: argoappv1.ApplicationDestination{
@@ -86,7 +86,7 @@ func TestBuildCreatesArgoCDWithMultipleApps(t *testing.T) {
 		},
 	}
 
-	files, err := Build(testRepoURL, m)
+	files, err := Build(ArgoCDNamespace, testRepoURL, m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestBuildWithNoRepoURL(t *testing.T) {
 		},
 	}
 
-	files, err := Build("", m)
+	files, err := Build(ArgoCDNamespace, "", m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestBuildWithNoArgoCDEnv(t *testing.T) {
 		},
 	}
 
-	files, err := Build(testRepoURL, m)
+	files, err := Build(ArgoCDNamespace, testRepoURL, m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestBuildWithRepoConfig(t *testing.T) {
 		},
 	}
 
-	files, err := Build(testRepoURL, m)
+	files, err := Build(ArgoCDNamespace, testRepoURL, m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestBuildWithRepoConfig(t *testing.T) {
 	want := res.Resources{
 		"environments/argocd/config/test-production-prod-api-app.yaml": &argoappv1.Application{
 			TypeMeta:   applicationTypeMeta,
-			ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", "test-production-prod-api")),
+			ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ArgoCDNamespace, "test-production-prod-api")),
 			Spec: argoappv1.ApplicationSpec{
 				Source: makeSource(prodEnv, prodEnv.Apps[0], testRepoURL),
 				Destination: argoappv1.ApplicationDestination{

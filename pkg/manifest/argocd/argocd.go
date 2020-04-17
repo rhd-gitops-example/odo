@@ -28,11 +28,12 @@ var (
 )
 
 const (
-	defaultServer  = "https://kubernetes.default.svc"
-	defaultProject = "default"
+	defaultServer   = "https://kubernetes.default.svc"
+	defaultProject  = "default"
+	ArgoCDNamespace = "argocd"
 )
 
-func Build(repoURL string, m *config.Manifest) (res.Resources, error) {
+func Build(argoNS, repoURL string, m *config.Manifest) (res.Resources, error) {
 	// Without a RepositoryURL we can't do anything.
 	if repoURL == "" {
 		return res.Resources{}, nil
@@ -44,7 +45,7 @@ func Build(repoURL string, m *config.Manifest) (res.Resources, error) {
 	}
 
 	files := make(res.Resources)
-	eb := &argocdBuilder{repoURL: repoURL, files: files, argoEnv: argoEnv}
+	eb := &argocdBuilder{repoURL: repoURL, files: files, argoEnv: argoEnv, argoNS: argoNS}
 	err = m.Walk(eb)
 	return eb.files, err
 }
@@ -53,13 +54,14 @@ type argocdBuilder struct {
 	repoURL string
 	argoEnv *config.Environment
 	files   res.Resources
+	argoNS  string
 }
 
 func (b *argocdBuilder) Application(env *config.Environment, app *config.Application) error {
 	basePath := filepath.Join(config.PathForEnvironment(b.argoEnv), "config")
 	argoFiles := res.Resources{}
 	filename := filepath.Join(basePath, env.Name+"-"+app.Name+"-app.yaml")
-	argoFiles[filename] = makeApplication(env.Name+"-"+app.Name, defaultProject, env.Name, defaultServer, makeSource(env, app, b.repoURL))
+	argoFiles[filename] = makeApplication(env.Name+"-"+app.Name, b.argoNS, defaultProject, env.Name, defaultServer, makeSource(env, app, b.repoURL))
 	b.files = res.Merge(argoFiles, b.files)
 	return nil
 }
@@ -93,10 +95,10 @@ func makeSource(env *config.Environment, app *config.Application, repoURL string
 	}
 }
 
-func makeApplication(appName, project, ns, server string, source argoappv1.ApplicationSource) *argoappv1.Application {
+func makeApplication(appName, argoNS, project, ns, server string, source argoappv1.ApplicationSource) *argoappv1.Application {
 	return &argoappv1.Application{
 		TypeMeta:   applicationTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", appName)),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(argoNS, appName)),
 		Spec: argoappv1.ApplicationSpec{
 			Project: project,
 			Destination: argoappv1.ApplicationDestination{

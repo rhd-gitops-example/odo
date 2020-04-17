@@ -22,6 +22,7 @@ func buildEnvironments(fs afero.Fs, m *config.Manifest) (res.Resources, error) {
 }
 
 type envBuilder struct {
+	// this is a mapping of app.Name to environment relative service paths.
 	appServices map[string][]string
 	files       res.Resources
 	fs          afero.Fs
@@ -29,7 +30,6 @@ type envBuilder struct {
 
 func (b *envBuilder) Application(env *config.Environment, app *config.Application) error {
 	appPath := filepath.Join(config.PathForApplication(env, app))
-	// TODO: handle an error here
 	appFiles, err := filesForApplication(appPath, app, b.appServices[app.Name])
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (b *envBuilder) Service(env *config.Environment, app *config.Application, s
 }
 
 func (b *envBuilder) Environment(env *config.Environment) error {
-	if env.IsCICD || env.IsArgoCD {
+	if env.IsSpecial() {
 		return nil
 	}
 	envPath := filepath.Join(config.PathForEnvironment(env), "env")

@@ -34,14 +34,15 @@ func BuildResources(o *BuildParameters) error {
 	return err
 }
 
-func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (map[string]interface{}, error) {
-	resources := map[string]interface{}{}
+func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Resources, error) {
+	resources := res.Resources{}
 	envs, err := buildEnvironments(fs, m)
 	if err != nil {
 		return nil, err
 	}
+
 	resources = res.Merge(envs, resources)
-	argoApps, err := argocd.Build(o.RepositoryURL, m)
+	argoApps, err := argocd.Build(argocd.ArgoCDNamespace, o.RepositoryURL, m)
 	if err != nil {
 		return nil, err
 	}
