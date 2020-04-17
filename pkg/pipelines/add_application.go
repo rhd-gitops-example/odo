@@ -214,7 +214,6 @@ func pipelineTarget() *types.PatchTarget {
 }
 
 func createKustomizeMod(outputs map[string]interface{}, basesParams, resourcesParams []string, path string) {
-
 	bases := basesParams
 	resources := resourcesParams
 
@@ -226,10 +225,8 @@ func createKustomizeMod(outputs map[string]interface{}, basesParams, resourcesPa
 }
 
 func createKustomizeEnv(fs afero.Fs, basesParams, resourcesParams []string, path string) {
-
 	bases := basesParams
 	resources := resourcesParams
-
 	file := types.Kustomization{
 		Resources: resources,
 		Bases:     bases,

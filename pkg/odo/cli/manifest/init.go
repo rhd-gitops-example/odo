@@ -68,7 +68,7 @@ func (io *InitParameters) Validate() error {
 // Run runs the project bootstrap command.
 func (io *InitParameters) Run() error {
 	options := manifest.InitParameters{
-		DockerConfigJSONFileName: io.dockercfgjson,
+		DockerConfigJSONFilename: io.dockercfgjson,
 		GitOpsWebhookSecret:      io.gitOpsWebhookSecret,
 		GitOpsRepo:               io.gitOpsRepo,
 		Output:                   io.output,

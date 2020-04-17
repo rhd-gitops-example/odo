@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/openshift/odo/pkg/manifest"
@@ -28,22 +29,14 @@ var (
 
 // BootstrapParameters encapsulates the parameters for the odo pipelines init command.
 type BootstrapParameters struct {
-	gitOpsRepo               string // repo to store Gitops resources e.g. org/repo
-	gitOpsWebhookSecret      string // used to create Github's shared webhook secret for gitops repo
-	output                   string // path to add Gitops resources
-	prefix                   string // used to generate the environments in a shared cluster
-	skipChecks               bool   // skip Tekton installation checks
-	imageRepo                string
-	internalRegistryHostname string
-	deploymentPath           string
-	dockercfgjson            string
+	*manifest.BootstrapOptions
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
 
 // NewBootstrapParameters bootstraps a BootstrapParameters instance.
 func NewBootstrapParameters() *BootstrapParameters {
-	return &BootstrapParameters{}
+	return &BootstrapParameters{BootstrapOptions: &manifest.BootstrapOptions{}}
 }
 
 // Complete completes BootstrapParameters after they've been created.
@@ -51,36 +44,29 @@ func NewBootstrapParameters() *BootstrapParameters {
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []string) error {
-	if io.prefix != "" && !strings.HasSuffix(io.prefix, "-") {
-		io.prefix = io.prefix + "-"
+	if io.Prefix != "" && !strings.HasSuffix(io.Prefix, "-") {
+		io.Prefix = io.Prefix + "-"
 	}
 	return nil
 }
 
 // Validate validates the parameters of the BootstrapParameters.
 func (io *BootstrapParameters) Validate() error {
+	gr, err := url.Parse(io.GitOpsRepoURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse url %s: %w", io.GitOpsRepoURL, err)
+	}
+
 	// TODO: this won't work with GitLab as the repo can have more path elements.
-	if len(strings.Split(io.gitOpsRepo, "/")) != 2 {
-		return fmt.Errorf("repo must be org/repo: %s", io.gitOpsRepo)
+	if len(removeEmptyStrings(strings.Split(gr.Path, "/"))) != 2 {
+		return fmt.Errorf("repo must be org/repo: %s", strings.Trim(gr.Path, ".git"))
 	}
 	return nil
 }
 
 // Run runs the project bootstrap command.
 func (io *BootstrapParameters) Run() error {
-	options := manifest.BootstrapParameters{
-		GitOpsWebhookSecret:      io.gitOpsWebhookSecret,
-		GitOpsRepo:               io.gitOpsRepo,
-		Output:                   io.output,
-		Prefix:                   io.prefix,
-		SkipChecks:               io.skipChecks,
-		DeploymentPath:           io.deploymentPath,
-		ImageRepo:                io.imageRepo,
-		InternalRegistryHostname: io.internalRegistryHostname,
-		DockerConfigJSONFilename: io.dockercfgjson,
-	}
-
-	return manifest.Bootstrap(&options)
+	return manifest.Bootstrap(io.BootstrapOptions)
 }
 
 // NewCmdBootstrap creates the project init command.
@@ -97,20 +83,38 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 		},
 	}
 
-	initCmd.Flags().StringVar(&o.gitOpsRepo, "gitops-repo", "", "CI/CD pipelines configuration Git repository in this form <username>/<repository>")
-	initCmd.Flags().StringVar(&o.gitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for gitops repository")
-	initCmd.Flags().StringVar(&o.dockercfgjson, "dockercfgjson", "", "provide the dockercfg json path")
-	initCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
-	initCmd.MarkFlagRequired("output")
-	initCmd.Flags().StringVarP(&o.prefix, "prefix", "p", "", "add a prefix to the environment names")
-	initCmd.Flags().BoolVarP(&o.skipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
-	initCmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "image repository in this form <registry>/<username>/<repository> or <project>/<app> for internal registry")
-	initCmd.Flags().StringVar(&o.deploymentPath, "deployment-path", "deploy", "deployment folder path name")
-	initCmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
-	initCmd.MarkFlagRequired("gitops-repo")
+	initCmd.Flags().StringVar(&o.GitOpsRepoURL, "gitops-repo-url", "", "GitOps repository e.g. https://github.com/organisation/repository")
+	initCmd.Flags().StringVar(&o.GitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for GitOps repository")
+
+	initCmd.Flags().StringVar(&o.AppRepoURL, "app-repo-url", "", "Application source e.g. https://github.com/organisation/application")
+	initCmd.Flags().StringVar(&o.AppWebhookSecret, "app-webhook-secret", "", "Provide the GitHub webhook secret for Application repository")
+
+	initCmd.Flags().StringVar(&o.DockerConfigJSONFilename, "dockercfgjson", "", "provide the dockercfgjson path")
+	initCmd.Flags().StringVar(&o.InternalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
+	initCmd.Flags().StringVar(&o.OutputPath, "output", ".", "folder path to add Gitops resources")
+	initCmd.Flags().StringVarP(&o.Prefix, "prefix", "p", "", "add a prefix to the environment names")
+	initCmd.Flags().StringVarP(&o.ImageRepo, "image-repo", "", "", "used to push built images")
+	initCmd.Flags().BoolVarP(&o.SkipChecks, "skip-checks", "b", false, "skip Tekton installation checks")
+
+	initCmd.MarkFlagRequired("gitops-repo-url")
 	initCmd.MarkFlagRequired("gitops-webhook-secret")
+
+	initCmd.MarkFlagRequired("app-repo-url")
+	initCmd.MarkFlagRequired("app-webhook-secret")
+
 	initCmd.MarkFlagRequired("dockercfgjson")
+
 	initCmd.MarkFlagRequired("image-repo")
 
 	return initCmd
+}
+
+func removeEmptyStrings(s []string) []string {
+	nonempty := []string{}
+	for _, v := range s {
+		if v != "" {
+			nonempty = append(nonempty, v)
+		}
+	}
+	return nonempty
 }

@@ -30,7 +30,7 @@ import (
 
 // InitParameters is a struct that provides flags for the Init command.
 type InitParameters struct {
-	DockerConfigJSONFileName string
+	DockerConfigJSONFilename string
 	GitOpsRepo               string
 	GitOpsWebhookSecret      string
 	ImageRepo                string
@@ -121,17 +121,18 @@ func Init(o *InitParameters) error {
 		}
 	}
 
-	_, imageRepo, err := validatingImageRepo(o)
+	_, imageRepo, err := validateImageRepo(o.ImageRepo, o.InternalRegistryHostname)
 	if err != nil {
 		return err
 	}
 
+	// TODO: look into whether or not this can use afero.
 	exists, err := ioutils.IsExisting(o.Output)
 	if exists {
 		return err
 	}
 
-	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret, o.DockerConfigJSONFileName, imageRepo)
+	outputs, err := createInitialFiles(o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, imageRepo)
 	if err != nil {
 		return err
 	}
@@ -192,12 +193,12 @@ func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJSONPath, im
 }
 
 // CreateDockerSecret creates Docker secret
-func CreateDockerSecret(dockerConfigJSONFileName, ns string) (*ssv1alpha1.SealedSecret, error) {
-	if dockerConfigJSONFileName == "" {
+func CreateDockerSecret(dockerConfigJSONFilename, ns string) (*ssv1alpha1.SealedSecret, error) {
+	if dockerConfigJSONFilename == "" {
 		return nil, errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")
 	}
 
-	authJSONPath, err := homedir.Expand(dockerConfigJSONFileName)
+	authJSONPath, err := homedir.Expand(dockerConfigJSONFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate path to file: %w", err)
 	}
@@ -293,44 +294,44 @@ func GetPipelinesDir(rootPath, prefix string) string {
 	return filepath.Join(rootPath, EnvsDir, AddPrefix(prefix, CICDDir), BaseDir, pipelineDir)
 }
 
-// validatingImageRepo validates the input image repo.  It determines if it is
+// validateImageRepo validates the input image repo.  It determines if it is
 // for internal registry and prepend internal registry hostname if neccessary.
-func validatingImageRepo(o *InitParameters) (bool, string, error) {
-	components := strings.Split(o.ImageRepo, "/")
+func validateImageRepo(imageRepo, registryURL string) (bool, string, error) {
+	components := strings.Split(imageRepo, "/")
 
 	// repo url has minimum of 2 components
 	if len(components) < 2 {
-		return false, "", imageRepoValidationErrors(o.ImageRepo)
+		return false, "", imageRepoValidationErrors(imageRepo)
 	}
 
 	for _, v := range components {
 		// check for empty components
 		if strings.TrimSpace(v) == "" {
-			return false, "", imageRepoValidationErrors(o.ImageRepo)
+			return false, "", imageRepoValidationErrors(imageRepo)
 		}
 		// check for white spaces
 		if len(v) > len(strings.TrimSpace(v)) {
-			return false, "", imageRepoValidationErrors(o.ImageRepo)
+			return false, "", imageRepoValidationErrors(imageRepo)
 		}
 	}
 
 	if len(components) == 2 {
 		if components[0] == "docker.io" || components[0] == "quay.io" {
 			// we recognize docker.io and quay.io.  It is missing one component
-			return false, "", imageRepoValidationErrors(o.ImageRepo)
+			return false, "", imageRepoValidationErrors(imageRepo)
 		}
 		// We have format like <project>/<app> which is an internal registry.
 		// We prepend the internal registry hostname.
-		return true, o.InternalRegistryHostname + "/" + o.ImageRepo, nil
+		return true, registryURL + "/" + imageRepo, nil
 	}
 
 	// Check the first component to see if it is an internal registry
 	if len(components) == 3 {
-		return components[0] == o.InternalRegistryHostname, o.ImageRepo, nil
+		return components[0] == registryURL, imageRepo, nil
 	}
 
 	// > 3 components.  invalid repo
-	return false, "", imageRepoValidationErrors(o.ImageRepo)
+	return false, "", imageRepoValidationErrors(imageRepo)
 }
 
 func imageRepoValidationErrors(imageRepo string) error {

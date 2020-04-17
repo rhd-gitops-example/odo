@@ -155,7 +155,7 @@ func TestEnviromentSorting(t *testing.T) {
 
 	for _, tt := range envTests {
 		envs := makeEnvs(tt.names)
-		sort.Sort(byName(envs))
+		sort.Sort(ByName(envs))
 		if diff := cmp.Diff(tt.want, envNames(envs)); diff != "" {
 			t.Errorf("sort(%#v): %s", envs, diff)
 		}
