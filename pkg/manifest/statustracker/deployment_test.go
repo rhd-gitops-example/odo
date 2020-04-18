@@ -14,8 +14,28 @@ import (
 	"github.com/openshift/odo/pkg/manifest/roles"
 )
 
-func TestDeployment(t *testing.T) {
-	deploy := createDeployment("dana-cicd")
+func TestCreateDeployment(t *testing.T) {
+	component := "my-component"
+	image := "quay.io/testing/testing"
+	d := createDeployment("testing", component, image)
+
+	want := &appsv1.Deployment{
+		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testing", component)),
+		Spec: appsv1.DeploymentSpec{
+			Replicas: ptr32(1),
+			Selector: labelSelector("name", component),
+			Template: podTemplate(component, image),
+		},
+	}
+
+	if diff := cmp.Diff(want, d); diff != "" {
+		t.Fatalf("deployment diff:\n%s", diff)
+	}
+}
+
+func TestCreateStatusTrackerDeployment(t *testing.T) {
+	deploy := createStatusTrackerDeployment("dana-cicd")
 
 	want := &appsv1.Deployment{
 		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
@@ -23,7 +43,46 @@ func TestDeployment(t *testing.T) {
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
 			Selector: labelSelector("name", operatorName),
-			Template: podTemplate(operatorName),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"name": operatorName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: operatorName,
+					Containers: []corev1.Container{
+						{
+							Name:            operatorName,
+							Image:           containerImage,
+							Command:         []string{operatorName},
+							ImagePullPolicy: corev1.PullAlways,
+							Env: []corev1.EnvVar{
+								{
+									Name: "WATCH_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
+								},
+								{
+									Name: "POD_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.name",
+										},
+									},
+								},
+								{
+									Name:  "OPERATOR_NAME",
+									Value: operatorName,
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -32,49 +91,28 @@ func TestDeployment(t *testing.T) {
 	}
 }
 
-func TestPodTemplate(t *testing.T) {
+func TestDefaultPodTemplate(t *testing.T) {
+	component := "test-svc"
+	image := "quay.io/example/example"
 	want := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"name": operatorName,
+				"name": component,
 			},
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: operatorName,
+			ServiceAccountName: "default",
 			Containers: []corev1.Container{
 				{
-					Name:            operatorName,
-					Image:           containerImage,
-					Command:         []string{operatorName},
+					Name:            component,
+					Image:           image,
 					ImagePullPolicy: corev1.PullAlways,
-					Env: []corev1.EnvVar{
-						{
-							Name: "WATCH_NAMESPACE",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath: "metadata.namespace",
-								},
-							},
-						},
-						{
-							Name: "POD_NAME",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath: "metadata.name",
-								},
-							},
-						},
-						{
-							Name:  "OPERATOR_NAME",
-							Value: operatorName,
-						},
-					},
 				},
 			},
 		},
 	}
 
-	spec := podTemplate(operatorName)
+	spec := podTemplate(component, image)
 
 	if diff := cmp.Diff(want, spec); diff != "" {
 		t.Fatalf("labelTemplate diff: %s", diff)
@@ -103,7 +141,7 @@ func TestResource(t *testing.T) {
 		testSecret,
 		roles.CreateRole(name, roleRules),
 		roles.CreateRoleBinding(name, sa, "Role", operatorName),
-		createDeployment(ns),
+		createStatusTrackerDeployment(ns),
 	}
 
 	if diff := cmp.Diff(want, res); diff != "" {

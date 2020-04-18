@@ -63,72 +63,94 @@ var (
 			Verbs:     []string{"get", "list", "watch"},
 		},
 	}
+
+	statusTrackerEnv = []corev1.EnvVar{
+		{
+			Name: "WATCH_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name:  "OPERATOR_NAME",
+			Value: operatorName,
+		},
+	}
 )
 
-func createDeployment(ns string) *appsv1.Deployment {
+// ServiceAccount is an option that configures the deployment's pods to execute
+// with the provided service account name.
+func ServiceAccount(sa string) podSpecFunc {
+	return func(c *corev1.PodSpec) {
+		c.ServiceAccountName = sa
+	}
+}
+
+// Env adds an environment to the first container in the PodSpec.
+func Env(env []corev1.EnvVar) podSpecFunc {
+	return func(c *corev1.PodSpec) {
+		c.Containers[0].Env = env
+	}
+}
+
+// Command configures the command for the first container in the PodSpec.
+func Command(s []string) podSpecFunc {
+	return func(c *corev1.PodSpec) {
+		c.Containers[0].Command = s
+	}
+}
+
+func createStatusTrackerDeployment(ns string) *appsv1.Deployment {
+	return createDeployment(ns, operatorName, containerImage, ServiceAccount(operatorName), Env(statusTrackerEnv), Command([]string{operatorName}))
+}
+
+func createDeployment(ns, name, image string, opts ...podSpecFunc) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, operatorName)),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, name)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
-			Selector: labelSelector("name", operatorName),
-			Template: podTemplate(operatorName),
+			Selector: labelSelector("name", name),
+			Template: podTemplate(name, image, opts...),
 		},
 	}
 }
 
-func ptr32(i int32) *int32 {
-	return &i
-}
+type podSpecFunc func(t *corev1.PodSpec)
 
-func labelSelector(name, value string) *metav1.LabelSelector {
-	return &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			name: value,
+func podTemplate(name, image string, opts ...podSpecFunc) corev1.PodTemplateSpec {
+	podSpec := &corev1.PodSpec{
+		ServiceAccountName: "default",
+		Containers: []corev1.Container{
+			{
+				Name:            name,
+				Image:           image,
+				ImagePullPolicy: corev1.PullAlways,
+			},
 		},
 	}
-}
-func podTemplate(name string) corev1.PodTemplateSpec {
+
+	for _, o := range opts {
+		o(podSpec)
+	}
+
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"name": name,
 			},
 		},
-		Spec: corev1.PodSpec{
-			ServiceAccountName: operatorName,
-			Containers: []corev1.Container{
-				{
-					Name:            operatorName,
-					Image:           containerImage,
-					Command:         []string{operatorName},
-					ImagePullPolicy: corev1.PullAlways,
-					Env: []corev1.EnvVar{
-						{
-							Name: "WATCH_NAMESPACE",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath: "metadata.namespace",
-								},
-							},
-						},
-
-						{
-							Name: "POD_NAME",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath: "metadata.name",
-								},
-							},
-						},
-						{
-							Name:  "OPERATOR_NAME",
-							Value: operatorName,
-						},
-					},
-				},
-			},
-		},
+		Spec: *podSpec,
 	}
 }
 
@@ -160,6 +182,18 @@ func Resources(ns, token string) ([]interface{}, error) {
 		githubAuth,
 		roles.CreateRole(name, roleRules),
 		roles.CreateRoleBinding(name, sa, "Role", operatorName),
-		createDeployment(ns),
+		createStatusTrackerDeployment(ns),
 	}, nil
+}
+
+func ptr32(i int32) *int32 {
+	return &i
+}
+
+func labelSelector(name, value string) *metav1.LabelSelector {
+	return &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			name: value,
+		},
+	}
 }
