@@ -13,13 +13,15 @@ import (
 
 	"github.com/openshift/odo/pkg/manifest/config"
 	"github.com/openshift/odo/pkg/manifest/deployment"
+	"github.com/openshift/odo/pkg/manifest/eventlisteners"
 	"github.com/openshift/odo/pkg/manifest/meta"
 	res "github.com/openshift/odo/pkg/manifest/resources"
+	"github.com/openshift/odo/pkg/manifest/secrets"
 	"github.com/openshift/odo/pkg/manifest/yaml"
 )
 
 const manifestFile = "manifest.yaml"
-const bootstrapImage = "nginx:1.7.9"
+const bootstrapImage = "nginxinc/nginx-unprivileged:latest"
 
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
@@ -66,17 +68,23 @@ func Bootstrap(o *BootstrapOptions) error {
 	return err
 }
 
-func bootstrapResources(p *BootstrapOptions) (res.Resources, error) {
-	orgRepo, err := orgRepoFromURL(p.GitOpsRepoURL)
+func bootstrapResources(o *BootstrapOptions) (res.Resources, error) {
+	orgRepo, err := orgRepoFromURL(o.GitOpsRepoURL)
 	if err != nil {
 		return nil, err
 	}
-	bootstrapped, err := createInitialFiles(p.Prefix, orgRepo, p.GitOpsWebhookSecret, p.DockerConfigJSONFilename, "")
+	bootstrapped, err := createInitialFiles(o.Prefix, orgRepo, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, "")
 	if err != nil {
 		return nil, err
 	}
-	ns := NamespaceNames(p.Prefix)
-	envs, err := bootstrapEnvironments(p.Prefix, p.AppRepoURL, ns)
+	ns := NamespaceNames(o.Prefix)
+	// TODO THIS NEEDS TO BE FIXED TO GENERATE THE NAME FROM THE SERVICE.
+	hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(ns["cicd"], eventlisteners.GitOpsWebhookSecret),
+		o.AppWebhookSecret, "github-webhook-secret-"+"-svc")
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
+	}
+	envs, err := bootstrapEnvironments(o.Prefix, o.AppRepoURL, hookSecret.ObjectMeta.Name, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +108,7 @@ func bootstrapServiceDeployment(dev *config.Environment) (res.Resources, error) 
 	return resources, nil
 }
 
-func bootstrapEnvironments(prefix, repoURL string, ns map[string]string) ([]*config.Environment, error) {
+func bootstrapEnvironments(prefix, repoURL, secretName string, ns map[string]string) ([]*config.Environment, error) {
 	envs := []*config.Environment{}
 	for k, v := range ns {
 		env := &config.Environment{Name: v}
@@ -108,7 +116,7 @@ func bootstrapEnvironments(prefix, repoURL string, ns map[string]string) ([]*con
 			env.IsCICD = true
 		}
 		if k == "dev" {
-			app, err := applicationFromRepo(repoURL)
+			app, err := applicationFromRepo(repoURL, secretName)
 			if err != nil {
 				return nil, err
 			}
@@ -122,7 +130,7 @@ func bootstrapEnvironments(prefix, repoURL string, ns map[string]string) ([]*con
 	return envs, nil
 }
 
-func applicationFromRepo(repoURL string) (*config.Application, error) {
+func applicationFromRepo(repoURL, secretName string) (*config.Application, error) {
 	repo, err := repoFromURL(repoURL)
 	if err != nil {
 		return nil, err
@@ -133,6 +141,11 @@ func applicationFromRepo(repoURL string) (*config.Application, error) {
 			{
 				Name:      repo + "-svc",
 				SourceURL: repoURL,
+				Webhook: &config.Webhook{
+					Secret: &config.Secret{
+						Name: secretName,
+					},
+				},
 			},
 		},
 	}, nil

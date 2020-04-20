@@ -142,14 +142,14 @@ func Init(o *InitParameters) error {
 }
 
 // CreateResources creates resources assocated to pipelines.
-func CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigJSONPath, imageRepo string) (map[string]interface{}, error) {
+func CreateResources(prefix, gitOpsRepo, gitOpsWebhookSecret, dockerConfigJSONPath, imageRepo string) (map[string]interface{}, error) {
 	// key: path of the resource
 	// value: YAML content of the resource
 	outputs := map[string]interface{}{}
 	cicdNamespace := AddPrefix(prefix, "cicd")
 
 	githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdNamespace, eventlisteners.GitOpsWebhookSecret),
-		gitOpsWebhook, eventlisteners.WebhookSecretKey)
+		gitOpsWebhookSecret, eventlisteners.WebhookSecretKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
 	}
@@ -218,13 +218,12 @@ func CreateDockerSecret(dockerConfigJSONFilename, ns string) (*ssv1alpha1.Sealed
 
 }
 
-func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, imageRepo string) (res.Resources, error) {
+func createInitialFiles(prefix, gitOpsRepo, gitOpsWebhookSecret, dockerConfigPath, imageRepo string) (res.Resources, error) {
 	manifest := createManifest(&config.Environment{Name: prefix + "cicd", IsCICD: true})
 	initialFiles := res.Resources{
 		"manifest.yaml": manifest,
 	}
-
-	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhook, dockerConfigPath, imageRepo)
+	cicdResources, err := CreateResources(prefix, gitOpsRepo, gitOpsWebhookSecret, dockerConfigPath, imageRepo)
 	if err != nil {
 		return nil, err
 	}
