@@ -28,7 +28,7 @@ type tektonBuilder struct {
 	files res.Resources
 }
 
-func buildEventlistener(m *config.Manifest) (res.Resources, error) {
+func buildEventlistenerResources(m *config.Manifest) (res.Resources, error) {
 	files := make(res.Resources)
 	tb := &tektonBuilder{files: files}
 	err := m.Walk(tb)
@@ -62,10 +62,6 @@ func defaultPipeline() *config.Pipelines {
 			Template: "app-ci-template",
 			Binding:  "app-ci-binding",
 		},
-		Deployment: &config.TemplateBinding{
-			Template: "app-cd-template",
-			Binding:  "app-cd-binding",
-		},
 	}
 }
 
@@ -81,32 +77,17 @@ func extractRepo(u string) (string, error) {
 func eventlistenerPatch(env *config.Environment, svc *config.Service) ([]patchStringValue, error) {
 	pipelines := getPipelines(env, svc)
 	svcRepo, err := extractRepo(svc.SourceURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if env.IsArgoCD {
-		return []patchStringValue{
-			{
-				Op:    "add",
-				Path:  "/spec/triggers/-",
-				Value: eventlisteners.CreateListenerTrigger("app-ci-build-from-pr", eventlisteners.StageCIDryRunFilters, svcRepo, pipelines.Integration.Binding, pipelines.Integration.Template, svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace),
-			},
-		}, nil
-	}
-
 	return []patchStringValue{
 		{
 			Op:    "add",
 			Path:  "/spec/triggers/-",
-			Value: eventlisteners.CreateListenerTrigger("app-ci-build-from-pr", eventlisteners.StageCIDryRunFilters, svcRepo, pipelines.Integration.Binding, pipelines.Integration.Template, svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace),
+			Value: eventlisteners.CreateListenerTrigger(triggerName(svc.Name), eventlisteners.StageCIDryRunFilters, svcRepo, pipelines.Integration.Binding, pipelines.Integration.Template, svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace),
 		},
-		{
-			Op:    "add",
-			Path:  "/spec/triggers/-",
-			Value: eventlisteners.CreateListenerTrigger("app-cd-deploy-from-master", eventlisteners.StageCDDeployFilters, svcRepo, pipelines.Deployment.Binding, pipelines.Deployment.Template, svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace),
-		},
-	}, nil
+	}, err
+}
+
+func triggerName(svc string) string {
+	return fmt.Sprintf("app-ci-build-from-pr-%s", svc)
 }
 
 func getServiceFiles(svcPath string, env *config.Environment, svc *config.Service) (res.Resources, error) {

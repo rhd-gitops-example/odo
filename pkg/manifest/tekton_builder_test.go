@@ -17,7 +17,7 @@ func TestBuildEventListener(t *testing.T) {
 	}
 	elPatch, err := eventlistenerPatch(testEnv(), testService())
 	assertNoError(t, err)
-	got, err := buildEventlistener(m)
+	got, err := buildEventlistenerResources(m)
 	assertNoError(t, err)
 	want := res.Resources{
 		"environments/test-dev/services/test-svc/overlays/kustomization.yaml":       elKustomiseTarget("../base"),
@@ -61,10 +61,6 @@ func testPipelines(name string) *config.Pipelines {
 		Integration: &config.TemplateBinding{
 			Template: fmt.Sprintf("%s-ci-template", name),
 			Binding:  fmt.Sprintf("%s-ci-binding", name),
-		},
-		Deployment: &config.TemplateBinding{
-			Template: fmt.Sprintf("%s-cd-template", name),
-			Binding:  fmt.Sprintf("%s-cd-binding", name),
 		},
 	}
 }

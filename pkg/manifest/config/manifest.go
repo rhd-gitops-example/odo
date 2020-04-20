@@ -131,7 +131,6 @@ type Repository struct {
 // These pipelines will be executed with a Git clone URL and commit SHA.
 type Pipelines struct {
 	Integration *TemplateBinding `json:"integration,omitempty"`
-	Deployment  *TemplateBinding `json:"deployment,omitempty"`
 }
 
 // TemplateBinding is a combination of the template and binding to be used for a

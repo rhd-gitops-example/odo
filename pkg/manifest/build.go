@@ -41,7 +41,7 @@ func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Re
 		return nil, err
 	}
 	resources = res.Merge(envs, resources)
-	elFiles, err := buildEventlistener(m)
+	elFiles, err := buildEventlistenerResources(m)
 	if err != nil {
 		return nil, err
 	}
