@@ -15,6 +15,7 @@ import (
 
 const (
 	elPatchFile     = "eventlistener_patch.yaml"
+	elPatchDir      = "eventlistener_patches"
 	rolebindingFile = "edit-rolebinding.yaml"
 )
 
@@ -25,20 +26,26 @@ type patchStringValue struct {
 }
 
 type tektonBuilder struct {
-	files res.Resources
+	files    res.Resources
+	cicdEnv  *config.Environment
+	services []string // slice of all services
 }
 
 func buildEventlistenerResources(m *config.Manifest) (res.Resources, error) {
 	files := make(res.Resources)
-	tb := &tektonBuilder{files: files}
-	err := m.Walk(tb)
+	cicdEnv, err := m.GetCICDEnvironment()
+	if err != nil {
+		return nil, err
+	}
+	tb := &tektonBuilder{files: files, cicdEnv: cicdEnv}
+	err = m.Walk(tb)
 	return tb.files, err
 }
 
 func (tk *tektonBuilder) Service(env *config.Environment, app *config.Application, svc *config.Service) error {
 
-	svcPath := config.PathForService(env, svc)
-	svcFiles, err := getServiceFiles(svcPath, env, svc)
+	tk.services = append(tk.services, svc.Name)
+	svcFiles, err := getServiceFiles(tk.services, tk.cicdEnv, env, svc)
 	if err != nil {
 		return err
 	}
@@ -90,12 +97,14 @@ func triggerName(svc string) string {
 	return fmt.Sprintf("app-ci-build-from-pr-%s", svc)
 }
 
-func getServiceFiles(svcPath string, env *config.Environment, svc *config.Service) (res.Resources, error) {
+func getServiceFiles(services []string, cicdEnv *config.Environment, env *config.Environment, svc *config.Service) (res.Resources, error) {
 	envFiles := res.Resources{}
-	basePath := filepath.Join(svcPath, "base")
-	overlaysPath := filepath.Join(svcPath, "overlays")
+	cicdPath := config.PathForEnvironment(cicdEnv)
+	basePath := filepath.Join(cicdPath, "base")
+	overlaysPath := filepath.Join(cicdPath, "overlays")
 	overlaysFile := filepath.Join(overlaysPath, kustomization)
 	overlayRel, err := filepath.Rel(overlaysPath, basePath)
+	patchDir := filepath.Join(overlaysPath, elPatchDir)
 	if err != nil {
 		return nil, err
 	}
@@ -103,14 +112,17 @@ func getServiceFiles(svcPath string, env *config.Environment, svc *config.Servic
 	if err != nil {
 		return nil, err
 	}
-	envFiles[filepath.Join(overlaysPath, elPatchFile)] = elPatch
-
-	envFiles[overlaysFile] = elKustomiseTarget(overlayRel)
+	envFiles[filepath.Join(patchDir, patchFile(svc.Name))] = elPatch
+	envFiles[overlaysFile] = elKustomiseTarget(cicdEnv.Name, overlayRel, services)
 
 	return envFiles, nil
 }
 
-func elKustomiseTarget(base string) interface{} {
+func patchFile(svc string) string {
+	return fmt.Sprintf("%s_patch.yaml", svc)
+}
+
+func elKustomiseTarget(cicdNs string, base string, services []string) interface{} {
 
 	GVK := gvk.Gvk{
 		Group:   "tekton.dev",
@@ -118,14 +130,17 @@ func elKustomiseTarget(base string) interface{} {
 		Kind:    "EventListener",
 	}
 	target := &types.PatchTarget{
-		Gvk:  GVK,
-		Name: "cicd-event-listener",
+		Gvk:       GVK,
+		Name:      "cicd-event-listener",
+		Namespace: cicdNs,
 	}
-	Patches := []types.PatchJson6902{
-		{
+	Patches := []types.PatchJson6902{}
+	for _, svc := range services {
+		patch := types.PatchJson6902{
 			Target: target,
-			Path:   elPatchFile,
-		},
+			Path:   filepath.Join(elPatchDir, patchFile(svc)),
+		}
+		Patches = append(Patches, patch)
 	}
 	file := types.Kustomization{
 		Bases:           []string{base},

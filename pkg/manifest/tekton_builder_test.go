@@ -12,6 +12,10 @@ import (
 func TestBuildEventListener(t *testing.T) {
 	m := &config.Manifest{
 		[]*config.Environment{
+			&config.Environment{
+				Name:   "test-cicd",
+				IsCICD: true,
+			},
 			testEnv(),
 		},
 	}
@@ -20,8 +24,8 @@ func TestBuildEventListener(t *testing.T) {
 	got, err := buildEventlistenerResources(m)
 	assertNoError(t, err)
 	want := res.Resources{
-		"environments/test-dev/services/test-svc/overlays/kustomization.yaml":       elKustomiseTarget("../base"),
-		"environments/test-dev/services/test-svc/overlays/eventlistener_patch.yaml": elPatch,
+		"environments/test-cicd/overlays/eventlistener_patches/test-svc_patch.yaml": elPatch,
+		"environments/test-cicd/overlays/kustomization.yaml":                        elKustomiseTarget("test-cicd", "../base", []string{"test-svc"}),
 	}
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Fatalf("resources didn't match:%s\n", diff)
