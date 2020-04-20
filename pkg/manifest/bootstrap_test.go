@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openshift/odo/pkg/manifest/config"
+	"github.com/openshift/odo/pkg/manifest/deployment"
 	res "github.com/openshift/odo/pkg/manifest/resources"
 	"github.com/openshift/odo/pkg/manifest/secrets"
 )
@@ -44,9 +45,10 @@ func TestBootstrapManifest(t *testing.T) {
 	}
 
 	want := res.Resources{
-		"environments/tst-dev/services/http-api-svc/base/config/100-deployment.yaml": nil,
-		"environments/tst-dev/services/http-api-svc/base/config/200-service.yaml":    nil,
-		"environments/tst-dev/services/http-api-svc/base/config/kustomization.yaml":  nil,
+		"environments/tst-dev/services/http-api-svc/base/config/100-deployment.yaml": deployment.Create("tst-dev", "http-api-svc", bootstrapImage, deployment.ContainerPort(80)),
+
+		"environments/tst-dev/services/http-api-svc/base/config/200-service.yaml":   createBootstrapService("tst-dev", "http-api-svc"),
+		"environments/tst-dev/services/http-api-svc/base/config/kustomization.yaml": nil,
 		"manifest.yaml": &config.Manifest{
 			Environments: []*config.Environment{
 				{

@@ -11,18 +11,21 @@ import (
 	"github.com/openshift/odo/pkg/manifest/meta"
 )
 
+const (
+	testComponent = "nginx-deployment"
+	testImage     = "nginx:1.7.9"
+)
+
 func TestCreate(t *testing.T) {
-	component := "my-component"
-	image := "quay.io/testing/testing"
-	d := Create("testing", component, image)
+	d := Create("", testComponent, testImage, ContainerPort(80))
 
 	want := &appsv1.Deployment{
 		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("testing", component)),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", testComponent)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
-			Selector: labelSelector("name", component),
-			Template: podTemplate(component, image),
+			Selector: labelSelector("name", testComponent),
+			Template: podTemplate(testComponent, testImage, ContainerPort(80)),
 		},
 	}
 
@@ -32,29 +35,111 @@ func TestCreate(t *testing.T) {
 }
 
 func TestDefaultPodTemplate(t *testing.T) {
-	component := "test-svc"
-	image := "quay.io/example/example"
+	testComponent := "test-svc"
 	want := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"name": component,
+				"name": testComponent,
 			},
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: "default",
 			Containers: []corev1.Container{
 				{
-					Name:            component,
-					Image:           image,
+					Name:            testComponent,
+					Image:           testImage,
 					ImagePullPolicy: corev1.PullAlways,
 				},
 			},
 		},
 	}
 
-	spec := podTemplate(component, image)
+	spec := podTemplate(testComponent, testImage)
 
 	if diff := cmp.Diff(want, spec); diff != "" {
-		t.Fatalf("labelTemplate diff: %s", diff)
+		t.Fatalf("podTemplate diff: %s", diff)
+	}
+}
+
+func TestPodTemplateEnv(t *testing.T) {
+	env := []corev1.EnvVar{{Name: "FOO_BAR_SERVICE_HOST", Value: "1.2.3.4"}}
+
+	spec := podTemplate(testComponent, testImage, Env(env))
+
+	want := corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"name": testComponent,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: "default",
+			Containers: []corev1.Container{
+				{
+					Name:            testComponent,
+					Image:           testImage,
+					ImagePullPolicy: corev1.PullAlways,
+					Env:             env,
+				},
+			},
+		},
+	}
+	if diff := cmp.Diff(want, spec); diff != "" {
+		t.Fatalf("podTemplate diff: %s", diff)
+	}
+}
+
+func TestPodemplateCommand(t *testing.T) {
+	spec := podTemplate(testComponent, testImage, Command([]string{"/usr/local/bin/test"}))
+
+	want := corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"name": testComponent,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: "default",
+			Containers: []corev1.Container{
+				{
+					Name:            testComponent,
+					Image:           testImage,
+					ImagePullPolicy: corev1.PullAlways,
+					Command:         []string{"/usr/local/bin/test"},
+				},
+			},
+		},
+	}
+	if diff := cmp.Diff(want, spec); diff != "" {
+		t.Fatalf("podTemplate diff: %s", diff)
+	}
+
+}
+
+func TestPodemplateContainerPort(t *testing.T) {
+	spec := podTemplate(testComponent, testImage, ContainerPort(80))
+
+	want := corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"name": testComponent,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: "default",
+			Containers: []corev1.Container{
+				{
+					Name:            testComponent,
+					Image:           testImage,
+					ImagePullPolicy: corev1.PullAlways,
+					Ports: []corev1.ContainerPort{
+						{ContainerPort: 80},
+					},
+				},
+			},
+		},
+	}
+	if diff := cmp.Diff(want, spec); diff != "" {
+		t.Fatalf("podTemplate diff: %s", diff)
 	}
 }

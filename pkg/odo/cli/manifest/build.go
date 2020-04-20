@@ -53,7 +53,7 @@ func (io *BuildParameters) Validate() error {
 func (io *BuildParameters) Run() error {
 	options := manifest.BuildParameters{
 		ManifestFilename: io.manifest,
-		OutputDir:        io.output,
+		OutputPath:       io.output,
 		RepositoryURL:    io.gitopsRepoURL,
 	}
 	return manifest.BuildResources(&options)

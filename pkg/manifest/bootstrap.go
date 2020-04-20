@@ -7,11 +7,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/spf13/afero"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"github.com/openshift/odo/pkg/manifest/config"
 	"github.com/openshift/odo/pkg/manifest/deployment"
+	"github.com/openshift/odo/pkg/manifest/meta"
 	res "github.com/openshift/odo/pkg/manifest/resources"
 	"github.com/openshift/odo/pkg/manifest/yaml"
-	"github.com/spf13/afero"
 )
 
 const bootstrapImage = "nginx:1.7.9"
@@ -83,11 +87,10 @@ func bootstrapResources(p *BootstrapOptions) (res.Resources, error) {
 func bootstrapServiceDeployment(dev *config.Environment) (res.Resources, error) {
 	svc := dev.Apps[0].Services[0]
 	svcBase := filepath.Join(config.PathForService(dev, svc), "base", "config")
-	// appBase := config.PathForApplication(dev, dev.Apps[0])
 	resources := res.Resources{}
 	// TODO: This should change if we add Namespace to Environment.
-	resources[filepath.Join(svcBase, "100-deployment.yaml")] = deployment.Create(dev.Name, svc.Name, bootstrapImage)
-	resources[filepath.Join(svcBase, "200-service.yaml")] = nil
+	resources[filepath.Join(svcBase, "100-deployment.yaml")] = deployment.Create(dev.Name, svc.Name, bootstrapImage, deployment.ContainerPort(80))
+	resources[filepath.Join(svcBase, "200-service.yaml")] = createBootstrapService(dev.Name, svc.Name)
 	resources[filepath.Join(svcBase, "kustomization.yaml")] = nil
 	return resources, nil
 }
@@ -147,4 +150,16 @@ func orgRepoFromURL(raw string) (string, error) {
 	parts := strings.Split(u.Path, "/")
 	orgRepo := strings.Join(parts[len(parts)-2:], "/")
 	return strings.TrimSuffix(orgRepo, ".git"), nil
+}
+
+func createBootstrapService(ns, name string) *corev1.Service {
+	return &corev1.Service{
+		TypeMeta:   meta.TypeMeta("Service", "v1"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, name)),
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{Name: "http", Protocol: corev1.ProtocolTCP, Port: 80, TargetPort: intstr.FromInt(80)},
+			},
+		},
+	}
 }

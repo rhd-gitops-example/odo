@@ -30,6 +30,16 @@ func Command(s []string) podSpecFunc {
 	}
 }
 
+// ContainerPort configures a port for the first container as a ContainerPort
+// with the specified port number.
+func ContainerPort(p int32) podSpecFunc {
+	return func(c *corev1.PodSpec) {
+		c.Containers[0].Ports = []corev1.ContainerPort{
+			{ContainerPort: p},
+		}
+	}
+}
+
 // Create creates and returns a Deployment with the specified configuration.
 func Create(ns, name, image string, opts ...podSpecFunc) *appsv1.Deployment {
 	return &appsv1.Deployment{
