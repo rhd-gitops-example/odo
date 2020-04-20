@@ -17,7 +17,7 @@ import (
 func WriteResources(fs afero.Fs, path string, files map[string]interface{}) ([]string, error) {
 	filenames := make([]string, 0)
 	for filename, item := range files {
-		err := marshalItemToFile(fs, filepath.Join(path, filename), item)
+		err := MarshalItemToFile(fs, filepath.Join(path, filename), item)
 		if err != nil {
 			return nil, err
 		}
@@ -27,7 +27,7 @@ func WriteResources(fs afero.Fs, path string, files map[string]interface{}) ([]s
 }
 
 // MarshalItemToFile marshals item to file
-func marshalItemToFile(fs afero.Fs, filename string, item interface{}) error {
+func MarshalItemToFile(fs afero.Fs, filename string, item interface{}) error {
 	err := fs.MkdirAll(filepath.Dir(filename), 0755)
 	if err != nil {
 		return fmt.Errorf("failed to MkDirAll for %s: %v", filename, err)
@@ -57,5 +57,5 @@ func MarshalOutput(out io.Writer, output interface{}) error {
 func AddKustomize(fs afero.Fs, name string, items []string, path string) error {
 	content := []interface{}{}
 	content = append(content, map[string]interface{}{name: items})
-	return marshalItemToFile(fs, path, content)
+	return MarshalItemToFile(fs, path, content)
 }

@@ -99,8 +99,21 @@ type Application struct {
 
 // Service has an upstream source.
 type Service struct {
+	Name      string     `json:"name,omitempty"`
+	Webhook   *Webhook   `json:"webhook,omitempty"`
+	SourceURL string     `json:"source_url,omitempty"`
+	Pipelines *Pipelines `json:"pipelines,omitempty"`
+}
+
+// Webhook provides Github webhook secret for eventlisteners
+type Webhook struct {
+	Secret *Secret `json:"secret,omitempty"`
+}
+
+// Secret represents a K8s secret in a namespace
+type Secret struct {
 	Name      string `json:"name,omitempty"`
-	SourceURL string `json:"source_url,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // Repository refers to an upstream source for reading additional config from.
@@ -118,7 +131,6 @@ type Repository struct {
 // These pipelines will be executed with a Git clone URL and commit SHA.
 type Pipelines struct {
 	Integration *TemplateBinding `json:"integration,omitempty"`
-	Deployment  *TemplateBinding `json:"deployment,omitempty"`
 }
 
 // TemplateBinding is a combination of the template and binding to be used for a
