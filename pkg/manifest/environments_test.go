@@ -14,17 +14,17 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 	var appFs = afero.NewMemMapFs()
 	m := &config.Manifest{
 		Environments: []*config.Environment{
-			&config.Environment{
+			{
 				Name: "test-dev",
 				Apps: []*config.Application{
 					{
 						Name: "my-app-1",
 						Services: []*config.Service{
-							&config.Service{
+							{
 								Name:      "service-http",
 								SourceURL: "https://github.com/myproject/myservice.git",
 							},
-							&config.Service{Name: "service-metrics"},
+							{Name: "service-metrics"},
 						},
 					},
 				},
@@ -39,8 +39,8 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 
 	want := res.Resources{
 		"environments/test-dev/apps/my-app-1/base/kustomization.yaml": &res.Kustomization{Bases: []string{
-			"../../../../services/service-http",
-			"../../../../services/service-metrics"}},
+			"../../../services/service-http",
+			"../../../services/service-metrics"}},
 		"environments/test-dev/apps/my-app-1/kustomization.yaml":                     &res.Kustomization{Bases: []string{"overlays"}},
 		"environments/test-dev/apps/my-app-1/overlays/kustomization.yaml":            &res.Kustomization{Bases: []string{"../base"}},
 		"environments/test-dev/env/base/test-dev-environment.yaml":                   CreateNamespace("test-dev"),
@@ -63,8 +63,8 @@ func TestBuildEnvironmentsDoesNotOutputCIorArgo(t *testing.T) {
 	var appFs = afero.NewMemMapFs()
 	m := &config.Manifest{
 		Environments: []*config.Environment{
-			&config.Environment{Name: "test-ci", IsCICD: true},
-			&config.Environment{Name: "test-argo", IsArgoCD: true},
+			{Name: "test-ci", IsCICD: true},
+			{Name: "test-argo", IsArgoCD: true},
 		},
 	}
 
@@ -88,7 +88,7 @@ func TestBuildEnvironmentsAddsKustomizedFiles(t *testing.T) {
 
 	m := &config.Manifest{
 		Environments: []*config.Environment{
-			&config.Environment{Name: "test-dev"},
+			{Name: "test-dev"},
 		},
 	}
 
@@ -111,7 +111,7 @@ func TestBuildEnvironmentsAddsKustomizedFiles(t *testing.T) {
 
 func filesFromResources(r res.Resources) []string {
 	names := []string{}
-	for k, _ := range r {
+	for k := range r {
 		names = append(names, k)
 	}
 	sort.Strings(names)

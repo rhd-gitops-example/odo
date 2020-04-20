@@ -63,7 +63,7 @@ func seal(secret *corev1.Secret, pubKey PublicKeyFunc) (*ssv1alpha1.SealedSecret
 
 	key, err := pubKey()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get public key from cluster: %w", err)
+		return nil, fmt.Errorf("failed to get public key from cluster (is sealed-secrets installed?): %w", err)
 	}
 
 	sealedSecret, err := ssv1alpha1.NewSealedSecret(scheme.Codecs, key, secret)

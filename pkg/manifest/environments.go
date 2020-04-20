@@ -98,7 +98,7 @@ func filesForApplication(appPath string, app *config.Application, services []str
 	baseKustomization := filepath.Join(appPath, "base", kustomization)
 	relServices := []string{}
 	for _, v := range services {
-		relService, err := filepath.Rel(baseKustomization, v)
+		relService, err := filepath.Rel(filepath.Dir(baseKustomization), v)
 		if err != nil {
 			return nil, err
 		}
@@ -148,7 +148,11 @@ func listFiles(fs afero.Fs, base string) (map[string]bool, error) {
 		if info.IsDir() {
 			return nil
 		}
-		files[strings.TrimPrefix(path, base+"/")] = true
+		filename := strings.TrimPrefix(path, base+"/")
+		if filename == kustomization {
+			return nil
+		}
+		files[filename] = true
 		return nil
 	})
 	return files, err

@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/odo/pkg/manifest/yaml"
 )
 
+const manifestFile = "manifest.yaml"
 const bootstrapImage = "nginx:1.7.9"
 
 // BootstrapOptions is a struct that provides the optional flags
@@ -44,14 +45,18 @@ var defaultPipelines = &config.Pipelines{
 // Bootstrap bootstraps a GitOps manifest and repository structure.
 func Bootstrap(o *BootstrapOptions) error {
 	bootstrapped, err := bootstrapResources(o)
+	if err != nil {
+		return fmt.Errorf("failed to bootstrap resources: %w", err)
+	}
 	appFs := afero.NewOsFs()
 
 	buildParams := &BuildParameters{
-		ManifestFilename: "manifest.yaml",
+		ManifestFilename: manifestFile,
 		OutputPath:       o.OutputPath,
 		RepositoryURL:    o.GitOpsRepoURL,
 	}
-	m := bootstrapped["manifest.yaml"].(*config.Manifest)
+
+	m := bootstrapped[manifestFile].(*config.Manifest)
 	built, err := buildResources(appFs, buildParams, m)
 	if err != nil {
 		return fmt.Errorf("failed to build resources: %w", err)
@@ -75,7 +80,7 @@ func bootstrapResources(p *BootstrapOptions) (res.Resources, error) {
 	if err != nil {
 		return nil, err
 	}
-	bootstrapped["manifest.yaml"] = createManifest(envs...)
+	bootstrapped[manifestFile] = createManifest(envs...)
 	svcFiles, err := bootstrapServiceDeployment(envs[0])
 	if err != nil {
 		return nil, err
@@ -91,7 +96,7 @@ func bootstrapServiceDeployment(dev *config.Environment) (res.Resources, error) 
 	// TODO: This should change if we add Namespace to Environment.
 	resources[filepath.Join(svcBase, "100-deployment.yaml")] = deployment.Create(dev.Name, svc.Name, bootstrapImage, deployment.ContainerPort(80))
 	resources[filepath.Join(svcBase, "200-service.yaml")] = createBootstrapService(dev.Name, svc.Name)
-	resources[filepath.Join(svcBase, "kustomization.yaml")] = nil
+	resources[filepath.Join(svcBase, "kustomization.yaml")] = &res.Kustomization{Resources: []string{"100-deployment.yaml", "200-service.yaml"}}
 	return resources, nil
 }
 
