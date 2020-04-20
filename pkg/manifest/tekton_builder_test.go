@@ -2,11 +2,14 @@ package manifest
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/odo/pkg/manifest/config"
+	"github.com/openshift/odo/pkg/manifest/eventlisteners"
 	res "github.com/openshift/odo/pkg/manifest/resources"
+	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
 func TestBuildEventListener(t *testing.T) {
@@ -19,16 +22,24 @@ func TestBuildEventListener(t *testing.T) {
 			testEnv(),
 		},
 	}
-	elPatch, err := eventlistenerPatch(testEnv(), testService())
+	cicdPath := filepath.Join("environments", "test-cicd")
+	gitOpsRepo := "http://github.com/org/gitops.git"
+	got, err := buildEventlistenerResources(gitOpsRepo, m)
 	assertNoError(t, err)
-	got, err := buildEventlistenerResources(m)
-	assertNoError(t, err)
+	triggers := fakeTriggers("org/gitops", "test-cicd", testService())
+
 	want := res.Resources{
-		"environments/test-cicd/overlays/eventlistener_patches/test-svc_patch.yaml": elPatch,
-		"environments/test-cicd/overlays/kustomization.yaml":                        elKustomiseTarget("test-cicd", "../base", []string{"test-svc"}),
+		getEventListenerPath(cicdPath): eventlisteners.CreateELFromTriggers("test-cicd", triggers),
 	}
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Fatalf("resources didn't match:%s\n", diff)
+	}
+}
+
+func fakeTriggers(gitopsRepo string, cicdNs string, svc *config.Service) []v1alpha1.EventListenerTrigger {
+	return []v1alpha1.EventListenerTrigger{
+		eventlisteners.CreateListenerTrigger(triggerName(svc.Name), eventlisteners.StageCIDryRunFilters, "org/test", "test-ci-binding", "test-ci-template", svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace),
+		eventlisteners.CreateListenerTrigger("ci-dryrun-from-pr", eventlisteners.StageCIDryRunFilters, gitopsRepo, "github-pr-binding", "app-ci-template", eventlisteners.GitOpsWebhookSecret, cicdNs),
 	}
 }
 
@@ -39,7 +50,7 @@ func testService() *config.Service {
 		Webhook: &config.Webhook{
 			Secret: &config.Secret{
 				Name:      "webhook-secret",
-				Namespace: "webhook-key",
+				Namespace: "webhook-ns",
 			},
 		},
 	}
@@ -106,7 +117,7 @@ func TestGetPipelines(t *testing.T) {
 			&config.Service{
 				Name: "test-service",
 			},
-			testPipelines("app"),
+			defaultPipeline(),
 		},
 	}
 	for _, test := range tests {
