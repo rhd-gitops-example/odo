@@ -14,7 +14,7 @@ import (
 // command.
 type BuildParameters struct {
 	ManifestFilename string
-	OutputDir        string
+	OutputPath       string
 	RepositoryURL    string
 }
 
@@ -30,7 +30,7 @@ func BuildResources(o *BuildParameters) error {
 	if err != nil {
 		return err
 	}
-	_, err = yaml.WriteResources(appFs, o.OutputDir, resources)
+	_, err = yaml.WriteResources(appFs, o.OutputPath, resources)
 	return err
 }
 

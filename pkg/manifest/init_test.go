@@ -31,10 +31,10 @@ func TestInitialFiles(t *testing.T) {
 	imageRepo := "image/repo"
 
 	got, err := createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, "", imageRepo)
-
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	want := res.Resources{
 		"manifest.yaml": createManifest(testCICDEnv),
 	}

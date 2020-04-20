@@ -1,15 +1,20 @@
 package manifest
 
 import (
+	"fmt"
 	"net/url"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/openshift/odo/pkg/manifest/config"
+	"github.com/openshift/odo/pkg/manifest/deployment"
 	res "github.com/openshift/odo/pkg/manifest/resources"
 	"github.com/openshift/odo/pkg/manifest/yaml"
 	"github.com/spf13/afero"
 )
+
+const bootstrapImage = "nginx:1.7.9"
 
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
@@ -35,8 +40,19 @@ var defaultPipelines = &config.Pipelines{
 // Bootstrap bootstraps a GitOps manifest and repository structure.
 func Bootstrap(o *BootstrapOptions) error {
 	bootstrapped, err := bootstrapResources(o)
-
 	appFs := afero.NewOsFs()
+
+	buildParams := &BuildParameters{
+		ManifestFilename: "manifest.yaml",
+		OutputPath:       o.OutputPath,
+		RepositoryURL:    o.GitOpsRepoURL,
+	}
+	m := bootstrapped["manifest.yaml"].(*config.Manifest)
+	built, err := buildResources(appFs, buildParams, m)
+	if err != nil {
+		return fmt.Errorf("failed to build resources: %w", err)
+	}
+	bootstrapped = res.Merge(built, bootstrapped)
 	_, err = yaml.WriteResources(appFs, o.OutputPath, bootstrapped)
 	return err
 }
@@ -56,7 +72,24 @@ func bootstrapResources(p *BootstrapOptions) (res.Resources, error) {
 		return nil, err
 	}
 	bootstrapped["manifest.yaml"] = createManifest(envs...)
+	svcFiles, err := bootstrapServiceDeployment(envs[0])
+	if err != nil {
+		return nil, err
+	}
+	bootstrapped = res.Merge(svcFiles, bootstrapped)
 	return bootstrapped, nil
+}
+
+func bootstrapServiceDeployment(dev *config.Environment) (res.Resources, error) {
+	svc := dev.Apps[0].Services[0]
+	svcBase := filepath.Join(config.PathForService(dev, svc), "base", "config")
+	// appBase := config.PathForApplication(dev, dev.Apps[0])
+	resources := res.Resources{}
+	// TODO: This should change if we add Namespace to Environment.
+	resources[filepath.Join(svcBase, "100-deployment.yaml")] = deployment.Create(dev.Name, svc.Name, bootstrapImage)
+	resources[filepath.Join(svcBase, "200-service.yaml")] = nil
+	resources[filepath.Join(svcBase, "kustomization.yaml")] = nil
+	return resources, nil
 }
 
 func bootstrapEnvironments(prefix, repoURL string, ns map[string]string) ([]*config.Environment, error) {

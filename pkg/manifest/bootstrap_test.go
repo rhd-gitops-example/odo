@@ -1,12 +1,15 @@
 package manifest
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openshift/odo/pkg/manifest/config"
 	res "github.com/openshift/odo/pkg/manifest/resources"
+	"github.com/openshift/odo/pkg/manifest/secrets"
 )
 
 const (
@@ -15,6 +18,18 @@ const (
 )
 
 func TestBootstrapManifest(t *testing.T) {
+	defer func(f secrets.PublicKeyFunc) {
+		secrets.DefaultPublicKeyFunc = f
+	}(secrets.DefaultPublicKeyFunc)
+
+	secrets.DefaultPublicKeyFunc = func() (*rsa.PublicKey, error) {
+		key, err := rsa.GenerateKey(rand.Reader, 1024)
+		if err != nil {
+			t.Fatalf("failed to generate a private RSA key: %s", err)
+		}
+		return &key.PublicKey, nil
+	}
+
 	params := &BootstrapOptions{
 		Prefix:              "tst-",
 		GitOpsRepoURL:       testGitOpsRepo,
@@ -28,8 +43,10 @@ func TestBootstrapManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: pipeline output with names
 	want := res.Resources{
+		"environments/tst-dev/services/http-api-svc/base/config/100-deployment.yaml": nil,
+		"environments/tst-dev/services/http-api-svc/base/config/200-service.yaml":    nil,
+		"environments/tst-dev/services/http-api-svc/base/config/kustomization.yaml":  nil,
 		"manifest.yaml": &config.Manifest{
 			Environments: []*config.Environment{
 				{
@@ -55,7 +72,9 @@ func TestBootstrapManifest(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(want, r, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
-		return k != "manifest.yaml"
+		_, ok := want[k]
+		t.Logf("got %s\n", k)
+		return !ok
 	})); diff != "" {
 		t.Fatalf("bootstrapped resources:\n%s", diff)
 	}

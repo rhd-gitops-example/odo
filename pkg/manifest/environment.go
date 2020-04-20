@@ -24,10 +24,8 @@ type EnvParameters struct {
 
 // Env will bootstrap a new environment directory
 func Env(o *EnvParameters) error {
-
 	envName := AddPrefix(o.Prefix, o.EnvName)
 	envPath := getEnvPath(o.Output, o.EnvName, o.Prefix)
-
 	// check if the gitops dir exists
 	exists, err := ioutils.IsExisting(o.Output)
 	if !exists {
@@ -54,14 +52,11 @@ func Env(o *EnvParameters) error {
 	if err = addEnvResources(appFs, o.Prefix, envPath, envName); err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func addEnvResources(fs afero.Fs, prefix, envPath, envName string) error {
-
 	namespaces := NamespaceNames(prefix)
-
 	outputs := map[string]interface{}{}
 	basePath := filepath.Join(envPath, "base")
 
