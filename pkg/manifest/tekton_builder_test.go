@@ -117,7 +117,7 @@ func TestGetPipelines(t *testing.T) {
 			&config.Service{
 				Name: "test-service",
 			},
-			defaultPipeline(),
+			defaultPipelines,
 		},
 	}
 	for _, test := range tests {

@@ -80,16 +80,7 @@ func getPipelines(env *config.Environment, svc *config.Service) *config.Pipeline
 	if env.Pipelines != nil {
 		return env.Pipelines
 	}
-	return defaultPipeline()
-}
-
-func defaultPipeline() *config.Pipelines {
-	return &config.Pipelines{
-		Integration: &config.TemplateBinding{
-			Template: "app-ci-template",
-			Binding:  "github-pr-binding",
-		},
-	}
+	return defaultPipelines
 }
 
 func extractRepo(u string) (string, error) {

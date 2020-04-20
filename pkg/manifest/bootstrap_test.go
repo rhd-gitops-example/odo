@@ -63,7 +63,7 @@ func TestBootstrapManifest(t *testing.T) {
 									SourceURL: testSvcRepo,
 									Webhook: &config.Webhook{
 										Secret: &config.Secret{
-											Name: "github-webhook-secret-http-ai-svc",
+											Name: "github-webhook-secret-http-api-svc",
 										},
 									},
 								},
@@ -80,7 +80,6 @@ func TestBootstrapManifest(t *testing.T) {
 
 	if diff := cmp.Diff(want, r, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
 		_, ok := want[k]
-		t.Logf("got %s\n", k)
 		return !ok
 	})); diff != "" {
 		t.Fatalf("bootstrapped resources:\n%s", diff)
