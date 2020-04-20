@@ -187,7 +187,22 @@ func TestFindCICDEnviroment(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestGetEnvironment(t *testing.T) {
+	m := &Manifest{Environments: makeEnvs([]testEnv{{name: "prod"}, {name: "testing"}})}
+	env, err := m.GetEnvironment("prod")
+	if err != nil {
+		t.Fatalf("failed to find prod environment: %s", err)
+	}
+	if env.Name != "prod" {
+		t.Fatalf("got the wrong environment back: %#v", env)
+	}
+
+	unknown, err := m.GetEnvironment("unknown")
+	if err == nil {
+		t.Fatalf("found an unknown env: %#v", unknown)
+	}
 }
 
 func makeEnvs(ns []testEnv) []*Environment {

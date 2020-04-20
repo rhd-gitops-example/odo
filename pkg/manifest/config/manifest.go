@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"sort"
 )
@@ -24,6 +25,15 @@ func PathForEnvironment(env *Environment) string {
 // Manifest describes a set of environments, apps and services for deployment.
 type Manifest struct {
 	Environments []*Environment `json:"environments,omitempty"`
+}
+
+func (m *Manifest) GetEnvironment(n string) (*Environment, error) {
+	for _, env := range m.Environments {
+		if env.Name == n {
+			return env, nil
+		}
+	}
+	return nil, fmt.Errorf("failed to find environment: %s", n)
 }
 
 // GetCICDEnvironment returns the CICD Environment if one exists.

@@ -73,26 +73,42 @@ func bootstrapResources(o *BootstrapOptions) (res.Resources, error) {
 	if err != nil {
 		return nil, err
 	}
+	repoName, err := repoFromURL(o.AppRepoURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid app repo URL: %w", err)
+	}
+
 	bootstrapped, err := createInitialFiles(o.Prefix, orgRepo, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, "")
 	if err != nil {
 		return nil, err
 	}
 	ns := NamespaceNames(o.Prefix)
-	// TODO THIS NEEDS TO BE FIXED TO GENERATE THE NAME FROM THE SERVICE.
+	secretName := "github-webhook-secret-" + repoName + "-svc"
+	envs, err := bootstrapEnvironments(o.Prefix, o.AppRepoURL, secretName, ns)
+	if err != nil {
+		return nil, err
+	}
+	m := createManifest(envs...)
+	bootstrapped[manifestFile] = m
+	env, err := m.GetEnvironment(ns["dev"])
+	if err != nil {
+		return nil, err
+	}
+	svcFiles, err := bootstrapServiceDeployment(env)
+	if err != nil {
+		return nil, err
+	}
 	hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(ns["cicd"], eventlisteners.GitOpsWebhookSecret),
-		o.AppWebhookSecret, "github-webhook-secret-"+"-svc")
+		o.AppWebhookSecret, secretName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %w", err)
 	}
-	envs, err := bootstrapEnvironments(o.Prefix, o.AppRepoURL, hookSecret.ObjectMeta.Name, ns)
+	cicdEnv, err := m.GetCICDEnvironment()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bootstrap environments: %w", err)
 	}
-	bootstrapped[manifestFile] = createManifest(envs...)
-	svcFiles, err := bootstrapServiceDeployment(envs[0])
-	if err != nil {
-		return nil, err
-	}
+	secretsPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", "03-secrets", secretName+".yaml")
+	bootstrapped[secretsPath] = hookSecret
 	bootstrapped = res.Merge(svcFiles, bootstrapped)
 	return bootstrapped, nil
 }

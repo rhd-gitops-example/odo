@@ -63,7 +63,7 @@ func TestBootstrapManifest(t *testing.T) {
 									SourceURL: testSvcRepo,
 									Webhook: &config.Webhook{
 										Secret: &config.Secret{
-											Name: "gitops-webhook-secret",
+											Name: "github-webhook-secret-http-ai-svc",
 										},
 									},
 								},
