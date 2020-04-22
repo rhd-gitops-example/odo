@@ -1,6 +1,8 @@
 package manifest
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -8,6 +10,7 @@ import (
 
 	"github.com/openshift/odo/pkg/manifest/config"
 	res "github.com/openshift/odo/pkg/manifest/resources"
+	"github.com/openshift/odo/pkg/manifest/secrets"
 )
 
 var testCICDEnv = &config.Environment{Name: "tst-cicd", IsCICD: true}
@@ -29,6 +32,18 @@ func TestInitialFiles(t *testing.T) {
 	gitOpsRepo := "test-repo"
 	gitOpsWebhook := "123"
 	imageRepo := "image/repo"
+
+	defer func(f secrets.PublicKeyFunc) {
+		secrets.DefaultPublicKeyFunc = f
+	}(secrets.DefaultPublicKeyFunc)
+
+	secrets.DefaultPublicKeyFunc = func() (*rsa.PublicKey, error) {
+		key, err := rsa.GenerateKey(rand.Reader, 1024)
+		if err != nil {
+			t.Fatalf("failed to generate a private RSA key: %s", err)
+		}
+		return &key.PublicKey, nil
+	}
 
 	got, err := createInitialFiles(prefix, gitOpsRepo, gitOpsWebhook, "", imageRepo)
 	if err != nil {

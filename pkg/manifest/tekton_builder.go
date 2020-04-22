@@ -38,6 +38,9 @@ func buildEventlistenerResources(gitOpsRepo string, m *config.Manifest) (res.Res
 }
 
 func (tk *tektonBuilder) Service(env *config.Environment, app *config.Application, svc *config.Service) error {
+	if svc.SourceURL == "" {
+		return nil
+	}
 	trigger, err := createTrigger(tk.gitOpsRepo, env, svc)
 	if err != nil {
 		return err
