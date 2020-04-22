@@ -146,7 +146,7 @@ func bootstrapEnvironments(prefix, repoURL, secretName string, ns map[string]str
 	return envs, nil
 }
 
-func applicationFromRepo(repoURL, secretName, secretNs string) (*config.Application, error) {
+func applicationFromRepo(repoURL, secretName, secretNS string) (*config.Application, error) {
 	repo, err := repoFromURL(repoURL)
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func applicationFromRepo(repoURL, secretName, secretNs string) (*config.Applicat
 				Webhook: &config.Webhook{
 					Secret: &config.Secret{
 						Name:      secretName,
-						Namespace: secretNs,
+						Namespace: secretNS,
 					},
 				},
 			},
