@@ -132,7 +132,7 @@ func bootstrapEnvironments(prefix, repoURL, secretName string, ns map[string]str
 			env.IsCICD = true
 		}
 		if k == "dev" {
-			app, err := applicationFromRepo(repoURL, secretName)
+			app, err := applicationFromRepo(repoURL, secretName, ns["cicd"])
 			if err != nil {
 				return nil, err
 			}
@@ -146,7 +146,7 @@ func bootstrapEnvironments(prefix, repoURL, secretName string, ns map[string]str
 	return envs, nil
 }
 
-func applicationFromRepo(repoURL, secretName string) (*config.Application, error) {
+func applicationFromRepo(repoURL, secretName, secretNs string) (*config.Application, error) {
 	repo, err := repoFromURL(repoURL)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,8 @@ func applicationFromRepo(repoURL, secretName string) (*config.Application, error
 				SourceURL: repoURL,
 				Webhook: &config.Webhook{
 					Secret: &config.Secret{
-						Name: secretName,
+						Name:      secretName,
+						Namespace: secretNs,
 					},
 				},
 			},
