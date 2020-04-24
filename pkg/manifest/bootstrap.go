@@ -199,8 +199,8 @@ func createBootstrapService(ns, name string) *corev1.Service {
 		},
 	}
 	labels := map[string]string{
-		"app.kubernetes.io/name":    name,
-		"app.kubernetes.io/version": "0.0.1",
+		deployment.KubernetesAppNameLabel:    name,
+		deployment.KubernetesAppVersionLabel: "0.0.1",
 	}
 	svc.ObjectMeta.Labels = labels
 	svc.Spec.Selector = labels

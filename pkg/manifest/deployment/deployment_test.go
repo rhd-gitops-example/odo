@@ -24,7 +24,7 @@ func TestCreate(t *testing.T) {
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", testComponent)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
-			Selector: labelSelector("app.kubernetes.io/name", testComponent),
+			Selector: labelSelector(KubernetesAppNameLabel, testComponent),
 			Template: podTemplate(testComponent, testImage, ContainerPort(80)),
 		},
 	}
@@ -39,7 +39,7 @@ func TestDefaultPodTemplate(t *testing.T) {
 	want := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"app.kubernetes.io/name": testComponent,
+				KubernetesAppNameLabel: testComponent,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -69,7 +69,7 @@ func TestPodTemplateEnv(t *testing.T) {
 	want := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"app.kubernetes.io/name": testComponent,
+				KubernetesAppNameLabel: testComponent,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -95,7 +95,7 @@ func TestPodTemplateCommand(t *testing.T) {
 	want := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"app.kubernetes.io/name": testComponent,
+				KubernetesAppNameLabel: testComponent,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -122,7 +122,7 @@ func TestPodTemplateContainerPort(t *testing.T) {
 	want := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"app.kubernetes.io/name": testComponent,
+				KubernetesAppNameLabel: testComponent,
 			},
 		},
 		Spec: corev1.PodSpec{
