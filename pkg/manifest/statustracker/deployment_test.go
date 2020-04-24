@@ -22,11 +22,11 @@ func TestCreateStatusTrackerDeployment(t *testing.T) {
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("dana-cicd", operatorName)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
-			Selector: labelSelector("name", operatorName),
+			Selector: labelSelector("app.kubernetes.io/name", operatorName),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"name": operatorName,
+						"app.kubernetes.io/name": operatorName,
 					},
 				},
 				Spec: corev1.PodSpec{

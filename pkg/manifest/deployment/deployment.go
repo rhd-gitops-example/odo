@@ -47,7 +47,7 @@ func Create(ns, name, image string, opts ...podSpecFunc) *appsv1.Deployment {
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, name)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
-			Selector: labelSelector("name", name),
+			Selector: labelSelector("app.kubernetes.io/name", name),
 			Template: podTemplate(name, image, opts...),
 		},
 	}
@@ -74,7 +74,7 @@ func podTemplate(name, image string, opts ...podSpecFunc) corev1.PodTemplateSpec
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"name": name,
+				"app.kubernetes.io/name": name,
 			},
 		},
 		Spec: *podSpec,
