@@ -35,6 +35,7 @@ func BuildResources(o *BuildParameters) error {
 }
 
 func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Resources, error) {
+	m.Validate()
 	resources := res.Resources{}
 	envs, err := buildEnvironments(fs, m)
 	if err != nil {

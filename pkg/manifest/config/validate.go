@@ -2,9 +2,14 @@ package config
 
 import (
 	"fmt"
+	"log"
 
 	"k8s.io/apimachinery/pkg/api/validation"
 )
+
+var envNames = map[string]int{}
+var appNames = map[string]int{}
+var serviceNames = map[string]int{}
 
 type validateVisitor struct {
 	errs []error
@@ -26,12 +31,34 @@ func (vv *validateVisitor) Environment(env *Environment) error {
 	if err := validName(env.Name); err != nil {
 		vv.errs = append(vv.errs, err)
 	}
+	n, ok := envNames[env.Name]
+	if !ok {
+		envNames[env.Name] = 1
+
+	} else {
+		envNames[env.Name] = n + 1
+	}
+	if envNames[env.Name] > 1 {
+		vv.errs = append(vv.errs, fmt.Errorf("%s environment is more than once", env.Name))
+		log.Println("error")
+	}
 	return nil
 }
 
 func (vv *validateVisitor) Application(env *Environment, app *Application) error {
 	if err := validName(app.Name); err != nil {
 		vv.errs = append(vv.errs, err)
+	}
+	n, ok := appNames[env.Name+"+"+app.Name]
+	if !ok {
+		envNames[env.Name+"+"+app.Name] = 1
+
+	} else {
+		envNames[env.Name+"+"+app.Name] = n + 1
+	}
+	if envNames[env.Name+"+"+app.Name] > 1 {
+		vv.errs = append(vv.errs, fmt.Errorf("%s app is more than once in environment %s", app.Name, env.Name))
+		log.Println("error+1")
 	}
 	return nil
 }
@@ -48,6 +75,17 @@ func (vv *validateVisitor) Service(env *Environment, app *Application, svc *Serv
 		return err
 	}
 
+	n, ok := serviceNames[env.Name+"+"+app.Name+"+"+svc.Name]
+	if !ok {
+		serviceNames[env.Name+"+"+app.Name+"+"+svc.Name] = 1
+
+	} else {
+		serviceNames[env.Name+"+"+app.Name+"+"+svc.Name] = n + 1
+	}
+	if serviceNames[env.Name+"+"+app.Name+"+"+svc.Name] > 1 {
+		vv.errs = append(vv.errs, fmt.Errorf("%s service in %s app is more than once in environment %s", svc.Name, app.Name, env.Name))
+		log.Println("error+2")
+	}
 	return nil
 }
 
