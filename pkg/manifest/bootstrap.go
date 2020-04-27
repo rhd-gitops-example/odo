@@ -119,7 +119,7 @@ func bootstrapServiceDeployment(dev *config.Environment) (res.Resources, error) 
 	svcBase := filepath.Join(config.PathForService(dev, svc), "base", "config")
 	resources := res.Resources{}
 	// TODO: This should change if we add Namespace to Environment.
-	resources[filepath.Join(svcBase, "100-deployment.yaml")] = deployment.Create(dev.Name, svc.Name, bootstrapImage, deployment.ContainerPort(80))
+	resources[filepath.Join(svcBase, "100-deployment.yaml")] = deployment.Create(dev.Name, svc.Name, bootstrapImage, deployment.ContainerPort(8080))
 	resources[filepath.Join(svcBase, "200-service.yaml")] = createBootstrapService(dev.Name, svc.Name)
 	resources[filepath.Join(svcBase, "kustomization.yaml")] = &res.Kustomization{Resources: []string{"100-deployment.yaml", "200-service.yaml"}}
 	return resources, nil
@@ -199,8 +199,7 @@ func createBootstrapService(ns, name string) *corev1.Service {
 		},
 	}
 	labels := map[string]string{
-		deployment.KubernetesAppNameLabel:    name,
-		deployment.KubernetesAppVersionLabel: "0.0.1",
+		deployment.KubernetesAppNameLabel: name,
 	}
 	svc.ObjectMeta.Labels = labels
 	svc.Spec.Selector = labels
