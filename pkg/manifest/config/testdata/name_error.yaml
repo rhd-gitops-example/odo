@@ -1,9 +1,5 @@
 environments:
-<<<<<<< HEAD
   - name: develo.pment
-=======
-  - name: develo.pment      # invalid name
->>>>>>> 5c0e7ce6dfa935bb2d70ffa9b862e701b94bdc22
     pipelines:
       integration:
         template: dev-ci-template
