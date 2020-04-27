@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 
 	"k8s.io/apimachinery/pkg/api/validation"
 )
@@ -31,17 +30,12 @@ func (vv *validateVisitor) Environment(env *Environment) error {
 	if err := validName(env.Name); err != nil {
 		vv.errs = append(vv.errs, err)
 	}
-	n, ok := envNames[env.Name]
-	if !ok {
-		envNames[env.Name] = 1
 
-	} else {
-		envNames[env.Name] = n + 1
+	error := validateEnvironments(env.Name)
+	if error != nil {
+		vv.errs = append(vv.errs, error)
 	}
-	if envNames[env.Name] > 1 {
-		vv.errs = append(vv.errs, fmt.Errorf("%s environment is more than once", env.Name))
-		log.Println("error")
-	}
+
 	return nil
 }
 
@@ -49,17 +43,11 @@ func (vv *validateVisitor) Application(env *Environment, app *Application) error
 	if err := validName(app.Name); err != nil {
 		vv.errs = append(vv.errs, err)
 	}
-	n, ok := appNames[env.Name+"+"+app.Name]
-	if !ok {
-		envNames[env.Name+"+"+app.Name] = 1
+	errors := validateApplications(env.Name, app.Name)
+	if errors != nil {
+		vv.errs = append(vv.errs, errors)
+	}
 
-	} else {
-		envNames[env.Name+"+"+app.Name] = n + 1
-	}
-	if envNames[env.Name+"+"+app.Name] > 1 {
-		vv.errs = append(vv.errs, fmt.Errorf("%s app is more than once in environment %s", app.Name, env.Name))
-		log.Println("error+1")
-	}
 	return nil
 }
 
@@ -75,16 +63,9 @@ func (vv *validateVisitor) Service(env *Environment, app *Application, svc *Serv
 		return err
 	}
 
-	n, ok := serviceNames[env.Name+"+"+app.Name+"+"+svc.Name]
-	if !ok {
-		serviceNames[env.Name+"+"+app.Name+"+"+svc.Name] = 1
-
-	} else {
-		serviceNames[env.Name+"+"+app.Name+"+"+svc.Name] = n + 1
-	}
-	if serviceNames[env.Name+"+"+app.Name+"+"+svc.Name] > 1 {
-		vv.errs = append(vv.errs, fmt.Errorf("%s service in %s app is more than once in environment %s", svc.Name, app.Name, env.Name))
-		log.Println("error+2")
+	errors := validateService(app.Name, svc.Name)
+	if errors != nil {
+		vv.errs = append(vv.errs, errors)
 	}
 	return nil
 }
@@ -132,4 +113,47 @@ func validName(name string) error {
 
 func notFoundError(items []string, at string) error {
 	return fmt.Errorf("%v not found at %v", items, at)
+}
+
+func validateEnvironments(envName string) error {
+	n, ok := envNames[envName]
+	if !ok {
+		envNames[envName] = 1
+
+	} else {
+		envNames[envName] = n + 1
+	}
+	if envNames[envName] > 1 {
+		return fmt.Errorf("%s environment is more than once", envName)
+	}
+	return nil
+}
+
+func validateApplications(envName, appName string) error {
+	n, ok := appNames[envName+"+"+appName]
+	if !ok {
+		appNames[envName+"+"+appName] = 1
+
+	} else {
+		appNames[envName+"+"+appName] = n + 1
+	}
+	if appNames[envName+"+"+appName] > 1 {
+		return fmt.Errorf("%s app is more than once in environment %s", appName, envName)
+
+	}
+	return nil
+}
+
+func validateService(appName, svcName string) error {
+	n, ok := serviceNames[appName+"+"+svcName]
+	if !ok {
+		serviceNames[appName+"+"+svcName] = 1
+
+	} else {
+		serviceNames[appName+"+"+svcName] = n + 1
+	}
+	if serviceNames[appName+"+"+svcName] > 1 {
+		return fmt.Errorf("%s service in %s app is more than once", svcName, appName)
+	}
+	return nil
 }

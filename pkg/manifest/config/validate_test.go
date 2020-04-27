@@ -28,6 +28,27 @@ func TestValidate(t *testing.T) {
 				validName("test)cicd"),
 			},
 		},
+		{
+			"Duplicate Environment error",
+			"testdata/duplicate_environment.yaml",
+			[]error{
+				fmt.Errorf("stage-env environment is more than once"),
+			},
+		},
+		{
+			"Duplicate Application error",
+			"testdata/duplicate_application.yaml",
+			[]error{
+				fmt.Errorf("app-2 app is more than once in environment dup-application"),
+			},
+		},
+		{
+			"Duplicate services error",
+			"testdata/duplicate_services.yaml",
+			[]error{
+				fmt.Errorf("taxi-service service in app-svc-dup app is more than once"),
+			},
+		},
 	}
 
 	for _, test := range tests {

@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/openshift/odo/pkg/manifest/argocd"
 	"github.com/openshift/odo/pkg/manifest/config"
@@ -35,7 +36,7 @@ func BuildResources(o *BuildParameters) error {
 }
 
 func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Resources, error) {
-	m.Validate()
+	log.Println(m.Validate())
 	resources := res.Resources{}
 	envs, err := buildEnvironments(fs, m)
 	if err != nil {

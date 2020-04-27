@@ -1,0 +1,21 @@
+environments:
+  - name: dup-services
+    pipelines:
+      integration:
+        template: dev-ci-template
+        binding: dev-ci-binding
+    apps:
+      - name: app-svc-dup
+        services:
+          - name: taxi-service
+            source_url: https://github.com/myproject/myservice.git
+            webhook:
+              secret:
+                name: webhook-secret
+                namespace: webhook-secret-key
+            pipelines:
+              integration:
+                template: dev-ci-template
+                binding: dev-ci-binding
+          - name: taxi-service
+ 
