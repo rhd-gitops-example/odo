@@ -3,11 +3,10 @@ package config
 import (
 	"fmt"
 
-	"strings"
+	"path/filepath"
 
 	"github.com/mkmik/multierror"
 	"k8s.io/apimachinery/pkg/api/validation"
-	"knative.dev/pkg/apis"
 )
 
 var envNames = map[string]int{}
@@ -25,48 +24,44 @@ func (m *Manifest) Validate() error {
 }
 
 func (vv *validateVisitor) Environment(env *Environment) error {
-	envPath := yamlPath(PathForEnvironment(env))
-	if err := validateName(env.Name, envPath); err != nil {
+	if err := validateName(env.Name, PathForEnvironment(env)); err != nil {
 		vv.errs = append(vv.errs, err)
 	}
-	if err := validatePipelines(env.Pipelines, envPath); err != nil {
+	if err := validatePipelines(env.Pipelines, PathForEnvironment(env)); err != nil {
 		vv.errs = append(vv.errs, err...)
 	}
-
-	// error := validateEnvironments(env.Name)
-	// if error != nil {
-	// 	vv.errs = append(vv.errs, error)
-	// }
+	error := validateEnvironments(env.Name)
+	if error != nil {
+		vv.errs = append(vv.errs, error)
+	}
 	return nil
 }
 
 func (vv *validateVisitor) Application(env *Environment, app *Application) error {
-	appPath := yamlPath(PathForApplication(env, app))
-	if err := validateName(app.Name, appPath); err != nil {
+	if err := validateName(app.Name, PathForApplication(env, app)); err != nil {
 		vv.errs = append(vv.errs, err)
 	}
-
-	// errors := validateApplications(env.Name, app.Name)
-	// if errors != nil {
-	// 	vv.errs = append(vv.errs, errors)
-	// }
+	errors := validateApplications(env.Name, app.Name)
+	if errors != nil {
+		vv.errs = append(vv.errs, errors)
+	}
 	return nil
 }
 
 func (vv *validateVisitor) Service(env *Environment, app *Application, svc *Service) error {
-	svcPath := yamlPath(PathForService(env, svc))
-	if err := validateName(svc.Name, svcPath); err != nil {
+	if err := validateName(svc.Name, PathForService(env, svc)); err != nil {
 		vv.errs = append(vv.errs, err)
 	}
-	// errors := validateService(app.Name, svc.Name)
-	// if errors != nil {
-	// 	vv.errs = append(vv.errs, errors)
-
-	if err := validateWebhook(svc.Webhook, svcPath); err != nil {
+	if err := validateWebhook(svc.Webhook, PathForService(env, svc)); err != nil {
 		vv.errs = append(vv.errs, err...)
 	}
-	if err := validatePipelines(svc.Pipelines, svcPath); err != nil {
+	if err := validatePipelines(svc.Pipelines, PathForService(env, svc)); err != nil {
 		vv.errs = append(vv.errs, err...)
+	}
+
+	errors := validateService(app.Name, svc.Name)
+	if errors != nil {
+		vv.errs = append(vv.errs, errors)
 	}
 	return nil
 }
@@ -77,12 +72,12 @@ func validateWebhook(hook *Webhook, path string) []error {
 		return nil
 	}
 	if hook.Secret == nil {
-		return list(apis.ErrMissingField(yamlJoin(path, "webhook", "secret")))
+		return list(notFoundError("secret", path))
 	}
-	if err := validateName(hook.Secret.Name, yamlJoin(path, "webhook", "secret", "name")); err != nil {
+	if err := validateName(hook.Secret.Name, filepath.Join(path, "secret")); err != nil {
 		errs = append(errs, err)
 	}
-	if err := validateName(hook.Secret.Namespace, yamlJoin(path, "webhook", "secret", "namespace")); err != nil {
+	if err := validateName(hook.Secret.Namespace, filepath.Join(path, "secret")); err != nil {
 		errs = append(errs, err)
 	}
 	return errs
@@ -94,21 +89,21 @@ func validatePipelines(pipelines *Pipelines, path string) []error {
 		return nil
 	}
 	if pipelines.Integration == nil {
-		return list(apis.ErrMissingField(yamlJoin(path, "pipelines", "integration")))
+		return list(notFoundError("pipelines", path))
 	}
-	if err := validateName(pipelines.Integration.Template, yamlJoin(path, "pipelines", "integration", "template")); err != nil {
+	if err := validateName(pipelines.Integration.Template, filepath.Join(path, "pipelines")); err != nil {
 		errs = append(errs, err)
 	}
-	if err := validateName(pipelines.Integration.Binding, yamlJoin(path, "pipelines", "integration", "binding")); err != nil {
+	if err := validateName(pipelines.Integration.Binding, filepath.Join(path, "pipelines")); err != nil {
 		errs = append(errs, err)
 	}
 	return errs
 }
 
-func validateName(name, path string) *apis.FieldError {
+func validateName(name, path string) error {
 	err := validation.NameIsDNS1035Label(name, true)
 	if len(err) > 0 {
-		return invalidNameError(name, err[0], []string{path})
+		return fmt.Errorf("%q is not a valid name at %v: \n%v", name, path, err)
 	}
 	return nil
 }
@@ -154,28 +149,12 @@ func validateService(appName, svcName string) error {
 		return fmt.Errorf("%s service in %s app is more than once", svcName, appName)
 	}
 	return nil
-
 }
 
-func yamlPath(path string) string {
-	return strings.ReplaceAll(path, "/", ".")
-}
-
-func yamlJoin(a string, b ...string) string {
-	for _, s := range b {
-		a = a + "." + s
-	}
-	return a
+func notFoundError(field string, at string) error {
+	return fmt.Errorf("%v not found at %v", field, at)
 }
 
 func list(errs ...error) []error {
 	return errs
-}
-
-func invalidNameError(name, details string, paths []string) *apis.FieldError {
-	return &apis.FieldError{
-		Message: fmt.Sprintf("invalid name %q", name),
-		Details: details,
-		Paths:   paths,
-	}
 }

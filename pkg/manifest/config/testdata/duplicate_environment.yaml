@@ -1,11 +1,11 @@
 environments:
-  - name: development
+  - name: dup-environment
     pipelines:
       integration:
         template: dev-ci-template
         binding: dev-ci-binding
     apps:
-      - name: app-1
+      - name: dup-environment-test
         services:
           - name: taxi-svc
             source_url: https://github.com/myproject/myservice.git

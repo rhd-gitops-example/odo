@@ -52,7 +52,7 @@ func TestBootstrapManifest(t *testing.T) {
 	}
 	want := res.Resources{
 		"environments/tst-cicd/base/pipelines/03-secrets/github-webhook-secret-http-api-svc.yaml": hookSecret,
-		"environments/tst-dev/services/http-api-svc/base/config/100-deployment.yaml":              deployment.Create("tst-dev", "http-api-svc", bootstrapImage, deployment.ContainerPort(80)),
+		"environments/tst-dev/services/http-api-svc/base/config/100-deployment.yaml":              deployment.Create("tst-dev", "http-api-svc", bootstrapImage, deployment.ContainerPort(8080)),
 
 		"environments/tst-dev/services/http-api-svc/base/config/200-service.yaml":   createBootstrapService("tst-dev", "http-api-svc"),
 		"environments/tst-dev/services/http-api-svc/base/config/kustomization.yaml": &res.Kustomization{Resources: []string{"100-deployment.yaml", "200-service.yaml"}},
@@ -91,6 +91,26 @@ func TestBootstrapManifest(t *testing.T) {
 		return !ok
 	})); diff != "" {
 		t.Fatalf("bootstrapped resources:\n%s", diff)
+	}
+
+	wantResources := []string{"01-namespaces/cicd-environment.yaml",
+		"02-rolebindings/pipeline-service-role.yaml",
+		"02-rolebindings/pipeline-service-rolebinding.yaml",
+		"03-secrets/gitops-webhook-secret.yaml",
+		"04-tasks/deploy-from-source-task.yaml",
+		"04-tasks/deploy-using-kubectl-task.yaml",
+		"05-pipelines/app-ci-pipeline.yaml",
+		"05-pipelines/ci-dryrun-from-pr-pipeline.yaml",
+		"06-bindings/github-pr-binding.yaml",
+		"07-templates/app-ci-build-pr-template.yaml",
+		"07-templates/ci-dryrun-from-pr-template.yaml",
+		"08-eventlisteners/cicd-event-listener.yaml",
+		"09-routes/gitops-webhook-event-listener.yaml",
+		"03-secrets/github-webhook-secret-http-api-svc.yaml",
+	}
+	k := r["environments/tst-cicd/base/pipelines/kustomization.yaml"].(res.Kustomization)
+	if diff := cmp.Diff(wantResources, k.Resources); diff != "" {
+		t.Fatalf("did not add the secret to the base kustomization: %s\n", diff)
 	}
 }
 

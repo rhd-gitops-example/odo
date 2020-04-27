@@ -6,11 +6,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mkmik/multierror"
-	"knative.dev/pkg/apis"
 )
 
 const (
-	DNS1035Error = "a DNS-1035 label must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character (e.g. 'my-name',  or 'abc-123', regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?')"
+	DNS1035Error = "[a DNS-1035 label must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character (e.g. 'my-name',  or 'abc-123', regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?')]"
 )
 
 func TestValidate(t *testing.T) {
@@ -22,22 +21,41 @@ func TestValidate(t *testing.T) {
 		{
 			"Invalid entity name error",
 			"testdata/name_error.yaml",
-			multierror.Join(
-				[]error{
-					invalidNameError("", DNS1035Error, []string{"environments.develo.pment.services"}),
-					invalidNameError("", DNS1035Error, []string{"environments.develo.pment.services.pipelines.integration.binding"}),
-					invalidNameError("app-1$.", DNS1035Error, []string{"environments.develo.pment.apps.app-1$."}),
-					invalidNameError("develo.pment", DNS1035Error, []string{"environments.develo.pment"}),
-					invalidNameError("test)cicd", DNS1035Error, []string{"environments.test)cicd"}),
-				},
-			),
+			multierror.Join([]error{
+				fmt.Errorf("%q is not a valid name at %v: \n%v", "", "environments/develo.pment/services", DNS1035Error),
+				fmt.Errorf("%q is not a valid name at %v: \n%v", "", "environments/develo.pment/services/pipelines", DNS1035Error),
+				fmt.Errorf("%q is not a valid name at %v: \n%v", "app-1$.", "environments/develo.pment/apps/app-1$.", DNS1035Error),
+				fmt.Errorf("%q is not a valid name at %v: \n%v", "develo.pment", "environments/develo.pment", DNS1035Error),
+				fmt.Errorf("%q is not a valid name at %v: \n%v", "test)cicd", "environments/test)cicd", DNS1035Error),
+			}),
 		},
 		{
 			"Missing field error",
 			"testdata/missing_fields_error.yaml",
 			multierror.Join([]error{
-				apis.ErrMissingField("environments.development.services.service-1.webhook.secret"),
-				apis.ErrMissingField("environments.development.services.service-1.pipelines.integration"),
+				fmt.Errorf("%v not found at %v", "secret", "environments/development/services/service-1"),
+				fmt.Errorf("%v not found at %v", "pipelines", "environments/development/services/service-1"),
+			}),
+		},
+		{
+			"Duplicate Environment error",
+			"testdata/duplicate_environment.yaml",
+			multierror.Join([]error{
+				fmt.Errorf("stage-env environment is more than once"),
+			}),
+		},
+		{
+			"Duplicate Application error",
+			"testdata/duplicate_application.yaml",
+			multierror.Join([]error{
+				fmt.Errorf("app-2 app is more than once in environment dup-application"),
+			}),
+		},
+		{
+			"Duplicate services error",
+			"testdata/duplicate_services.yaml",
+			multierror.Join([]error{
+				fmt.Errorf("taxi-service service in app-svc-dup app is more than once"),
 			}),
 		},
 	}
