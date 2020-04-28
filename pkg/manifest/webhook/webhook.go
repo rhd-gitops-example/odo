@@ -10,29 +10,63 @@ import (
 	"github.com/jenkins-x/go-scm/scm/factory"
 )
 
-// AddWebHook add web hook
-func AddWebHook(gitRepoURL, token, listenerURL, secret string) error {
+type webhook struct {
+	*scm.Client
+	repoName string
+}
 
+// New creates a new webhook object
+func New(gitRepoURL, token string) (*webhook, error) {
 	parsedURL, err := url.Parse(gitRepoURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	driverName, err := getDriverName(parsedURL)
 	if err != nil {
-		return err
-	}
-
-	repo, err := getRepo(parsedURL)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
 	client, err := factory.NewClient(driverName, "", token)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	repoName, err := getRepoName(parsedURL)
+	if err != nil {
+		return nil, err
+	}
+
+	return &webhook{repoName: repoName, Client: client}, nil
+}
+
+func (w *webhook) list(listenerURL string) ([]string, error) {
+	hooks, _, err := w.Client.Repositories.ListHooks(context.Background(), w.repoName, scm.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, hook := range hooks {
+		if hook.Target == listenerURL {
+			ids = append(ids, hook.ID)
+		}
+	}
+
+	return ids, nil
+}
+
+func (w *webhook) delete(listenerURL string, ids []string) error {
+	for _, id := range ids {
+		_, err := w.Client.Repositories.DeleteHook(context.Background(), w.repoName, id)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (w *webhook) add(listenerURL, secret string) error {
 	in := &scm.HookInput{
 		Target: listenerURL,
 		Secret: secret,
@@ -42,8 +76,7 @@ func AddWebHook(gitRepoURL, token, listenerURL, secret string) error {
 		},
 	}
 
-	_, _, err = client.Repositories.CreateHook(context.Background(), repo, in)
-
+	_, _, err := w.Client.Repositories.CreateHook(context.Background(), w.repoName, in)
 	return err
 }
 
@@ -59,7 +92,7 @@ func getDriverName(u *url.URL) (string, error) {
 	return "", errors.New("unknown Git server: " + u.Host)
 }
 
-func getRepo(u *url.URL) (string, error) {
+func getRepoName(u *url.URL) (string, error) {
 
 	var components []string
 

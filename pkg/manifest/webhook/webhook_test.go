@@ -5,9 +5,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/h2non/gock"
-
 	"github.com/google/go-cmp/cmp"
+	"github.com/h2non/gock"
 )
 
 var mockHeaders = map[string]string{
@@ -17,8 +16,53 @@ var mockHeaders = map[string]string{
 	"X-RateLimit-Reset":     "1512076018",
 }
 
-func TestAddWebHook(t *testing.T) {
+func TestListWebHooks(t *testing.T) {
+	defer gock.Off()
 
+	gock.New("https://api.github.com").
+		Get("/repos/foo/bar/hooks").
+		Reply(200).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/hooks.json")
+
+	webhook, err := New("https://github.com/foo/bar.git", "token")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ids, err := webhook.list("http://example.com/webhook")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(ids, []string{"1"}); diff != "" {
+		t.Errorf("driver errMsg mismatch got\n%s", diff)
+	}
+}
+
+func TestDeleteWebHooks(t *testing.T) {
+	defer gock.Off()
+
+	gock.New("https://api.github.com").
+		Delete("/repos/foo/bar/hooks/1").
+		Reply(204).
+		Type("application/json").
+		SetHeaders(mockHeaders)
+
+	webhook, err := New("https://github.com/foo/bar.git", "token")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = webhook.delete("http://example.com", []string{"1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+func TestAddWebHook(t *testing.T) {
 	defer gock.Off()
 
 	gock.New("https://api.github.com").
@@ -28,7 +72,12 @@ func TestAddWebHook(t *testing.T) {
 		SetHeaders(mockHeaders).
 		File("testdata/hook.json")
 
-	err := AddWebHook("https://github.com/foo/bar.git", "1013f24d30ba050e6f38be827c34b7da2682169b", "http://example.com/webhook", "mysecret")
+	webhook, err := New("https://github.com/foo/bar.git", "token")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = webhook.add("http://example.com/webhook", "mysecret")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +89,7 @@ func TestGetDriverName(t *testing.T) {
 		url          string
 		driver       string
 		driverErrMsg string
-		repo         string
+		repoName     string
 		repoErrMsg   string
 	}{
 		{
@@ -119,7 +168,7 @@ func TestGetDriverName(t *testing.T) {
 					t.Errorf("driver mismatch got\n%s", diff)
 				}
 
-				repo, err := getRepo(u)
+				repoName, err := getRepoName(u)
 				repoErrMsg := ""
 				if err != nil {
 					repoErrMsg = err.Error()
@@ -127,7 +176,7 @@ func TestGetDriverName(t *testing.T) {
 				if diff := cmp.Diff(test.repoErrMsg, repoErrMsg); diff != "" {
 					t.Errorf("driver errMsg mismatch got\n%s", diff)
 				}
-				if diff := cmp.Diff(test.repo, repo); diff != "" {
+				if diff := cmp.Diff(test.repoName, repoName); diff != "" {
 					t.Errorf("driver mismatch got\n%s", diff)
 				}
 
