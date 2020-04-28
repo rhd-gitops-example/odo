@@ -3,6 +3,7 @@ package webhook
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -60,7 +61,7 @@ func (w *webhook) delete(listenerURL string, ids []string) error {
 	for _, id := range ids {
 		_, err := w.Client.Repositories.DeleteHook(context.Background(), w.repoName, id)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to delete webhook id %s: %w", id, err)
 		}
 	}
 	return nil
