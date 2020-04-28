@@ -11,26 +11,26 @@ import (
 )
 
 // AddWebHook add web hook
-func AddWebHook(gitRepoURL, token, listenerURL, secret string) (string, error) {
+func AddWebHook(gitRepoURL, token, listenerURL, secret string) error {
 
 	parsedURL, err := url.Parse(gitRepoURL)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	driverName, err := getDriverName(parsedURL)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	repo, err := getRepo(parsedURL)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	client, err := factory.NewClient(driverName, "", token)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	in := &scm.HookInput{
@@ -44,7 +44,7 @@ func AddWebHook(gitRepoURL, token, listenerURL, secret string) (string, error) {
 
 	_, _, err = client.Repositories.CreateHook(context.Background(), repo, in)
 
-	return "", err
+	return err
 }
 
 func getDriverName(u *url.URL) (string, error) {
