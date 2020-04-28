@@ -11,67 +11,101 @@ import (
 func TestGetDriverName(t *testing.T) {
 
 	tests := []struct {
-		url    string
-		want   string
-		errMsg string
+		url          string
+		driver       string
+		driverErrMsg string
+		repo         string
+		repoErrMsg   string
 	}{
 		{
 			"http://github.org",
 			"github",
 			"",
+			"",
+			"failed to get Git repo: ",
 		},
 		{
-			"http://github.com",
+			"http://github.com/",
 			"github",
 			"",
+			"",
+			"failed to get Git repo: /",
 		},
 		{
 			"http://github.com/foo/bar",
 			"github",
 			"",
+			"foo/bar",
+			"",
 		},
 		{
-			"https://githuB.com/foo/bar",
+			"https://githuB.com/foo/bar.git",
 			"github",
 			"",
+			"foo/bar",
+			"",
 		},
 		{
-			"http://gitlab.com/foo/bar",
+			"http://gitlab.com/foo/bar.git2",
 			"gitlab",
 			"",
+			"",
+			"failed to get Git repo: /foo/bar.git2",
 		},
 		{
-			"http://gitlab/foo/bar",
+			"http://gitlab/foo/bar/",
 			"",
 			"unknown Git server: gitlab",
+			"foo/bar",
+			"",
 		},
 		{
-			"https://gitlab.a.b/foo/bar",
+			"https://gitlab.a.b/foo/bar/bar",
 			"",
 			"unknown Git server: gitlab.a.b",
+			"",
+			"failed to get Git repo: /foo/bar/bar",
+		},
+		{
+			"https://gitlab.org2/f.b/bar.git",
+			"",
+			"unknown Git server: gitlab.org2",
+			"",
+			"failed to get Git repo: /f.b/bar.git",
 		},
 	}
 
-	i := 0
-	for _, test := range tests {
+	for i, test := range tests {
 		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
 			u, err := url.Parse(test.url)
 			if err != nil {
 				t.Error(err)
 			} else {
-				got, err := getDriverName(u)
-				errMsg := ""
+				gotDriver, err := getDriverName(u)
+				driverErrMsg := ""
 				if err != nil {
-					errMsg = err.Error()
+					driverErrMsg = err.Error()
 				}
-				if diff := cmp.Diff(test.errMsg, errMsg); diff != "" {
-					t.Errorf("errMsg mismatch got\n%s", diff)
+				if diff := cmp.Diff(test.driverErrMsg, driverErrMsg); diff != "" {
+					t.Errorf("driver errMsg mismatch got\n%s", diff)
 				}
-				if diff := cmp.Diff(test.want, got); diff != "" {
+				if diff := cmp.Diff(test.driver, gotDriver); diff != "" {
 					t.Errorf("driver mismatch got\n%s", diff)
 				}
+
+				repo, err := getRepo(u)
+				repoErrMsg := ""
+				if err != nil {
+					repoErrMsg = err.Error()
+				}
+				if diff := cmp.Diff(test.repoErrMsg, repoErrMsg); diff != "" {
+					t.Errorf("driver errMsg mismatch got\n%s", diff)
+				}
+				if diff := cmp.Diff(test.repo, repo); diff != "" {
+					t.Errorf("driver mismatch got\n%s", diff)
+				}
+
 			}
 		})
-		i++
 	}
 }
