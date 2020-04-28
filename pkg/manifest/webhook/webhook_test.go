@@ -5,8 +5,34 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/h2non/gock"
+
 	"github.com/google/go-cmp/cmp"
 )
+
+var mockHeaders = map[string]string{
+	"X-GitHub-Request-Id":   "DD0E:6011:12F21A8:1926790:5A2064E2",
+	"X-RateLimit-Limit":     "60",
+	"X-RateLimit-Remaining": "59",
+	"X-RateLimit-Reset":     "1512076018",
+}
+
+func TestAddWebHook(t *testing.T) {
+
+	defer gock.Off()
+
+	gock.New("https://api.github.com").
+		Post("/repos/foo/bar/hooks").
+		Reply(201).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/hook.json")
+
+	err := AddWebHook("https://github.com/foo/bar.git", "1013f24d30ba050e6f38be827c34b7da2682169b", "http://example.com/webhook", "mysecret")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestGetDriverName(t *testing.T) {
 
