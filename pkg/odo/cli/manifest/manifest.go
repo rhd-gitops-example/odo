@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/odo/pkg/odo/cli/manifest/environment"
+	"github.com/openshift/odo/pkg/odo/cli/manifest/webhook"
+
 	odoutil "github.com/openshift/odo/pkg/odo/util"
 )
 
@@ -26,11 +28,11 @@ func NewCmdManifest(name, fullName string) *cobra.Command {
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
 	bootstrapCmd := NewCmdBootstrap(BootstrapRecommendedCommandName, odoutil.GetFullName(fullName, BootstrapRecommendedCommandName))
 	envCmd := environment.NewCmdEnv(environment.EnvRecommendedCommandName, odoutil.GetFullName(fullName, environment.EnvRecommendedCommandName))
-	webhookcmd := webhook.NewCmdWebhook(webhook.AddWebhookRecommendedCommandName, odoutil.gitRepoURL(gitRepoURL, AddWebhookRecommendedCommandName))
+	webhookCmd := webhook.NewCmdWebhook(webhook.RecommendedCommandName, odoutil.GetFullName(fullName, webhook.RecommendedCommandName))
 	manifestCmd.AddCommand(initCmd)
 	manifestCmd.AddCommand(bootstrapCmd)
 	manifestCmd.AddCommand(envCmd)
-	manifestCmd.AddCommand(webhookcmd)
+	manifestCmd.AddCommand(webhookCmd)
 
 	buildCmd := NewCmdBuild(BuildRecommendedCommandName, odoutil.GetFullName(fullName, BuildRecommendedCommandName))
 	manifestCmd.AddCommand(buildCmd)

@@ -1,31 +1,36 @@
 package webhook
-import(
+
+import (
 	"fmt"
 
 	odoutil "github.com/openshift/odo/pkg/odo/util"
 	"github.com/spf13/cobra"
 )
-// WebhookRecommendedCommandName is the recommended environment command name.
-const AddWebhookRecommendedCommandName = "webhook"
 
-func NewCmdWebhook(gitRepoURL, token string) *cobra.command{
-	addWebhookCmd := NewCmdAddWebhook(AddWebhookRecommendedCommandName,odoutil.gitRepoURL(gitRepoURL,AddWebhookRecommendedCommandName))
+// RecommendedCommandName is the recommended webhook command name.
+const RecommendedCommandName = "webhook"
 
-	var webhookcmd = &cobra.Command{
-		use: gitRepoURL,
-		Short: "create a webhook URL"
-		Examples: fmt.Sprintf("%s\n%s\n\n  See sub-commands individually for more examples",
-			gitRepoURL, AddWebhookRecommendedCommandName),
-		Run: func(cmd *cobra.Command, args[]string){
+// NewCmdWebhook create a new webhook command
+func NewCmdWebhook(name, fullName string) *cobra.Command {
+	createCmd := NewCmdCreate(createRecommendedCommandName, odoutil.GetFullName(fullName, createRecommendedCommandName))
+	deleteCmd := NewCmdDelete(deleteRecommendedCommandName, odoutil.GetFullName(fullName, deleteRecommendedCommandName))
 
+	var webhookCmd = &cobra.Command{
+		Use:   name,
+		Short: "Manage Git repository webhooks",
+		Long:  "Add/Delete Git repository webhooks that trigger CI/CD pipeline runs.",
+		Example: fmt.Sprintf("%s\n%s\n%s\n\n  See sub-commands individually for more examples",
+			fullName,
+			createRecommendedCommandName,
+			deleteRecommendedCommandName),
+		Run: func(cmd *cobra.Command, args []string) {
 		},
+	}
 
-	} 
+	webhookCmd.AddCommand(createCmd)
+	webhookCmd.AddCommand(deleteCmd)
 
-	webhookcmd.Flags().AddFlagSet(addWebhookCmd.Flags())
-	webhookcmd.AddCommand(addWebhookCmd)
-
-	webhookcmd.Annotations = map[string] string{"command":"main"}
-	webhookcmd.SetUsageTemplate(odoutil.CmdUsageTemplate)
-	return webhookcmd
+	webhookCmd.Annotations = map[string]string{"command": "main"}
+	webhookCmd.SetUsageTemplate(odoutil.CmdUsageTemplate)
+	return webhookCmd
 }
