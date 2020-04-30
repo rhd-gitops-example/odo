@@ -26,10 +26,11 @@ func NewCmdManifest(name, fullName string) *cobra.Command {
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
 	bootstrapCmd := NewCmdBootstrap(BootstrapRecommendedCommandName, odoutil.GetFullName(fullName, BootstrapRecommendedCommandName))
 	envCmd := environment.NewCmdEnv(environment.EnvRecommendedCommandName, odoutil.GetFullName(fullName, environment.EnvRecommendedCommandName))
-
+	webhookcmd := webhook.NewCmdWebhook(webhook.AddWebhookRecommendedCommandName, odoutil.gitRepoURL(gitRepoURL, AddWebhookRecommendedCommandName))
 	manifestCmd.AddCommand(initCmd)
 	manifestCmd.AddCommand(bootstrapCmd)
 	manifestCmd.AddCommand(envCmd)
+	manifestCmd.AddCommand(webhookcmd)
 
 	buildCmd := NewCmdBuild(BuildRecommendedCommandName, odoutil.GetFullName(fullName, BuildRecommendedCommandName))
 	manifestCmd.AddCommand(buildCmd)
