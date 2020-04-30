@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
-	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
@@ -27,8 +26,10 @@ func TestBuildEventListener(t *testing.T) {
 	gitOpsRepo := "http://github.com/org/gitops.git"
 	got, err := buildEventListenerResources(gitOpsRepo, m)
 	assertNoError(t, err)
+	triggers := fakeTriggers("org/gitops", "test-cicd", testService())
+
 	want := res.Resources{
-		getEventListenerPath(cicdPath): eventlisteners.CreateELFromTriggers("test-cicd", saName, fakeTiggers(t, m, gitOpsRepo)),
+		getEventListenerPath(cicdPath): eventlisteners.CreateELFromTriggers("test-cicd", triggers),
 	}
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Fatalf("resources didn't match:%s\n", diff)
@@ -42,35 +43,26 @@ func TestBuildEventListenerWithServiceWithNoURL(t *testing.T) {
 				Name:   "test-cicd",
 				IsCICD: true,
 			},
-			testEnv(testService()),
+			testEnv(&config.Service{
+				Name: "test-svc",
+				Webhook: &config.Webhook{
+					Secret: &config.Secret{
+						Name:      "webhook-secret",
+						Namespace: "webhook-ns",
+					},
+				},
+			}),
 		},
 	}
 	cicdPath := filepath.Join("environments", "test-cicd")
 	gitOpsRepo := "http://github.com/org/gitops.git"
 	got, err := buildEventListenerResources(gitOpsRepo, m)
 	assertNoError(t, err)
+	triggers := fakeTriggers("org/gitops", "test-cicd", nil)
+
 	want := res.Resources{
-		getEventListenerPath(cicdPath): eventlisteners.CreateELFromTriggers("test-cicd", saName, fakeTiggers(t, m, gitOpsRepo)),
+		getEventListenerPath(cicdPath): eventlisteners.CreateELFromTriggers("test-cicd", triggers),
 	}
-	if diff := cmp.Diff(got, want); diff != "" {
-		t.Fatalf("resources didn't match:%s\n", diff)
-	}
-}
-
-func TestBuildEventListenerWithNoGitOpsURL(t *testing.T) {
-	m := &config.Manifest{
-		Environments: []*config.Environment{
-			{
-				Name:   "test-cicd",
-				IsCICD: true,
-			},
-			testEnv(testService()),
-		},
-	}
-	got, err := buildEventListenerResources("", m)
-	assertNoError(t, err)
-
-	want := res.Resources{}
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Fatalf("resources didn't match:%s\n", diff)
 	}
@@ -115,80 +107,25 @@ func TestGetPipelines(t *testing.T) {
 			},
 			defaultPipelines,
 		},
-		{
-			"Only override the bindings in the service",
-			&config.Environment{
-				Name:      "test-env",
-				Pipelines: testPipelines("env"),
-			},
-			&config.Service{
-				Name: "test-service",
-				Pipelines: &config.Pipelines{
-					Integration: &config.TemplateBinding{
-						Bindings: []string{"svc-ci-binding"},
-					},
-				},
-			},
-			&config.Pipelines{
-				Integration: &config.TemplateBinding{
-					Template: "env-ci-template",
-					Bindings: []string{"svc-ci-binding"},
-				},
-			},
-		},
-		{
-			"Only override the template in the service",
-			&config.Environment{
-				Name:      "test-env",
-				Pipelines: testPipelines("env"),
-			},
-			&config.Service{
-				Name: "test-service",
-				Pipelines: &config.Pipelines{
-					Integration: &config.TemplateBinding{
-						Template: fmt.Sprintf("svc-ci-template"),
-					},
-				},
-			},
-			&config.Pipelines{
-				Integration: &config.TemplateBinding{
-					Template: "svc-ci-template",
-					Bindings: []string{"env-ci-binding"},
-				},
-			},
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.desc, func(rt *testing.T) {
-			var envPipelines *config.Pipelines
-			if test.env.Pipelines != nil {
-				envPipelines = clonePipelines(test.env.Pipelines)
-			}
 			got := getPipelines(test.env, test.svc)
-			if diff := cmp.Diff(test.want, got); diff != "" {
-				rt.Errorf("getPipelines() failed:\n%v", diff)
-			}
-			if diff := cmp.Diff(envPipelines, test.env.Pipelines); diff != "" {
-				rt.Errorf("environment pipelines overwritten: %s\n", diff)
+			if diff := cmp.Diff(got, test.want); diff != "" {
+				rt.Fatalf("getPipelines() failed:\n%v", diff)
 			}
 		})
 	}
 }
 
-func fakeTiggers(t *testing.T, m *config.Manifest, gitOpsRepo string) []v1alpha1.EventListenerTrigger {
-	triggers := []v1alpha1.EventListenerTrigger{}
-	devEnv := m.GetEnvironment("test-dev")
-	cicdEnv, err := m.GetCICDEnvironment()
-	assertNoError(t, err)
-	svc := testService()
-	pipelines := getPipelines(devEnv, svc)
-	repo, err := scm.NewRepository(svc.SourceURL)
-	assertNoError(t, err)
-	devCITrigger := repo.CreateCITrigger(fmt.Sprintf("app-ci-build-from-pr-%s", svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
-	triggers = append(triggers, devCITrigger)
-	cicdTriggers, err := createTriggersForCICD(gitOpsRepo, cicdEnv)
-	assertNoError(t, err)
-	triggers = append(triggers, cicdTriggers...)
+func fakeTriggers(gitopsRepo string, cicdNs string, svc *config.Service) []v1alpha1.EventListenerTrigger {
+	triggers := []v1alpha1.EventListenerTrigger{
+		eventlisteners.CreateListenerTrigger("ci-dryrun-from-pr", eventlisteners.StageCIDryRunFilters, gitopsRepo, "github-pr-binding", "ci-dryrun-from-pr-template", eventlisteners.GitOpsWebhookSecret, cicdNs),
+	}
+	if svc != nil {
+		l := eventlisteners.CreateListenerTrigger(triggerName(svc.Name), eventlisteners.StageCIDryRunFilters, "org/test", "test-ci-binding", "test-ci-template", svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace)
+		triggers = append([]v1alpha1.EventListenerTrigger{l}, triggers...)
+	}
 	return triggers
 }
 
@@ -209,12 +146,12 @@ func testEnv(svc *config.Service) *config.Environment {
 	return &config.Environment{
 		Name:      "test-dev",
 		Pipelines: testPipelines("test"),
-		Services: []*config.Service{
-			svc,
-		},
 		Apps: []*config.Application{
 			{
 				Name: "test-app",
+				Services: []*config.Service{
+					svc,
+				},
 			},
 		},
 	}
@@ -224,7 +161,7 @@ func testPipelines(name string) *config.Pipelines {
 	return &config.Pipelines{
 		Integration: &config.TemplateBinding{
 			Template: fmt.Sprintf("%s-ci-template", name),
-			Bindings: []string{fmt.Sprintf("%s-ci-binding", name)},
+			Binding:  fmt.Sprintf("%s-ci-binding", name),
 		},
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
-	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
@@ -32,45 +31,33 @@ type tektonBuilder struct {
 }
 
 func buildEventListenerResources(gitOpsRepo string, m *config.Manifest) (res.Resources, error) {
-	if gitOpsRepo == "" {
-		return res.Resources{}, nil
-	}
-	cicd, err := m.GetCICDEnvironment()
-	if err != nil {
-		return nil, err
-	}
-	if cicd == nil {
-		return nil, nil
-	}
 	files := make(res.Resources)
 	tb := &tektonBuilder{files: files, gitOpsRepo: gitOpsRepo}
-	err = m.Walk(tb)
+	err := m.Walk(tb)
 	return tb.files, err
 }
 
-func (tk *tektonBuilder) Service(env *config.Environment, svc *config.Service) error {
+func (tk *tektonBuilder) Service(env *config.Environment, app *config.Application, svc *config.Service) error {
 	if svc.SourceURL == "" {
 		return nil
 	}
-	repo, err := scm.NewRepository(svc.SourceURL)
+	trigger, err := createTrigger(tk.gitOpsRepo, env, svc)
 	if err != nil {
 		return err
 	}
-	pipelines := getPipelines(env, svc)
-	ciTrigger := repo.CreateCITrigger(triggerName(svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
-	tk.triggers = append(tk.triggers, ciTrigger)
+	tk.triggers = append(tk.triggers, trigger)
 	return nil
 }
 
 func (tk *tektonBuilder) Environment(env *config.Environment) error {
 	if env.IsCICD {
-		triggers, err := createTriggersForCICD(tk.gitOpsRepo, env)
+		trigger, err := createTrigger(tk.gitOpsRepo, env, nil)
 		if err != nil {
 			return err
 		}
-		tk.triggers = append(tk.triggers, triggers...)
+		tk.triggers = append(tk.triggers, trigger)
 		cicdPath := config.PathForEnvironment(env)
-		tk.files[getEventListenerPath(cicdPath)] = eventlisteners.CreateELFromTriggers(env.Name, saName, tk.triggers)
+		tk.files[getEventListenerPath(cicdPath)] = eventlisteners.CreateELFromTriggers(env.Name, tk.triggers)
 	}
 	return nil
 }
@@ -79,43 +66,24 @@ func getEventListenerPath(cicdPath string) string {
 	return filepath.Join(cicdPath, "base", "pipelines", eventListenerPath)
 }
 
-func createTriggersForCICD(gitOpsRepo string, env *config.Environment) ([]v1alpha1.EventListenerTrigger, error) {
-	triggers := []v1alpha1.EventListenerTrigger{}
-	repo, err := scm.NewRepository(gitOpsRepo)
-	if err != nil {
-		return []v1alpha1.EventListenerTrigger{}, err
+func createTrigger(gitOpsRepo string, env *config.Environment, svc *config.Service) (v1alpha1.EventListenerTrigger, error) {
+	if env.IsCICD {
+		repo, err := extractRepo(gitOpsRepo)
+		return eventlisteners.CreateListenerTrigger("ci-dryrun-from-pr", eventlisteners.StageCIDryRunFilters, repo, "github-pr-binding", "ci-dryrun-from-pr-template", eventlisteners.GitOpsWebhookSecret, env.Name), err
 	}
-	_, prBindingName := repo.CreatePRBinding(env.Name)
-	ciTrigger := repo.CreateCITrigger("ci-dryrun-from-pr", eventlisteners.GitOpsWebhookSecret, env.Name, "ci-dry-run-from-pr-template", []string{prBindingName})
-	_, pushBindingName := repo.CreatePushBinding(env.Name)
-	cdTrigger := repo.CreateCDTrigger("cd-deploy-from-push", eventlisteners.GitOpsWebhookSecret, env.Name, "cd-deploy-from-push-template", []string{pushBindingName})
-	triggers = append(triggers, ciTrigger, cdTrigger)
-	return triggers, nil
+	pipelines := getPipelines(env, svc)
+	svcRepo, err := extractRepo(svc.SourceURL)
+	return eventlisteners.CreateListenerTrigger(triggerName(svc.Name), eventlisteners.StageCIDryRunFilters, svcRepo, pipelines.Integration.Binding, pipelines.Integration.Template, svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace), err
 }
 
 func getPipelines(env *config.Environment, svc *config.Service) *config.Pipelines {
-	pipelines := clonePipelines(defaultPipelines)
-	if env.Pipelines != nil {
-		pipelines = clonePipelines(env.Pipelines)
-	}
 	if svc.Pipelines != nil {
-		if len(svc.Pipelines.Integration.Bindings) > 0 {
-			pipelines.Integration.Bindings = svc.Pipelines.Integration.Bindings[:]
-		}
-		if svc.Pipelines.Integration.Template != "" {
-			pipelines.Integration.Template = svc.Pipelines.Integration.Template
-		}
+		return svc.Pipelines
 	}
-	return pipelines
-}
-
-func clonePipelines(p *config.Pipelines) *config.Pipelines {
-	return &config.Pipelines{
-		Integration: &config.TemplateBinding{
-			Bindings: p.Integration.Bindings[:],
-			Template: p.Integration.Template,
-		},
+	if env.Pipelines != nil {
+		return env.Pipelines
 	}
+	return defaultPipelines
 }
 
 func extractRepo(u string) (string, error) {

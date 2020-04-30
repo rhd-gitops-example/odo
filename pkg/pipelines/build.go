@@ -5,7 +5,6 @@ import (
 
 	"github.com/openshift/odo/pkg/pipelines/argocd"
 	"github.com/openshift/odo/pkg/pipelines/config"
-	"github.com/openshift/odo/pkg/pipelines/environments"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
 	"github.com/spf13/afero"
@@ -16,6 +15,7 @@ import (
 type BuildParameters struct {
 	ManifestFilename string
 	OutputPath       string
+	RepositoryURL    string
 }
 
 // BuildResources builds all resources from a pipelines.
@@ -37,19 +37,18 @@ func BuildResources(o *BuildParameters, appFs afero.Fs) error {
 
 func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Resources, error) {
 	resources := res.Resources{}
-	envs, err := environments.Build(fs, m, saName)
+	envs, err := buildEnvironments(fs, m)
 	if err != nil {
 		return nil, err
 	}
 	resources = res.Merge(envs, resources)
-
-	elFiles, err := buildEventListenerResources(m.GitOpsURL, m)
+	elFiles, err := buildEventListenerResources(o.RepositoryURL, m)
 	if err != nil {
 		return nil, err
 	}
-
 	resources = res.Merge(elFiles, resources)
-	argoApps, err := argocd.Build(argocd.ArgoCDNamespace, m.GitOpsURL, m)
+
+	argoApps, err := argocd.Build(argocd.ArgoCDNamespace, o.RepositoryURL, m)
 	if err != nil {
 		return nil, err
 	}
