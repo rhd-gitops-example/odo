@@ -2,7 +2,6 @@ package manifest
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/openshift/odo/pkg/manifest/argocd"
 	"github.com/openshift/odo/pkg/manifest/config"
@@ -26,7 +25,6 @@ func BuildResources(o *BuildParameters, appFs afero.Fs) error {
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
 	if err := m.Validate(); err != nil {
-		log.Println("could not process the manifest, validation failed", err)
 		return err
 	}
 	resources, err := buildResources(appFs, o, m)
@@ -44,7 +42,7 @@ func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Re
 		return nil, err
 	}
 	resources = res.Merge(envs, resources)
-	elFiles, err := buildEventlistenerResources(o.RepositoryURL, m)
+	elFiles, err := buildEventListenerResources(o.RepositoryURL, m)
 	if err != nil {
 		return nil, err
 	}
