@@ -6,12 +6,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/odo/pkg/manifest/config"
+	"github.com/openshift/odo/pkg/manifest/ioutils"
 	res "github.com/openshift/odo/pkg/manifest/resources"
 	"github.com/spf13/afero"
 )
 
 func TestBuildEnvironmentFiles(t *testing.T) {
-	var appFs = afero.NewMemMapFs()
+	var appFs = ioutils.NewMapFilesystem()
 	m := &config.Manifest{
 		Environments: []*config.Environment{
 			{
@@ -29,6 +30,10 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 					},
 				},
 			},
+			{
+				Name:   "cicd",
+				IsCICD: true,
+			},
 		},
 	}
 
@@ -44,7 +49,8 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 		"environments/test-dev/apps/my-app-1/kustomization.yaml":                     &res.Kustomization{Bases: []string{"overlays"}},
 		"environments/test-dev/apps/my-app-1/overlays/kustomization.yaml":            &res.Kustomization{Bases: []string{"../base"}},
 		"environments/test-dev/env/base/test-dev-environment.yaml":                   CreateNamespace("test-dev"),
-		"environments/test-dev/env/base/kustomization.yaml":                          &res.Kustomization{Resources: []string{"test-dev-environment.yaml"}},
+		"environments/test-dev/env/base/test-dev-rolebinding.yaml":                   createRoleBinding(m.Environments[0], "environments/test-dev/env/base", "cicd"),
+		"environments/test-dev/env/base/kustomization.yaml":                          &res.Kustomization{Resources: []string{"test-dev-environment.yaml", "test-dev-rolebinding.yaml"}},
 		"environments/test-dev/env/overlays/kustomization.yaml":                      &res.Kustomization{Bases: []string{"../base"}},
 		"environments/test-dev/services/service-http/kustomization.yaml":             &res.Kustomization{Bases: []string{"overlays"}},
 		"environments/test-dev/services/service-http/base/kustomization.yaml":        &res.Kustomization{Bases: []string{"./config"}},
@@ -60,7 +66,7 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 }
 
 func TestBuildEnvironmentsDoesNotOutputCIorArgo(t *testing.T) {
-	var appFs = afero.NewMemMapFs()
+	var appFs = ioutils.NewMapFilesystem()
 	m := &config.Manifest{
 		Environments: []*config.Environment{
 			{Name: "test-ci", IsCICD: true},
@@ -80,7 +86,7 @@ func TestBuildEnvironmentsDoesNotOutputCIorArgo(t *testing.T) {
 }
 
 func TestBuildEnvironmentsAddsKustomizedFiles(t *testing.T) {
-	var appFs = afero.NewMemMapFs()
+	var appFs = ioutils.NewMapFilesystem()
 	appFs.MkdirAll("environments/test-dev/base", 0755)
 	afero.WriteFile(appFs, "environments/test-dev/base/volume.yaml", []byte(`this is a file`), 0644)
 	afero.WriteFile(appFs, "environments/test-dev/base/test-dev-environment.yaml", []byte(`this is a file`), 0644)
@@ -89,6 +95,7 @@ func TestBuildEnvironmentsAddsKustomizedFiles(t *testing.T) {
 	m := &config.Manifest{
 		Environments: []*config.Environment{
 			{Name: "test-dev"},
+			{Name: "cicd", IsCICD: true},
 		},
 	}
 

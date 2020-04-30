@@ -2,10 +2,10 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/manifest/ioutils"
 )
 
 func TestParse(t *testing.T) {
@@ -97,7 +97,8 @@ func TestParse(t *testing.T) {
 
 	for _, tt := range parseTests {
 		t.Run(fmt.Sprintf("parsing %s", tt.filename), func(rt *testing.T) {
-			f, err := os.Open(tt.filename)
+			fs := ioutils.NewFilesystem()
+			f, err := fs.Open(tt.filename)
 			if err != nil {
 				rt.Fatalf("failed to open %v: %s", tt.filename, err)
 			}
