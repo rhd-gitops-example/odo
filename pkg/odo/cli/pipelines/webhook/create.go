@@ -16,28 +16,42 @@ var (
 	%[1]s`)
 )
 
-// CreateOptions are opttions can be passed to webhook create command
-type CreateOptions struct {
+type createOptions struct {
+	accessToken string
+	isCICD      bool
+	pipelines   string
+	serviceName string
+	isInsecure  bool
 	*genericclioptions.Context
 }
 
-func newCreateOptions() *CreateOptions {
-	return &CreateOptions{}
+func newCreateOptions() *createOptions {
+	return &createOptions{}
 }
 
-// Complete completes CreateOptions after they've been created
-func (o *CreateOptions) Complete(name string, cmd *cobra.Command, args []string) (err error) {
-	o.Context = genericclioptions.NewContext(cmd)
-	return
+// Complete completes createOptions after they've been created
+func (o *createOptions) Complete(name string, cmd *cobra.Command, args []string) (err error) {
+	return nil
 }
 
-// Validate validates the CreateOptions based on completed values
-func (o *CreateOptions) Validate() (err error) {
+// Validate validates the createOptions based on completed values
+func (o *createOptions) Validate() (err error) {
+
+	if o.isCICD {
+		if o.serviceName != "" {
+			return fmt.Errorf("Only one of --cicd or --service-name can be specified")
+		}
+	} else {
+		if o.serviceName == "" {
+			return fmt.Errorf("One of --cicd or --service-name must be specified")
+		}
+	}
+
 	return nil
 }
 
 // Run contains the logic for the odo command
-func (o *CreateOptions) Run() (err error) {
+func (o *createOptions) Run() (err error) {
 	return
 }
 
@@ -53,6 +67,22 @@ func NewCmdCreate(name, fullName string) *cobra.Command {
 			genericclioptions.GenericRun(o, cmd, args)
 		},
 	}
+
+	// pipeline option
+	command.Flags().StringVar(&o.pipelines, "pipelines", "pipelines.yaml", "path to pipelines file")
+
+	// access-token option
+	command.Flags().StringVar(&o.accessToken, "access-token", "", "access token to be used to create Git repository webhook")
+	command.MarkFlagRequired("access-token")
+
+	// cicd option
+	command.Flags().BoolVar(&o.isCICD, "cicd", false, "provide this flag if the target Git repository is a CI/CD configuration repository")
+
+	// service-name option
+	command.Flags().StringVar(&o.serviceName, "service-name", "", "provide service-name if the target Git repository is a service's source repository")
+
+	// insecure option
+	command.Flags().BoolVar(&o.isInsecure, "insecure", false, "provide this flag if the Event Listenr external HTTP endpoint does not use TLS")
 
 	return command
 }

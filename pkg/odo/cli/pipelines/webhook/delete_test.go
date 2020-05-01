@@ -1,0 +1,74 @@
+package webhook
+
+import (
+	"fmt"
+	"testing"
+)
+
+func TestMissingRequiredFlagsForDelete(t *testing.T) {
+	cmdTests := []struct {
+		flags   []keyValuePair
+		wantErr string
+	}{
+		{[]keyValuePair{flag("cicd", "true")},
+			"Required flag(s) \"access-token\" have/has not been set",
+		},
+		{[]keyValuePair{flag("access-token", "mytoken"), flag("cicd", "true")},
+			"",
+		},
+	}
+	for i, tt := range cmdTests {
+		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
+			_, _, err := executeCommand(NewCmdDelete("webhook", "odo pipelines webhook delete"), tt.flags...)
+
+			if err != nil {
+				if err.Error() != tt.wantErr {
+					rt.Errorf("got %s, want %s", err, tt.wantErr)
+				}
+			} else {
+				if tt.wantErr != "" {
+					rt.Errorf("got %s, want %s", "", tt.wantErr)
+				}
+			}
+		})
+	}
+}
+
+func TestValidateForDelete(t *testing.T) {
+	optionTests := []struct {
+		options *deleteOptions
+		errMsg  string
+	}{
+		{
+			&deleteOptions{isCICD: true, serviceName: "abc"},
+			"Only one of --cicd or --service-name can be specified",
+		},
+		{
+			&deleteOptions{isCICD: false, serviceName: ""},
+			"One of --cicd or --service-name must be specified",
+		},
+		{
+			&deleteOptions{isCICD: true, serviceName: ""},
+			"",
+		},
+		{
+			&deleteOptions{isCICD: false, serviceName: "bb"},
+			"",
+		},
+	}
+
+	for i, tt := range optionTests {
+		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
+
+			err := tt.options.Validate()
+
+			if err != nil && tt.errMsg == "" {
+				t.Errorf("Validate() got an unexpected error: %s", err)
+			} else {
+				if !matchError(t, tt.errMsg, err) {
+					t.Errorf("Validate() failed to match error: got %s, want %s", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
