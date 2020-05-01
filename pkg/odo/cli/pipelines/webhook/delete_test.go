@@ -40,19 +40,27 @@ func TestValidateForDelete(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			&deleteOptions{isCICD: true, serviceName: "abc"},
+			&deleteOptions{
+				options{isCICD: true, serviceName: "foo"},
+			},
 			"Only one of --cicd or --service-name can be specified",
 		},
 		{
-			&deleteOptions{isCICD: false, serviceName: ""},
+			&deleteOptions{
+				options{isCICD: false, serviceName: ""},
+			},
 			"One of --cicd or --service-name must be specified",
 		},
 		{
-			&deleteOptions{isCICD: true, serviceName: ""},
+			&deleteOptions{
+				options{isCICD: true, serviceName: ""},
+			},
 			"",
 		},
 		{
-			&deleteOptions{isCICD: false, serviceName: "bb"},
+			&deleteOptions{
+				options{isCICD: false, serviceName: "foo"},
+			},
 			"",
 		},
 	}

@@ -49,19 +49,27 @@ func TestValidateForCreate(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			&createOptions{isCICD: true, serviceName: "abc"},
+			&createOptions{
+				options{isCICD: true, serviceName: "foo"},
+			},
 			"Only one of --cicd or --service-name can be specified",
 		},
 		{
-			&createOptions{isCICD: false, serviceName: ""},
+			&createOptions{
+				options{isCICD: false, serviceName: ""},
+			},
 			"One of --cicd or --service-name must be specified",
 		},
 		{
-			&createOptions{isCICD: true, serviceName: ""},
+			&createOptions{
+				options{isCICD: true, serviceName: ""},
+			},
 			"",
 		},
 		{
-			&createOptions{isCICD: false, serviceName: "bb"},
+			&createOptions{
+				options{isCICD: false, serviceName: "foo"},
+			},
 			"",
 		},
 	}
