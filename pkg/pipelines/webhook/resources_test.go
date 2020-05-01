@@ -19,7 +19,6 @@ import (
 )
 
 func TestGetRouteHost(t *testing.T) {
-
 	reouteClientset := fakeRouteClientset.NewSimpleClientset()
 	reouteClientset.PrependReactor("get", "routes", func(action ktesting.Action) (bool, runtime.Object, error) {
 		if action.GetNamespace() != "tst-cicd" {
@@ -36,26 +35,30 @@ func TestGetRouteHost(t *testing.T) {
 				Port: &routev1.RoutePort{
 					TargetPort: intstr.IntOrString{
 						IntVal: 8080,
+						StrVal: "8080",
 					},
 				},
 			},
 		}
 		return true, route, nil
 	})
-	resources := FakeNewResources(reouteClientset.Route(), nil)
+	resources := fakeNewResources(reouteClientset.Route(), nil)
 
-	route, err := resources.getListenerAddress("tst-cicd", "gitops-webhook-event-listener-route")
+	host, port, err := resources.getListenerAddress("tst-cicd", "gitops-webhook-event-listener-route")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(route, "devcluster.openshift.com"); diff != "" {
-		t.Errorf("driver errMsg mismatch got\n%s", diff)
+	if diff := cmp.Diff(host, "devcluster.openshift.com"); diff != "" {
+		t.Errorf("host mismatch got\n%s", diff)
+	}
+
+	if diff := cmp.Diff(port, "8080"); diff != "" {
+		t.Errorf("port  mismatch got\n%s", diff)
 	}
 }
 
 func TestGetSecret(t *testing.T) {
-
 	kubeClient := fakeKubeClientset.NewSimpleClientset()
 
 	kubeClient.PrependReactor("get", "secrets", func(action ktesting.Action) (bool, runtime.Object, error) {
@@ -74,7 +77,7 @@ func TestGetSecret(t *testing.T) {
 		}, nil
 	})
 
-	resources := FakeNewResources(nil, kubeClient)
+	resources := fakeNewResources(nil, kubeClient)
 
 	secret, err := resources.getWebhookSecret("tst-cicd", "gitops-webhook-secret", "webhook-secret-key")
 	if err != nil {
@@ -86,9 +89,9 @@ func TestGetSecret(t *testing.T) {
 	}
 }
 
-func FakeNewResources(routeClient routeclientset.RouteV1Interface,
-	kubeClient kubernetes.Interface) *webhookResources {
-	return &webhookResources{
+func fakeNewResources(routeClient routeclientset.RouteV1Interface,
+	kubeClient kubernetes.Interface) *resources {
+	return &resources{
 		routeClient: routeClient,
 		kubeClient:  kubeClient,
 	}

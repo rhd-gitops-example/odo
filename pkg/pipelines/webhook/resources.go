@@ -8,13 +8,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type webhookResources struct {
+// resources represents cluster resources that are needed by webhook management
+type resources struct {
 	routeClient routeclientset.RouteV1Interface
 	kubeClient  kubernetes.Interface
 }
 
 // NewResources create new webhook resources
-func NewResources() (*webhookResources, error) {
+func newResources() (*resources, error) {
 	config, err := clientconfig.GetRESTConfig()
 	if err != nil {
 		return nil, err
@@ -28,12 +29,11 @@ func NewResources() (*webhookResources, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &webhookResources{routeClient: routeClient,
+	return &resources{routeClient: routeClient,
 		kubeClient: kubeClient}, nil
 }
 
-func (r *webhookResources) getWebhookSecret(ns, secetName, key string) (string, error) {
-
+func (r *resources) getWebhookSecret(ns, secetName, key string) (string, error) {
 	secret, err := r.kubeClient.CoreV1().Secrets(ns).Get(secetName, metav1.GetOptions{})
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to get the secret %s", secret)
@@ -41,10 +41,11 @@ func (r *webhookResources) getWebhookSecret(ns, secetName, key string) (string, 
 	return string(secret.Data[key]), nil
 }
 
-func (r *webhookResources) getListenerAddress(ns, routeName string) (string, error) {
+// getListenerAddress returns external address host and port Event Listener exposed by OpenShift route
+func (r *resources) getListenerAddress(ns, routeName string) (string, string, error) {
 	route, err := r.routeClient.Routes(ns).Get(routeName, metav1.GetOptions{})
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return route.Spec.Host, nil
+	return route.Spec.Host, route.Spec.Port.TargetPort.StrVal, nil
 }

@@ -77,7 +77,7 @@ func TestCreateWebHook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = repo.createWehoook()"http://example.com/webhook", "mysecret")
+	err = repo.createWehoook("http://example.com/webhook", "mysecret")
 	if err != nil {
 		t.Fatal(err)
 	}
