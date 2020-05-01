@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openshift/odo/pkg/pipelines/config"
@@ -8,7 +9,8 @@ import (
 )
 
 // Create create a new webhook on the target Git Repository
-func Create(accessToken, pipelines, appName, serviceName string, isCICD, isInsecure bool) error {
+// names is a {envName, appName, seviceName} tuple.
+func Create(accessToken, pipelines string, names []string, isCICD, isInsecure bool) error {
 
 	manifest, err := config.ParseFile(ioutils.NewFilesystem(), pipelines)
 	if err != nil {
@@ -18,28 +20,46 @@ func Create(accessToken, pipelines, appName, serviceName string, isCICD, isInsec
 		return err
 	}
 
-	_, nil := getRepoURL(manifest, isCICD, appName, serviceName)
+	repoURL := getRepoURL(manifest, isCICD, names)
+	if repoURL == "" {
+		return errors.New("failed to find Git repostory URL in manifest")
+	}
+
 	return nil
 }
 
 // Delete deletes webhooks on the target Git Repository that match the listener address
-func Delete(accessToken, pipelines, appName, serviceName string, isCICD, isInsecure bool) error {
+// names is a {envName, appName, seviceName} tuple.
+func Delete(accessToken, pipelines string, names []string, isCICD, isInsecure bool) error {
 
 	return nil
 }
 
-func getRepoURL(manifest *config.Manifest, isCICD bool, appName, serviceName string) (string, error) {
-	var repoURL string
+func getRepoURL(manifest *config.Manifest, isCICD bool, names []string) string {
+
 	if isCICD {
-		repoURL = manifest.GitOpsURL
-	} else {
-		repoURL = getSourceRepoURL(manifest, serviceName)
+		return manifest.GitOpsURL
 	}
-	return repoURL, nil
+
+	return getSourceRepoURL(manifest, names)
+
 }
 
-func getSourceRepoURL(manifest *config.Manifest, serviceName string) string {
-	//for manifest.Environments
-
+func getSourceRepoURL(manifest *config.Manifest, names []string) string {
+	for _, env := range manifest.Environments {
+		if env.Name == names[0] {
+			for _, app := range env.Apps {
+				if app.Name == names[1] {
+					for _, svc := range app.Services {
+						if svc.Name == names[2] {
+							return svc.SourceURL
+						}
+					}
+					break
+				}
+			}
+			break
+		}
+	}
 	return ""
 }

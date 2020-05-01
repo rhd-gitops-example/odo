@@ -28,8 +28,7 @@ func newDeleteOptions() *deleteOptions {
 
 // Run contains the logic for the odo command
 func (o *deleteOptions) Run() (err error) {
-	appName, serviceName := o.getAppServiceNames()
-	return backend.Delete(o.accessToken, o.pipelines, appName, serviceName, o.isCICD, o.isInsecure)
+	return backend.Delete(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
 }
 
 // NewCmdDelete creates a new "delete" command

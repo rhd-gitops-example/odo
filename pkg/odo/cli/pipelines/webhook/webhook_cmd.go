@@ -38,11 +38,11 @@ func (o *options) Validate() (err error) {
 	// validate o.serviceName is composed of <app name>/<service>
 	if o.serviceName != "" {
 		s := strings.Split(o.serviceName, "/")
-		if len(s) != 2 {
+		if len(s) != 3 {
 			return fmt.Errorf("Fully qualifed service-name must be in format <application name>/<service name>")
 		}
 
-		if s[0] == "" || s[1] == "" {
+		if s[0] == "" || s[1] == "" || s[2] == "" {
 			return fmt.Errorf("Fully qualifed service-name must be in format <application name>/<service name>")
 		}
 	}
@@ -63,24 +63,19 @@ func (o *options) setFlags(command *cobra.Command) {
 	command.Flags().BoolVar(&o.isCICD, "cicd", false, "provide this flag if the target Git repository is a CI/CD configuration repository")
 
 	// service-name option
-	command.Flags().StringVar(&o.serviceName, "service-name", "", "provide fully qualified service-name in this format <app/<service> if the target Git repository is a service's source repository.")
+	command.Flags().StringVar(&o.serviceName, "service-name", "", "provide fully qualified service-name in this format <env/app/<svc> if the target Git repository is a service's source repository.")
 
 	// insecure option
 	command.Flags().BoolVar(&o.isInsecure, "insecure", false, "provide this flag if the Event Listenr external HTTP endpoint does not use TLS")
 
 }
 
-// Split o.serviceName and return app name and service name.   This method assumes o.serviceName
+// Split o.serviceName and return env app name and service name.   This method assumes o.serviceName
 // has been validated.  It does not return errors.
-func (o *options) getAppServiceNames() (string, string) {
+func (o *options) getAppServiceNames() []string {
 	if o.serviceName == "" {
-		return "", ""
+		return []string{"", "", ""}
 	}
 
-	s := strings.Split(o.serviceName, "/")
-	if len(s) != 2 {
-		return "", ""
-	}
-
-	return s[0], s[1]
+	return strings.Split(o.serviceName, "/")
 }

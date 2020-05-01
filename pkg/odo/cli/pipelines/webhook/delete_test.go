@@ -59,43 +59,43 @@ func TestValidateForDelete(t *testing.T) {
 		},
 		{
 			&deleteOptions{
-				options{isCICD: false, serviceName: "foo/bar"},
+				options{isCICD: false, serviceName: "foo/bar/gau"},
 			},
 			"",
 		},
 		{
 			&deleteOptions{
-				options{isCICD: false, serviceName: "foo"},
+				options{isCICD: false, serviceName: "foo/bar"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				options{isCICD: false, serviceName: "/foo"},
+				options{isCICD: false, serviceName: "/foo/bar"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				options{isCICD: false, serviceName: "foo/bar/bar"},
+				options{isCICD: false, serviceName: "foo/bar/bar/gau"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				options{isCICD: false, serviceName: "/bar"},
+				options{isCICD: false, serviceName: "/bar/foo"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				options{isCICD: false, serviceName: "bar/"},
+				options{isCICD: false, serviceName: "bar/foo"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				options{isCICD: false, serviceName: "bar/foo/"},
+				options{isCICD: false, serviceName: "bar/foo/gau/"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},

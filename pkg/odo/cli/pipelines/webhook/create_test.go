@@ -68,7 +68,7 @@ func TestValidateForCreate(t *testing.T) {
 		},
 		{
 			&createOptions{
-				options{isCICD: false, serviceName: "foo/bar"},
+				options{isCICD: false, serviceName: "foo/bar/gau"},
 			},
 			"",
 		},
@@ -86,25 +86,25 @@ func TestValidateForCreate(t *testing.T) {
 		},
 		{
 			&createOptions{
-				options{isCICD: false, serviceName: "foo/bar/bar"},
+				options{isCICD: false, serviceName: "foo/bar/bar/gau"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&createOptions{
-				options{isCICD: false, serviceName: "/bar"},
+				options{isCICD: false, serviceName: "/bar/bar"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&createOptions{
-				options{isCICD: false, serviceName: "bar/"},
+				options{isCICD: false, serviceName: "bar/foo"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&createOptions{
-				options{isCICD: false, serviceName: "bar/foo/"},
+				options{isCICD: false, serviceName: "bar/foo/gau/"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
