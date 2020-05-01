@@ -1,4 +1,4 @@
-package webhook
+package git
 
 import (
 	"fmt"
@@ -26,12 +26,12 @@ func TestListWebHooks(t *testing.T) {
 		SetHeaders(mockHeaders).
 		File("testdata/hooks.json")
 
-	webhook, err := New("https://github.com/foo/bar.git", "token")
+	repo, err := newRepository("https://github.com/foo/bar.git", "token")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ids, err := webhook.list("http://example.com/webhook")
+	ids, err := repo.listWebhooks("http://example.com/webhook")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,19 +50,19 @@ func TestDeleteWebHooks(t *testing.T) {
 		Type("application/json").
 		SetHeaders(mockHeaders)
 
-	webhook, err := New("https://github.com/foo/bar.git", "token")
+	repo, err := newRepository("https://github.com/foo/bar.git", "token")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = webhook.delete("http://example.com", []string{"1"})
+	err = repo.deleteWebhooks("http://example.com", []string{"1"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 }
 
-func TestAddWebHook(t *testing.T) {
+func TestCreateWebHook(t *testing.T) {
 	defer gock.Off()
 
 	gock.New("https://api.github.com").
@@ -72,12 +72,12 @@ func TestAddWebHook(t *testing.T) {
 		SetHeaders(mockHeaders).
 		File("testdata/hook.json")
 
-	webhook, err := New("https://github.com/foo/bar.git", "token")
+	repo, err := newRepository("https://github.com/foo/bar.git", "token")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = webhook.add("http://example.com/webhook", "mysecret")
+	err = repo.createWehoook()"http://example.com/webhook", "mysecret")
 	if err != nil {
 		t.Fatal(err)
 	}
