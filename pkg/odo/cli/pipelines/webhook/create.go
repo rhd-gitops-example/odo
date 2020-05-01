@@ -28,7 +28,8 @@ func newCreateOptions() *createOptions {
 
 // Run contains the logic for the odo command
 func (o *createOptions) Run() (err error) {
-	return backend.Create(o.accessToken, o.pipelines, o.serviceName, o.isCICD, o.isInsecure)
+	appName, serviceName := o.getAppServiceNames()
+	return backend.Create(o.accessToken, o.pipelines, appName, serviceName, o.isCICD, o.isInsecure)
 }
 
 // NewCmdCreate creates a new "create" command

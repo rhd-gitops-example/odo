@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/spf13/cobra"
@@ -34,6 +35,18 @@ func (o *options) Validate() (err error) {
 		}
 	}
 
+	// validate o.serviceName is composed of <app name>/<service>
+	if o.serviceName != "" {
+		s := strings.Split(o.serviceName, "/")
+		if len(s) != 2 {
+			return fmt.Errorf("Fully qualifed service-name must be in format <application name>/<service name>")
+		}
+
+		if s[0] == "" || s[1] == "" {
+			return fmt.Errorf("Fully qualifed service-name must be in format <application name>/<service name>")
+		}
+	}
+
 	return nil
 }
 
@@ -50,9 +63,24 @@ func (o *options) setFlags(command *cobra.Command) {
 	command.Flags().BoolVar(&o.isCICD, "cicd", false, "provide this flag if the target Git repository is a CI/CD configuration repository")
 
 	// service-name option
-	command.Flags().StringVar(&o.serviceName, "service-name", "", "provide service-name if the target Git repository is a service's source repository")
+	command.Flags().StringVar(&o.serviceName, "service-name", "", "provide fully qualified service-name in this format <app/<service> if the target Git repository is a service's source repository.")
 
 	// insecure option
 	command.Flags().BoolVar(&o.isInsecure, "insecure", false, "provide this flag if the Event Listenr external HTTP endpoint does not use TLS")
 
+}
+
+// Split o.serviceName and return app name and service name.   This method assumes o.serviceName
+// has been validated.  It does not return errors.
+func (o *options) getAppServiceNames() (string, string) {
+	if o.serviceName == "" {
+		return "", ""
+	}
+
+	s := strings.Split(o.serviceName, "/")
+	if len(s) != 2 {
+		return "", ""
+	}
+
+	return s[0], s[1]
 }
