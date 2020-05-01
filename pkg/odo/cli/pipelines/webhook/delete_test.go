@@ -6,7 +6,7 @@ import (
 )
 
 func TestMissingRequiredFlagsForDelete(t *testing.T) {
-	cmdTests := []struct {
+	testcases := []struct {
 		flags   []keyValuePair
 		wantErr string
 	}{
@@ -17,7 +17,7 @@ func TestMissingRequiredFlagsForDelete(t *testing.T) {
 			"",
 		},
 	}
-	for i, tt := range cmdTests {
+	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
 			_, _, err := executeCommand(NewCmdDelete("webhook", "odo pipelines webhook delete"), tt.flags...)
 
@@ -35,7 +35,7 @@ func TestMissingRequiredFlagsForDelete(t *testing.T) {
 }
 
 func TestValidateForDelete(t *testing.T) {
-	optionTests := []struct {
+	testcases := []struct {
 		options *deleteOptions
 		errMsg  string
 	}{
@@ -101,7 +101,7 @@ func TestValidateForDelete(t *testing.T) {
 		},
 	}
 
-	for i, tt := range optionTests {
+	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
 
 			err := tt.options.Validate()

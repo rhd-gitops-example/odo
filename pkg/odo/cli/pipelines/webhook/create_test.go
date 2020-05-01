@@ -15,7 +15,7 @@ type keyValuePair struct {
 }
 
 func TestMissingRequiredFlagsForCreate(t *testing.T) {
-	cmdTests := []struct {
+	testcases := []struct {
 		flags   []keyValuePair
 		wantErr string
 	}{
@@ -26,7 +26,7 @@ func TestMissingRequiredFlagsForCreate(t *testing.T) {
 			"",
 		},
 	}
-	for i, tt := range cmdTests {
+	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
 			_, _, err := executeCommand(NewCmdCreate("webhook", "odo pipelines webhook create"), tt.flags...)
 
@@ -44,7 +44,7 @@ func TestMissingRequiredFlagsForCreate(t *testing.T) {
 }
 
 func TestValidateForCreate(t *testing.T) {
-	optionTests := []struct {
+	testcases := []struct {
 		options *createOptions
 		errMsg  string
 	}{
@@ -110,7 +110,7 @@ func TestValidateForCreate(t *testing.T) {
 		},
 	}
 
-	for i, tt := range optionTests {
+	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
 
 			err := tt.options.Validate()

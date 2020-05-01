@@ -11,15 +11,16 @@ import (
 	"github.com/jenkins-x/go-scm/scm/factory"
 )
 
-// repository represent a Git repository ofa specific Git repository URL
-type repository struct {
+// Repository represent a Git repository ofa specific Git repository URL
+type Repository struct {
 	*scm.Client
 
 	// name is the repository name of the form <user>/<repository>
 	name string
 }
 
-func newRepository(rawURL, token string) (*repository, error) {
+// NewRepository creates a new Git reposiory object
+func NewRepository(rawURL, token string) (*Repository, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
@@ -40,11 +41,11 @@ func newRepository(rawURL, token string) (*repository, error) {
 		return nil, err
 	}
 
-	return &repository{name: repoName, Client: client}, nil
+	return &Repository{name: repoName, Client: client}, nil
 }
 
-// listWebhooks returns a list of webhook IDs of the given listener in this repository
-func (r *repository) listWebhooks(listenerURL string) ([]string, error) {
+// ListWebhooks returns a list of webhook IDs of the given listener in this repository
+func (r *Repository) ListWebhooks(listenerURL string) ([]string, error) {
 	hooks, _, err := r.Client.Repositories.ListHooks(context.Background(), r.name, scm.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -60,8 +61,8 @@ func (r *repository) listWebhooks(listenerURL string) ([]string, error) {
 	return ids, nil
 }
 
-// deleteWebhooks deletes all webhooks that associate with the given listener in this repository
-func (r *repository) deleteWebhooks(listenerURL string, ids []string) error {
+// DeleteWebhooks deletes all webhooks that associate with the given listener in this repository
+func (r *Repository) DeleteWebhooks(listenerURL string, ids []string) error {
 	for _, id := range ids {
 		_, err := r.Client.Repositories.DeleteHook(context.Background(), r.name, id)
 		if err != nil {
@@ -71,8 +72,8 @@ func (r *repository) deleteWebhooks(listenerURL string, ids []string) error {
 	return nil
 }
 
-// createWehoook creates a new webhook in the repository
-func (r *repository) createWehoook(listenerURL, secret string) error {
+// CreateWehoook creates a new webhook in the repository
+func (r *Repository) CreateWehoook(listenerURL, secret string) error {
 	in := &scm.HookInput{
 		Target: listenerURL,
 		Secret: secret,

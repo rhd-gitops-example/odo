@@ -26,12 +26,12 @@ func TestListWebHooks(t *testing.T) {
 		SetHeaders(mockHeaders).
 		File("testdata/hooks.json")
 
-	repo, err := newRepository("https://github.com/foo/bar.git", "token")
+	repo, err := NewRepository("https://github.com/foo/bar.git", "token")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ids, err := repo.listWebhooks("http://example.com/webhook")
+	ids, err := repo.ListWebhooks("http://example.com/webhook")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,12 +50,12 @@ func TestDeleteWebHooks(t *testing.T) {
 		Type("application/json").
 		SetHeaders(mockHeaders)
 
-	repo, err := newRepository("https://github.com/foo/bar.git", "token")
+	repo, err := NewRepository("https://github.com/foo/bar.git", "token")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = repo.deleteWebhooks("http://example.com", []string{"1"})
+	err = repo.DeleteWebhooks("http://example.com", []string{"1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,19 +72,18 @@ func TestCreateWebHook(t *testing.T) {
 		SetHeaders(mockHeaders).
 		File("testdata/hook.json")
 
-	repo, err := newRepository("https://github.com/foo/bar.git", "token")
+	repo, err := NewRepository("https://github.com/foo/bar.git", "token")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = repo.createWehoook("http://example.com/webhook", "mysecret")
+	err = repo.CreateWehoook("http://example.com/webhook", "mysecret")
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestGetDriverName(t *testing.T) {
-
 	tests := []struct {
 		url          string
 		driver       string
@@ -179,7 +178,6 @@ func TestGetDriverName(t *testing.T) {
 				if diff := cmp.Diff(test.repoName, repoName); diff != "" {
 					t.Errorf("driver mismatch got\n%s", diff)
 				}
-
 			}
 		})
 	}
