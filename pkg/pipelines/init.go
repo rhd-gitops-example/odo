@@ -128,8 +128,7 @@ func Init(o *InitParameters, fs afero.Fs) error {
 	return err
 }
 
-// CreateResources creates resources assocated to pipelines.
-func CreateResources(fs afero.Fs, prefix, gitOpsRepo, gitOpsWebhookSecret, dockerConfigJSONPath, imageRepo string) (map[string]interface{}, error) {
+func createResources(fs afero.Fs, prefix, gitOpsRepo, gitOpsWebhookSecret, dockerConfigJSONPath, imageRepo string) (map[string]interface{}, error) {
 	// key: path of the resource
 	// value: YAML content of the resource
 	outputs := map[string]interface{}{}
@@ -197,12 +196,18 @@ func CreateDockerSecret(fs afero.Fs, dockerConfigJSONFilename, ns string) (*ssv1
 
 }
 
-func createInitialFiles(fs afero.Fs, prefix, gitOpsRepo, gitOpsWebhookSecret, dockerConfigPath, imageRepo string) (res.Resources, error) {
-	pipelines := createManifest(&config.Environment{Name: prefix + "cicd", IsCICD: true})
+func createInitialFiles(fs afero.Fs, prefix, gitOpsURL, gitOpsWebhookSecret, dockerConfigPath, imageRepo string) (res.Resources, error) {
+	pipelines := createManifest(gitOpsURL, &config.Environment{Name: prefix + "cicd", IsCICD: true})
 	initialFiles := res.Resources{
 		"pipelines.yaml": pipelines,
 	}
-	cicdResources, err := CreateResources(fs, prefix, gitOpsRepo, gitOpsWebhookSecret, dockerConfigPath, imageRepo)
+
+	orgRepo, err := orgRepoFromURL(gitOpsURL)
+	if err != nil {
+		return nil, err
+	}
+
+	cicdResources, err := createResources(fs, prefix, orgRepo, gitOpsWebhookSecret, dockerConfigPath, imageRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -217,8 +222,9 @@ func createInitialFiles(fs afero.Fs, prefix, gitOpsRepo, gitOpsWebhookSecret, do
 	return initialFiles, nil
 }
 
-func createManifest(envs ...*config.Environment) *config.Manifest {
+func createManifest(gitOpsURL string, envs ...*config.Environment) *config.Manifest {
 	return &config.Manifest{
+		GitOpsURL:    gitOpsURL,
 		Environments: envs,
 	}
 }

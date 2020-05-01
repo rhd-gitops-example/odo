@@ -18,11 +18,12 @@ var testCICDEnv = &config.Environment{Name: "tst-cicd", IsCICD: true}
 
 func TestCreateManifest(t *testing.T) {
 	want := &config.Manifest{
+		GitOpsURL: "https://github.com/foo/bar.git",
 		Environments: []*config.Environment{
 			testCICDEnv,
 		},
 	}
-	got := createManifest(testCICDEnv)
+	got := createManifest("https://github.com/foo/bar.git", testCICDEnv)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("pipelines didn't match: %s\n", diff)
 	}
@@ -30,7 +31,7 @@ func TestCreateManifest(t *testing.T) {
 
 func TestInitialFiles(t *testing.T) {
 	prefix := "tst-"
-	gitOpsRepo := "test-repo"
+	gitOpsURL := "https://gibhub.com/foo/test-repo"
 	gitOpsWebhook := "123"
 	imageRepo := "image/repo"
 
@@ -46,16 +47,21 @@ func TestInitialFiles(t *testing.T) {
 		return &key.PublicKey, nil
 	}
 	fakeFs := ioutils.NewMapFilesystem()
-	got, err := createInitialFiles(fakeFs, prefix, gitOpsRepo, gitOpsWebhook, "", imageRepo)
+	got, err := createInitialFiles(fakeFs, prefix, gitOpsURL, gitOpsWebhook, "", imageRepo)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	want := res.Resources{
-		"pipelines.yaml": createManifest(testCICDEnv),
+		"pipelines.yaml": createManifest(gitOpsURL, testCICDEnv),
 	}
 
-	cicdResources, err := CreateResources(fakeFs, prefix, gitOpsRepo, gitOpsWebhook, "", imageRepo)
+	gitOpsRepo, err := orgRepoFromURL(gitOpsURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cicdResources, err := createResources(fakeFs, prefix, gitOpsRepo, gitOpsWebhook, "", imageRepo)
 	if err != nil {
 		t.Fatalf("CreatePipelineResources() failed due to :%s\n", err)
 	}
