@@ -18,7 +18,6 @@ var (
 )
 
 type createOptions struct {
-	isInsecure bool
 	options
 }
 
@@ -45,7 +44,5 @@ func NewCmdCreate(name, fullName string) *cobra.Command {
 	}
 
 	o.setFlags(command)
-	// insecure option
-	command.Flags().BoolVar(&o.isInsecure, "insecure", false, "provide this flag if the Event Listenr external HTTP endpoint does not use TLS")
 	return command
 }

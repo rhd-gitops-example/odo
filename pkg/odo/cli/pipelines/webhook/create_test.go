@@ -22,9 +22,6 @@ func TestMissingRequiredFlagsForCreate(t *testing.T) {
 		{[]keyValuePair{flag("cicd", "true")},
 			"Required flag(s) \"access-token\" have/has not been set",
 		},
-		{[]keyValuePair{flag("access-token", "mytoken"), flag("cicd", "true")},
-			"",
-		},
 	}
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
@@ -50,70 +47,60 @@ func TestValidateForCreate(t *testing.T) {
 	}{
 		{
 			&createOptions{
-				false,
 				options{isCICD: true, serviceName: "foo"},
 			},
 			"Only one of --cicd or --service-name can be specified",
 		},
 		{
 			&createOptions{
-				false,
 				options{isCICD: false, serviceName: ""},
 			},
 			"One of --cicd or --service-name must be specified",
 		},
 		{
 			&createOptions{
-				true,
 				options{isCICD: true, serviceName: ""},
 			},
 			"",
 		},
 		{
 			&createOptions{
-				true,
 				options{isCICD: false, serviceName: "foo/bar/gau"},
 			},
 			"",
 		},
 		{
 			&createOptions{
-				true,
 				options{isCICD: false, serviceName: "foo"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&createOptions{
-				true,
 				options{isCICD: false, serviceName: "/foo"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&createOptions{
-				true,
 				options{isCICD: false, serviceName: "foo/bar/bar/gau"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&createOptions{
-				true,
 				options{isCICD: false, serviceName: "/bar/bar"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&createOptions{
-				true,
 				options{isCICD: false, serviceName: "bar/foo"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&createOptions{
-				true,
 				options{isCICD: false, serviceName: "bar/foo/gau/"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",

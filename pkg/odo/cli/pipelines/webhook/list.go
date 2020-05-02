@@ -27,7 +27,7 @@ func newListOptions() *listOptions {
 
 // Run contains the logic for the odo command
 func (o *listOptions) Run() (err error) {
-	listeners, err := backend.List(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
+	listeners, err := backend.List(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
 	if err != nil {
 		for _, listener := range listeners {
 			fmt.Printf(" XXXXXXXXXXxx %s\n", listener)

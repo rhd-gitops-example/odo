@@ -13,9 +13,6 @@ func TestMissingRequiredFlagsForDelete(t *testing.T) {
 		{[]keyValuePair{flag("cicd", "true")},
 			"Required flag(s) \"access-token\" have/has not been set",
 		},
-		{[]keyValuePair{flag("access-token", "mytoken"), flag("cicd", "true")},
-			"",
-		},
 	}
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
@@ -41,70 +38,60 @@ func TestValidateForDelete(t *testing.T) {
 	}{
 		{
 			&deleteOptions{
-				true,
 				options{isCICD: true, serviceName: "foo"},
 			},
 			"Only one of --cicd or --service-name can be specified",
 		},
 		{
 			&deleteOptions{
-				true,
 				options{isCICD: false, serviceName: ""},
 			},
 			"One of --cicd or --service-name must be specified",
 		},
 		{
 			&deleteOptions{
-				false,
 				options{isCICD: true, serviceName: ""},
 			},
 			"",
 		},
 		{
 			&deleteOptions{
-				false,
 				options{isCICD: false, serviceName: "foo/bar/gau"},
 			},
 			"",
 		},
 		{
 			&deleteOptions{
-				true,
 				options{isCICD: false, serviceName: "foo/bar"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				false,
 				options{isCICD: false, serviceName: "/foo/bar"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				true,
 				options{isCICD: false, serviceName: "foo/bar/bar/gau"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				false,
 				options{isCICD: false, serviceName: "/bar/foo"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				false,
 				options{isCICD: false, serviceName: "bar/foo"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
 		},
 		{
 			&deleteOptions{
-				true,
 				options{isCICD: false, serviceName: "bar/foo/gau/"},
 			},
 			"Fully qualifed service-name must be in format <application name>/<service name>",
