@@ -2,7 +2,11 @@ package webhook
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
+	"github.com/openshift/odo/pkg/log"
+	"github.com/openshift/odo/pkg/machineoutput"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/spf13/cobra"
 
@@ -13,7 +17,7 @@ import (
 const listRecommendedCommandName = "list"
 
 var (
-	listExample = ktemplates.Examples(`	# List Git repository webhooks 
+	listExample = ktemplates.Examples(`	# List Git repository webhook IDs 
 	%[1]s`)
 )
 
@@ -27,10 +31,22 @@ func newListOptions() *listOptions {
 
 // Run contains the logic for the odo command
 func (o *listOptions) Run() (err error) {
-	listeners, err := backend.List(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
+	ids, err := backend.List(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
 	if err != nil {
-		for _, listener := range listeners {
-			fmt.Printf(" XXXXXXXXXXxx %s\n", listener)
+		return fmt.Errorf("Unable to a get list of webhook IDs: %v", err)
+	}
+
+	if ids != nil {
+		if log.IsJSON() {
+			machineoutput.OutputSuccess(ids)
+		} else {
+			w := tabwriter.NewWriter(os.Stdout, 5, 2, 3, ' ', tabwriter.TabIndent)
+			fmt.Fprintln(w, "ID")
+			fmt.Fprintln(w, "==")
+			for _, id := range ids {
+				fmt.Fprintln(w, id)
+			}
+			w.Flush()
 		}
 	}
 	return nil
@@ -41,8 +57,8 @@ func NewCmdList(name, fullName string) *cobra.Command {
 	o := newListOptions()
 	command := &cobra.Command{
 		Use:     name,
-		Short:   "List existing webhooks.",
-		Long:    "List existing Git repository webhooks that triggers CI/CD pipeline runs.",
+		Short:   "List existing webhook Ids.",
+		Long:    "List existing Git repository webhook IDs of the target repository and listener.",
 		Example: fmt.Sprintf(createExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			genericclioptions.GenericRun(o, cmd, args)

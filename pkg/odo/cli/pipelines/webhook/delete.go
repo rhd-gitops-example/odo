@@ -2,7 +2,11 @@ package webhook
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
+	"github.com/openshift/odo/pkg/log"
+	"github.com/openshift/odo/pkg/machineoutput"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/spf13/cobra"
 
@@ -27,7 +31,23 @@ func newDeleteOptions() *deleteOptions {
 
 // Run contains the logic for the odo command
 func (o *deleteOptions) Run() (err error) {
-	return backend.Delete(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
+	ids, err := backend.Delete(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
+
+	if ids != nil && len(ids) > 0 {
+		if log.IsJSON() {
+			machineoutput.OutputSuccess(ids)
+		} else {
+			w := tabwriter.NewWriter(os.Stdout, 5, 2, 3, ' ', tabwriter.TabIndent)
+			fmt.Fprintln(w, "DELETED ID")
+			fmt.Fprintln(w, "==========")
+			for _, id := range ids {
+				fmt.Fprintln(w, id)
+			}
+			w.Flush()
+		}
+	}
+
+	return err
 }
 
 // NewCmdDelete creates a new "delete" command

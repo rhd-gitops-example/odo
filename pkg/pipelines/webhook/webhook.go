@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 )
 
-type webhook struct {
+type webhookInfo struct {
 	clusterResource *resources
 	repository      *git.Repository
 	gitRepoURL      string
@@ -23,7 +23,59 @@ type webhook struct {
 	isCICD          bool
 }
 
-func newWebhookInfo(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) (*webhook, error) {
+// Create creates a new webhook on the target Git Repository
+// names is a {envName, appName, seviceName} tuple.
+// It returns the ID of created webhook.
+func Create(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) (string, error) {
+	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
+	if err != nil {
+		return "", err
+	}
+
+	exists, err := webhook.exists()
+	if err != nil {
+		return "", err
+	}
+
+	if exists {
+		return "", errors.New("webhook already exists")
+	}
+
+	return webhook.create()
+}
+
+// Delete deletes webhooks on the target Git Repository that match the listener address
+// names is a {envName, appName, seviceName} tuple.
+// It returns the IDs of deleted webhooks.
+func Delete(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) ([]string, error) {
+
+	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err := webhook.list()
+	if err != nil {
+		return nil, err
+	}
+
+	return webhook.delete(ids)
+
+}
+
+// List returns an array of webhook IDs for the target Git repository/listeners
+func List(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) ([]string, error) {
+
+	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
+	if err != nil {
+		return nil, err
+	}
+
+	return webhook.list()
+
+}
+
+func newWebhookInfo(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) (*webhookInfo, error) {
 	manifest, err := config.ParseFile(ioutils.NewFilesystem(), pipelinesFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse pipelines: %w", err)
@@ -58,59 +110,10 @@ func newWebhookInfo(accessToken, pipelinesFile string, names []string, isCICD, i
 		return nil, fmt.Errorf("failed to get event listener URL: %w", err)
 	}
 
-	return &webhook{clusterResources, repository, gitRepoURL, cicdNamepace, listenerURL, accessToken, names, isCICD}, nil
+	return &webhookInfo{clusterResources, repository, gitRepoURL, cicdNamepace, listenerURL, accessToken, names, isCICD}, nil
 }
 
-// Create creates a new webhook on the target Git Repository
-// names is a {envName, appName, seviceName} tuple.
-func Create(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) error {
-	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
-	if err != nil {
-		return err
-	}
-
-	exists, err := webhook.exists()
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		return errors.New("webhook already exists")
-	}
-
-	return webhook.create()
-}
-
-// Delete deletes webhooks on the target Git Repository that match the listener address
-// names is a {envName, appName, seviceName} tuple.
-func Delete(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) error {
-
-	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
-	if err != nil {
-		return err
-	}
-
-	ids, err := webhook.list()
-	if err != nil {
-		return err
-	}
-
-	return webhook.delete(ids)
-
-}
-
-// List returns an array of webhook IDs for the target Git repository/listeners
-func List(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) ([]string, error) {
-
-	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
-	if err != nil {
-		return nil, err
-	}
-
-	return webhook.list()
-
-}
-func (w *webhook) exists() (bool, error) {
+func (w *webhookInfo) exists() (bool, error) {
 	ids, err := w.repository.ListWebhooks(w.listenerURL)
 	if err != nil {
 		return false, err
@@ -118,21 +121,21 @@ func (w *webhook) exists() (bool, error) {
 	return len(ids) > 0, nil
 }
 
-func (w *webhook) list() ([]string, error) {
+func (w *webhookInfo) list() ([]string, error) {
 	return w.repository.ListWebhooks(w.listenerURL)
 }
 
-func (w *webhook) delete(ids []string) error {
-	return w.repository.DeleteWebhooks(w.listenerURL, ids)
+func (w *webhookInfo) delete(ids []string) ([]string, error) {
+	return w.repository.DeleteWebhooks(ids)
 }
 
-func (w *webhook) create() error {
+func (w *webhookInfo) create() (string, error) {
 	secret, err := getWebhookSecret(w.clusterResource, w.cicdNamepace, w.isCICD, w.names)
 	if err != nil {
-		return fmt.Errorf("failed to get webhook secret: %w", err)
+		return "", fmt.Errorf("failed to get webhook secret: %w", err)
 	}
 
-	return w.repository.CreateWehoook(w.listenerURL, secret)
+	return w.repository.CreateWehook(w.listenerURL, secret)
 }
 
 // Get Git repository URL whether it is CICD configuration or service source repository

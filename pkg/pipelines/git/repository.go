@@ -51,7 +51,7 @@ func (r *Repository) ListWebhooks(listenerURL string) ([]string, error) {
 		return nil, err
 	}
 
-	var ids []string
+	ids := []string{}
 	for _, hook := range hooks {
 		if hook.Target == listenerURL {
 			ids = append(ids, hook.ID)
@@ -62,18 +62,21 @@ func (r *Repository) ListWebhooks(listenerURL string) ([]string, error) {
 }
 
 // DeleteWebhooks deletes all webhooks that associate with the given listener in this repository
-func (r *Repository) DeleteWebhooks(listenerURL string, ids []string) error {
+func (r *Repository) DeleteWebhooks(ids []string) ([]string, error) {
+	deleted := []string{}
 	for _, id := range ids {
 		_, err := r.Client.Repositories.DeleteHook(context.Background(), r.name, id)
 		if err != nil {
-			return fmt.Errorf("failed to delete webhook id %s: %w", id, err)
+			return deleted, fmt.Errorf("failed to delete webhook id %s: %w", id, err)
 		}
+		deleted = append(deleted, id)
 	}
-	return nil
+	return deleted, nil
 }
 
-// CreateWehoook creates a new webhook in the repository
-func (r *Repository) CreateWehoook(listenerURL, secret string) error {
+// CreateWehook creates a new webhook in the repository
+// It returns ID of the created webhook
+func (r *Repository) CreateWehook(listenerURL, secret string) (string, error) {
 	in := &scm.HookInput{
 		Target: listenerURL,
 		Secret: secret,
@@ -83,8 +86,8 @@ func (r *Repository) CreateWehoook(listenerURL, secret string) error {
 		},
 	}
 
-	_, _, err := r.Client.Repositories.CreateHook(context.Background(), r.name, in)
-	return err
+	created, _, err := r.Client.Repositories.CreateHook(context.Background(), r.name, in)
+	return created.ID, err
 }
 
 func getDriverName(u *url.URL) (string, error) {

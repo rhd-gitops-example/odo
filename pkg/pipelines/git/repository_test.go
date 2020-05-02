@@ -55,11 +55,14 @@ func TestDeleteWebHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = repo.DeleteWebhooks("http://example.com", []string{"1"})
+	deleted, err := repo.DeleteWebhooks([]string{"1"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	if diff := cmp.Diff([]string{"1"}, deleted); diff != "" {
+		t.Errorf("deleted mismatch got\n%s", diff)
+	}
 }
 
 func TestCreateWebHook(t *testing.T) {
@@ -77,9 +80,13 @@ func TestCreateWebHook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = repo.CreateWehoook("http://example.com/webhook", "mysecret")
+	created, err := repo.CreateWehook("http://example.com/webhook", "mysecret")
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff("1", created); diff != "" {
+		t.Errorf("deleted mismatch got\n%s", diff)
 	}
 }
 

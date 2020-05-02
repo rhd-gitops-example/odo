@@ -13,9 +13,6 @@ func TestMissingRequiredFlagsForList(t *testing.T) {
 		{[]keyValuePair{flag("cicd", "true")},
 			"Required flag(s) \"access-token\" have/has not been set",
 		},
-		{[]keyValuePair{flag("access-token", "mytoken"), flag("cicd", "true")},
-			"",
-		},
 	}
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {

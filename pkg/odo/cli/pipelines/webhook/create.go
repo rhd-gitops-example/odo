@@ -2,7 +2,11 @@ package webhook
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
+	"github.com/openshift/odo/pkg/log"
+	"github.com/openshift/odo/pkg/machineoutput"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/spf13/cobra"
 
@@ -27,7 +31,24 @@ func newCreateOptions() *createOptions {
 
 // Run contains the logic for the odo command
 func (o *createOptions) Run() (err error) {
-	return backend.Create(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
+	id, err := backend.Create(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
+
+	if err != nil {
+		return fmt.Errorf("Unable to create webhook: %v", err)
+	}
+
+	if id != "" {
+		if log.IsJSON() {
+			machineoutput.OutputSuccess(id)
+		} else {
+			w := tabwriter.NewWriter(os.Stdout, 5, 2, 3, ' ', tabwriter.TabIndent)
+			fmt.Fprintln(w, "CREATED ID")
+			fmt.Fprintln(w, "==========")
+			fmt.Fprintln(w, id)
+			w.Flush()
+		}
+	}
+	return nil
 }
 
 // NewCmdCreate creates a new "create" command
