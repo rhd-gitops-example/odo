@@ -31,7 +31,7 @@ import (
 // InitParameters is a struct that provides flags for the Init command.
 type InitParameters struct {
 	DockerConfigJSONFilename string
-	GitOpsRepo               string
+	GitOpsRepoURL            string
 	GitOpsWebhookSecret      string
 	ImageRepo                string
 	InternalRegistryHostname string
@@ -120,7 +120,7 @@ func Init(o *InitParameters, fs afero.Fs) error {
 		return err
 	}
 
-	outputs, err := createInitialFiles(fs, o.Prefix, o.GitOpsRepo, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, imageRepo)
+	outputs, err := createInitialFiles(fs, o.Prefix, o.GitOpsRepoURL, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, imageRepo)
 	if err != nil {
 		return err
 	}
