@@ -14,21 +14,24 @@ const RecommendedCommandName = "webhook"
 func NewCmdWebhook(name, fullName string) *cobra.Command {
 	createCmd := NewCmdCreate(createRecommendedCommandName, odoutil.GetFullName(fullName, createRecommendedCommandName))
 	deleteCmd := NewCmdDelete(deleteRecommendedCommandName, odoutil.GetFullName(fullName, deleteRecommendedCommandName))
+	listCmd := NewCmdList(listRecommendedCommandName, odoutil.GetFullName(fullName, listRecommendedCommandName))
 
 	var webhookCmd = &cobra.Command{
 		Use:   name,
 		Short: "Manage Git repository webhooks",
-		Long:  "Add/Delete Git repository webhooks that trigger CI/CD pipeline runs.",
-		Example: fmt.Sprintf("%s\n%s\n%s\n\n  See sub-commands individually for more examples",
+		Long:  "Add/Delete/list Git repository webhooks that trigger CI/CD pipeline runs.",
+		Example: fmt.Sprintf("%s\n%s\n%s\n%s\n\n  See sub-commands individually for more examples",
 			fullName,
 			createRecommendedCommandName,
-			deleteRecommendedCommandName),
+			deleteRecommendedCommandName,
+			listRecommendedCommandName),
 		Run: func(cmd *cobra.Command, args []string) {
 		},
 	}
 
 	webhookCmd.AddCommand(createCmd)
 	webhookCmd.AddCommand(deleteCmd)
+	webhookCmd.AddCommand(listCmd)
 
 	webhookCmd.Annotations = map[string]string{"command": "main"}
 	webhookCmd.SetUsageTemplate(odoutil.CmdUsageTemplate)

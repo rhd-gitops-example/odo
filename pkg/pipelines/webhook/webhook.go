@@ -14,39 +14,26 @@ import (
 
 // Create creates a new webhook on the target Git Repository
 // names is a {envName, appName, seviceName} tuple.
-func Create(accessToken, pipelines string, names []string, isCICD, isInsecure bool) error {
+func Create(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) error {
 
-	manifest, err := config.ParseFile(ioutils.NewFilesystem(), pipelines)
+	cicdNamepace, repoURL, err := gatherInfo(pipelinesFile, isCICD, names)
 	if err != nil {
-		return fmt.Errorf("failed to parse pipelines: %w", err)
-	}
-	if err := manifest.Validate(); err != nil {
 		return err
-	}
-
-	repoURL := getRepoURL(manifest, isCICD, names)
-	if repoURL == "" {
-		return errors.New("failed to find Git repostory URL in manifest")
 	}
 
 	resources, err := newResources()
-	if err := manifest.Validate(); err != nil {
-		return err
-	}
-
-	cicdNamepace := getCICDNamespace(manifest)
-	if cicdNamepace == "" {
-		return errors.New("failed to find CICD namespace in manifest")
-	}
-
-	listenerURL, err := getListenerURL(resources, cicdNamepace, isInsecure)
 	if err != nil {
-		return fmt.Errorf("failed to get event listener URL: %w", err)
+		return err
 	}
 
 	secret, err := getWebhookSecret(resources, cicdNamepace, isCICD, names)
 	if err != nil {
 		return fmt.Errorf("failed to get webhook secret: %w", err)
+	}
+
+	listenerURL, err := getListenerURL(resources, cicdNamepace, isInsecure)
+	if err != nil {
+		return fmt.Errorf("failed to get event listener URL: %w", err)
 	}
 
 	repo, err := git.NewRepository(repoURL, accessToken)
@@ -59,9 +46,38 @@ func Create(accessToken, pipelines string, names []string, isCICD, isInsecure bo
 
 // Delete deletes webhooks on the target Git Repository that match the listener address
 // names is a {envName, appName, seviceName} tuple.
-func Delete(accessToken, pipelines string, names []string, isCICD, isInsecure bool) error {
-
+func Delete(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) error {
 	return nil
+}
+
+// List returns an array of webhook listenerURLs of the target Git repository
+func List(accessToken, pipelinesFile string, names []string, isCICD bool) ([]string, error) {
+
+	return nil, nil
+}
+
+// Returns CICD namespace, repository URL
+func gatherInfo(pipelinesFile string, isCICD bool, names []string) (string, string, error) {
+	manifest, err := config.ParseFile(ioutils.NewFilesystem(), pipelinesFile)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse pipelines: %w", err)
+	}
+
+	if err := manifest.Validate(); err != nil {
+		return "", "", err
+	}
+
+	repoURL := getRepoURL(manifest, isCICD, names)
+	if repoURL == "" {
+		return "", "", errors.New("failed to find Git repostory URL in manifest")
+	}
+
+	cicdNamepace := getCICDNamespace(manifest)
+	if cicdNamepace == "" {
+		return "", "", errors.New("failed to find CICD namespace in manifest")
+	}
+
+	return cicdNamepace, repoURL, nil
 }
 
 // Get Git repository URL whether it is CICD configuration or service source repository

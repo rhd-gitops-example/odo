@@ -13,7 +13,6 @@ type options struct {
 	isCICD      bool
 	pipelines   string
 	serviceName string
-	isInsecure  bool
 	*genericclioptions.Context
 }
 
@@ -64,9 +63,6 @@ func (o *options) setFlags(command *cobra.Command) {
 
 	// service-name option
 	command.Flags().StringVar(&o.serviceName, "service-name", "", "provide fully qualified service-name in this format <env/app/<svc> if the target Git repository is a service's source repository.")
-
-	// insecure option
-	command.Flags().BoolVar(&o.isInsecure, "insecure", false, "provide this flag if the Event Listenr external HTTP endpoint does not use TLS")
 
 }
 

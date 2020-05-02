@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	backend "github.com/openshift/odo/pkg/pipelines/webhook"
-
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
@@ -19,6 +18,7 @@ var (
 )
 
 type createOptions struct {
+	isInsecure bool
 	options
 }
 
@@ -45,5 +45,7 @@ func NewCmdCreate(name, fullName string) *cobra.Command {
 	}
 
 	o.setFlags(command)
+	// insecure option
+	command.Flags().BoolVar(&o.isInsecure, "insecure", false, "provide this flag if the Event Listenr external HTTP endpoint does not use TLS")
 	return command
 }
