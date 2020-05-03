@@ -9,40 +9,27 @@ import (
 )
 
 func TestBuildURL(t *testing.T) {
+
 	testcases := []struct {
-		host     string
-		port     string
-		insecure bool
-		want     string
+		host   string
+		hasTLS bool
+		want   string
 	}{
 		{
-			host:     "test.example.com",
-			port:     "80",
-			insecure: true,
-			want:     "http://test.example.com",
+			host:   "test.example.com",
+			hasTLS: false,
+			want:   "http://test.example.com",
 		},
 		{
-			host:     "test.example.com",
-			port:     "8080",
-			insecure: true,
-			want:     "http://test.example.com:8080",
-		},
-		{
-			host:     "test.example.com",
-			port:     "443",
-			insecure: false,
-			want:     "https://test.example.com",
-		},
-		{
-			host:     "test.example.com",
-			port:     "8443",
-			insecure: false,
-			want:     "https://test.example.com:8443",
+			host:   "test.example.com",
+			hasTLS: true,
+			want:   "https://test.example.com",
 		},
 	}
+
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
-			got := buildURL(tt.host, tt.port, tt.insecure)
+			got := buildURL(tt.host, tt.hasTLS)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("result mismatch got\n%s", diff)
 			}
@@ -50,6 +37,7 @@ func TestBuildURL(t *testing.T) {
 	}
 }
 func TestGetGitRepoURL(t *testing.T) {
+
 	testcases := []struct {
 		manifest *config.Manifest
 		isCICD   bool
@@ -133,6 +121,7 @@ func TestGetGitRepoURL(t *testing.T) {
 			want:   "https://github.com/foo2/bar.git",
 		},
 	}
+
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
 			got := getRepoURL(tt.manifest, tt.isCICD, tt.names)
@@ -144,6 +133,7 @@ func TestGetGitRepoURL(t *testing.T) {
 }
 
 func TestGetCICDEnvName(t *testing.T) {
+
 	testcases := []struct {
 		manifest *config.Manifest
 		want     string
@@ -231,6 +221,7 @@ func TestGetCICDEnvName(t *testing.T) {
 			want: "notmyenv2",
 		},
 	}
+
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
 			got := getCICDNamespace(tt.manifest)

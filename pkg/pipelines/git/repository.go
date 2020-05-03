@@ -21,6 +21,7 @@ type Repository struct {
 
 // NewRepository creates a new Git reposiory object
 func NewRepository(rawURL, token string) (*Repository, error) {
+
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
@@ -46,6 +47,7 @@ func NewRepository(rawURL, token string) (*Repository, error) {
 
 // ListWebhooks returns a list of webhook IDs of the given listener in this repository
 func (r *Repository) ListWebhooks(listenerURL string) ([]string, error) {
+
 	hooks, _, err := r.Client.Repositories.ListHooks(context.Background(), r.name, scm.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -63,6 +65,7 @@ func (r *Repository) ListWebhooks(listenerURL string) ([]string, error) {
 
 // DeleteWebhooks deletes all webhooks that associate with the given listener in this repository
 func (r *Repository) DeleteWebhooks(ids []string) ([]string, error) {
+
 	deleted := []string{}
 	for _, id := range ids {
 		_, err := r.Client.Repositories.DeleteHook(context.Background(), r.name, id)
@@ -71,12 +74,14 @@ func (r *Repository) DeleteWebhooks(ids []string) ([]string, error) {
 		}
 		deleted = append(deleted, id)
 	}
+
 	return deleted, nil
 }
 
 // CreateWehook creates a new webhook in the repository
 // It returns ID of the created webhook
 func (r *Repository) CreateWehook(listenerURL, secret string) (string, error) {
+
 	in := &scm.HookInput{
 		Target: listenerURL,
 		Secret: secret,
@@ -91,6 +96,7 @@ func (r *Repository) CreateWehook(listenerURL, secret string) (string, error) {
 }
 
 func getDriverName(u *url.URL) (string, error) {
+
 	if s := strings.TrimSuffix(u.Host, ".com"); s != u.Host {
 		return strings.ToLower(s), nil
 	}
@@ -103,6 +109,7 @@ func getDriverName(u *url.URL) (string, error) {
 }
 
 func getRepoName(u *url.URL) (string, error) {
+
 	var components []string
 
 	for _, s := range strings.Split(u.Path, "/") {

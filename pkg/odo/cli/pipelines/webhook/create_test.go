@@ -49,13 +49,13 @@ func TestValidateForCreate(t *testing.T) {
 			&createOptions{
 				options{isCICD: true, serviceName: "foo"},
 			},
-			"Only one of --cicd or --service-name can be specified",
+			"Only one of --cicd or --service can be specified",
 		},
 		{
 			&createOptions{
 				options{isCICD: false, serviceName: ""},
 			},
-			"One of --cicd or --service-name must be specified",
+			"One of --cicd or --service must be specified",
 		},
 		{
 			&createOptions{
@@ -73,37 +73,37 @@ func TestValidateForCreate(t *testing.T) {
 			&createOptions{
 				options{isCICD: false, serviceName: "foo"},
 			},
-			"Fully qualifed service-name must be in format <application name>/<service name>",
+			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
 		},
 		{
 			&createOptions{
 				options{isCICD: false, serviceName: "/foo"},
 			},
-			"Fully qualifed service-name must be in format <application name>/<service name>",
+			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
 		},
 		{
 			&createOptions{
 				options{isCICD: false, serviceName: "foo/bar/bar/gau"},
 			},
-			"Fully qualifed service-name must be in format <application name>/<service name>",
+			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
 		},
 		{
 			&createOptions{
 				options{isCICD: false, serviceName: "/bar/bar"},
 			},
-			"Fully qualifed service-name must be in format <application name>/<service name>",
+			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
 		},
 		{
 			&createOptions{
 				options{isCICD: false, serviceName: "bar/foo"},
 			},
-			"Fully qualifed service-name must be in format <application name>/<service name>",
+			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
 		},
 		{
 			&createOptions{
 				options{isCICD: false, serviceName: "bar/foo/gau/"},
 			},
-			"Fully qualifed service-name must be in format <application name>/<service name>",
+			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
 		},
 	}
 

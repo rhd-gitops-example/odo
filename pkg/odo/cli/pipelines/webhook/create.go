@@ -31,7 +31,8 @@ func newCreateOptions() *createOptions {
 
 // Run contains the logic for the odo command
 func (o *createOptions) Run() (err error) {
-	id, err := backend.Create(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
+
+	id, err := backend.Create(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 
 	if err != nil {
 		return fmt.Errorf("Unable to create webhook: %v", err)
@@ -48,11 +49,13 @@ func (o *createOptions) Run() (err error) {
 			w.Flush()
 		}
 	}
+
 	return nil
 }
 
 // NewCmdCreate creates a new "create" command
 func NewCmdCreate(name, fullName string) *cobra.Command {
+
 	o := newCreateOptions()
 	command := &cobra.Command{
 		Use:     name,

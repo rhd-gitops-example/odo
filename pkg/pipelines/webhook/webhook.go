@@ -26,8 +26,9 @@ type webhookInfo struct {
 // Create creates a new webhook on the target Git Repository
 // names is a {envName, appName, seviceName} tuple.
 // It returns the ID of created webhook.
-func Create(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) (string, error) {
-	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
+func Create(accessToken, pipelinesFile string, names []string, isCICD bool) (string, error) {
+
+	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD)
 	if err != nil {
 		return "", err
 	}
@@ -47,9 +48,9 @@ func Create(accessToken, pipelinesFile string, names []string, isCICD, isInsecur
 // Delete deletes webhooks on the target Git Repository that match the listener address
 // names is a {envName, appName, seviceName} tuple.
 // It returns the IDs of deleted webhooks.
-func Delete(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) ([]string, error) {
+func Delete(accessToken, pipelinesFile string, names []string, isCICD bool) ([]string, error) {
 
-	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
+	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD)
 	if err != nil {
 		return nil, err
 	}
@@ -60,22 +61,21 @@ func Delete(accessToken, pipelinesFile string, names []string, isCICD, isInsecur
 	}
 
 	return webhook.delete(ids)
-
 }
 
 // List returns an array of webhook IDs for the target Git repository/listeners
-func List(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) ([]string, error) {
+func List(accessToken, pipelinesFile string, names []string, isCICD bool) ([]string, error) {
 
-	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD, isInsecure)
+	webhook, err := newWebhookInfo(accessToken, pipelinesFile, names, isCICD)
 	if err != nil {
 		return nil, err
 	}
 
 	return webhook.list()
-
 }
 
-func newWebhookInfo(accessToken, pipelinesFile string, names []string, isCICD, isInsecure bool) (*webhookInfo, error) {
+func newWebhookInfo(accessToken, pipelinesFile string, names []string, isCICD bool) (*webhookInfo, error) {
+
 	manifest, err := config.ParseFile(ioutils.NewFilesystem(), pipelinesFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse pipelines: %w", err)
@@ -105,7 +105,7 @@ func newWebhookInfo(accessToken, pipelinesFile string, names []string, isCICD, i
 		return nil, err
 	}
 
-	listenerURL, err := getListenerURL(clusterResources, cicdNamepace, isInsecure)
+	listenerURL, err := getListenerURL(clusterResources, cicdNamepace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get event listener URL: %w", err)
 	}
@@ -114,22 +114,27 @@ func newWebhookInfo(accessToken, pipelinesFile string, names []string, isCICD, i
 }
 
 func (w *webhookInfo) exists() (bool, error) {
+
 	ids, err := w.repository.ListWebhooks(w.listenerURL)
 	if err != nil {
 		return false, err
 	}
+
 	return len(ids) > 0, nil
 }
 
 func (w *webhookInfo) list() ([]string, error) {
+
 	return w.repository.ListWebhooks(w.listenerURL)
 }
 
 func (w *webhookInfo) delete(ids []string) ([]string, error) {
+
 	return w.repository.DeleteWebhooks(ids)
 }
 
 func (w *webhookInfo) create() (string, error) {
+
 	secret, err := getWebhookSecret(w.clusterResource, w.cicdNamepace, w.isCICD, w.names)
 	if err != nil {
 		return "", fmt.Errorf("failed to get webhook secret: %w", err)
@@ -141,14 +146,17 @@ func (w *webhookInfo) create() (string, error) {
 // Get Git repository URL whether it is CICD configuration or service source repository
 // Return "" if not found
 func getRepoURL(manifest *config.Manifest, isCICD bool, names []string) string {
+
 	if isCICD {
 		return manifest.GitOpsURL
 	}
+
 	return getSourceRepoURL(manifest, names)
 }
 
 // Get serrice source repository URL.  Return "" if not found
 func getSourceRepoURL(manifest *config.Manifest, names []string) string {
+
 	for _, env := range manifest.Environments {
 		if env.Name == names[0] {
 			for _, app := range env.Apps {
@@ -164,46 +172,44 @@ func getSourceRepoURL(manifest *config.Manifest, names []string) string {
 			break
 		}
 	}
+
 	return ""
 }
 
 // get CICD namespace.  Return "" if not found
 func getCICDNamespace(manifest *config.Manifest) string {
+
 	for _, env := range manifest.Environments {
 		if env.IsCICD {
 			return env.Name
 		}
 	}
+
 	return ""
 }
 
-func getListenerURL(r *resources, cicdNamespace string, isInsecure bool) (string, error) {
-	host, port, err := r.getListenerAddress(cicdNamespace, routes.GitOpsWebhookEventListenerRouteName)
+func getListenerURL(r *resources, cicdNamespace string) (string, error) {
+
+	hasTLS, host, err := r.getListenerAddress(cicdNamespace, routes.GitOpsWebhookEventListenerRouteName)
 	if err != nil {
 		return "", err
 	}
-	return buildURL(host, port, isInsecure), nil
+
+	return buildURL(host, hasTLS), nil
 }
 
-func buildURL(host, port string, isInsecure bool) string {
+func buildURL(host string, hasTLS bool) string {
+
 	scheme := "http"
-	if !isInsecure {
+	if hasTLS {
 		scheme = scheme + "s"
 	}
-	url := scheme + "://" + host
-	if isInsecure {
-		if port != "80" {
-			url = url + ":" + port
-		}
-	} else {
-		if port != "443" {
-			url = url + ":" + port
-		}
-	}
-	return url
+
+	return scheme + "://" + host
 }
 
 func getWebhookSecret(r *resources, namespace string, isCICD bool, names []string) (string, error) {
+
 	var secretName string
 	if isCICD {
 		secretName = eventlisteners.GitOpsWebhookSecret
@@ -212,5 +218,6 @@ func getWebhookSecret(r *resources, namespace string, isCICD bool, names []strin
 		// also currently, service webhook secret are in CICI namespace
 		secretName = secrets.MakeSerivceWebhookSecretName(names[1])
 	}
+
 	return r.getWebhookSecret(namespace, secretName, eventlisteners.WebhookSecretKey)
 }

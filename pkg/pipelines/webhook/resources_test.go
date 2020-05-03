@@ -19,6 +19,7 @@ import (
 )
 
 func TestGetRouteHost(t *testing.T) {
+
 	reouteClientset := fakeRouteClientset.NewSimpleClientset()
 	reouteClientset.PrependReactor("get", "routes", func(action ktesting.Action) (bool, runtime.Object, error) {
 		if action.GetNamespace() != "tst-cicd" {
@@ -44,21 +45,23 @@ func TestGetRouteHost(t *testing.T) {
 	})
 	resources := fakeNewResources(reouteClientset.Route(), nil)
 
-	host, port, err := resources.getListenerAddress("tst-cicd", "gitops-webhook-event-listener-route")
+	hasTLS, host, err := resources.getListenerAddress("tst-cicd", "gitops-webhook-event-listener-route")
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if hasTLS {
+		t.Error("hasTLS is expected to be false.")
 	}
 
 	if diff := cmp.Diff(host, "devcluster.openshift.com"); diff != "" {
 		t.Errorf("host mismatch got\n%s", diff)
 	}
 
-	if diff := cmp.Diff(port, "8080"); diff != "" {
-		t.Errorf("port  mismatch got\n%s", diff)
-	}
 }
 
 func TestGetSecret(t *testing.T) {
+
 	kubeClient := fakeKubeClientset.NewSimpleClientset()
 
 	kubeClient.PrependReactor("get", "secrets", func(action ktesting.Action) (bool, runtime.Object, error) {
@@ -90,7 +93,9 @@ func TestGetSecret(t *testing.T) {
 }
 
 func fakeNewResources(routeClient routeclientset.RouteV1Interface,
+
 	kubeClient kubernetes.Interface) *resources {
+
 	return &resources{
 		routeClient: routeClient,
 		kubeClient:  kubeClient,

@@ -31,7 +31,8 @@ func newListOptions() *listOptions {
 
 // Run contains the logic for the odo command
 func (o *listOptions) Run() (err error) {
-	ids, err := backend.List(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
+
+	ids, err := backend.List(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 	if err != nil {
 		return fmt.Errorf("Unable to a get list of webhook IDs: %v", err)
 	}
@@ -49,11 +50,13 @@ func (o *listOptions) Run() (err error) {
 			w.Flush()
 		}
 	}
+
 	return nil
 }
 
 // NewCmdList creates a new "list" command
 func NewCmdList(name, fullName string) *cobra.Command {
+
 	o := newListOptions()
 	command := &cobra.Command{
 		Use:     name,

@@ -31,7 +31,8 @@ func newDeleteOptions() *deleteOptions {
 
 // Run contains the logic for the odo command
 func (o *deleteOptions) Run() (err error) {
-	ids, err := backend.Delete(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD, o.isInsecure)
+
+	ids, err := backend.Delete(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 
 	if ids != nil && len(ids) > 0 {
 		if log.IsJSON() {
@@ -52,6 +53,7 @@ func (o *deleteOptions) Run() (err error) {
 
 // NewCmdDelete creates a new "delete" command
 func NewCmdDelete(name, fullName string) *cobra.Command {
+
 	o := newDeleteOptions()
 	command := &cobra.Command{
 		Use:     name,
