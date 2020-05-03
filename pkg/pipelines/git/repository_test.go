@@ -16,6 +16,67 @@ var mockHeaders = map[string]string{
 	"X-RateLimit-Reset":     "1512076018",
 }
 
+func TestWebhookWithFakeClient(t *testing.T) {
+	repo, err := NewRepository("https://fake.com/foo/bar.git", "token")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	listenerURL := "http://example.com/webhook"
+	ids, err := repo.ListWebhooks(listenerURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// start with no webhooks
+	if len(ids) > 0 {
+		t.Fatal(err)
+	}
+
+	// create a webhook
+	id, err := repo.CreateWehook(listenerURL, "secret")
+	if len(ids) > 0 {
+		t.Fatal(err)
+	}
+
+	// verify and remember our ID
+	if id == "" {
+		t.Fatal(err)
+	}
+
+	// list again
+	ids, err = repo.ListWebhooks(listenerURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify ID from list
+	if diff := cmp.Diff(ids, []string{id}); diff != "" {
+		t.Fatalf("created id mismatch got\n%s", diff)
+	}
+
+	// delete webhook
+	deleted, err := repo.DeleteWebhooks(ids)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify deleted IDs
+	if diff := cmp.Diff(ids, deleted); diff != "" {
+		t.Fatalf("deleted ids mismatch got\n%s", diff)
+	}
+
+	ids, err = repo.ListWebhooks(listenerURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verfiy no webhooks
+	if len(ids) > 0 {
+		t.Fatal(err)
+	}
+}
+
 func TestListWebHooks(t *testing.T) {
 	defer gock.Off()
 
