@@ -31,6 +31,9 @@ type tektonBuilder struct {
 }
 
 func buildEventListenerResources(gitOpsRepo string, m *config.Manifest) (res.Resources, error) {
+	if gitOpsRepo == "" {
+		return res.Resources{}, nil
+	}
 	files := make(res.Resources)
 	tb := &tektonBuilder{files: files, gitOpsRepo: gitOpsRepo}
 	err := m.Walk(tb)
