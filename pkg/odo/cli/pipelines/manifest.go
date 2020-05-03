@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/odo/pkg/odo/cli/pipelines/environment"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/service"
 	odoutil "github.com/openshift/odo/pkg/odo/util"
 )
 
@@ -26,10 +27,12 @@ func NewCmdPipelines(name, fullName string) *cobra.Command {
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
 	bootstrapCmd := NewCmdBootstrap(BootstrapRecommendedCommandName, odoutil.GetFullName(fullName, BootstrapRecommendedCommandName))
 	envCmd := environment.NewCmdEnv(environment.EnvRecommendedCommandName, odoutil.GetFullName(fullName, environment.EnvRecommendedCommandName))
+	serviceCmd := service.NewCmdService(service.ServiceRecommendedCommandName, odoutil.GetFullName(fullName, service.ServiceRecommendedCommandName))
 
 	pipelinesCmd.AddCommand(initCmd)
 	pipelinesCmd.AddCommand(bootstrapCmd)
 	pipelinesCmd.AddCommand(envCmd)
+	pipelinesCmd.AddCommand(serviceCmd)
 
 	buildCmd := NewCmdBuild(BuildRecommendedCommandName, odoutil.GetFullName(fullName, BuildRecommendedCommandName))
 	pipelinesCmd.AddCommand(buildCmd)

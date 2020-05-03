@@ -136,13 +136,14 @@ func bootstrapServiceDeployment(dev *config.Environment) (res.Resources, error) 
 
 func bootstrapEnvironments(prefix, repoURL, secretName string, ns map[string]string) ([]*config.Environment, error) {
 	envs := []*config.Environment{}
+	repo, _ := repoFromURL(repoURL)
 	for k, v := range ns {
 		env := &config.Environment{Name: v}
 		if k == "cicd" {
 			env.IsCICD = true
 		}
 		if k == "dev" {
-			app, err := applicationFromRepo(repoURL, secretName, ns["cicd"])
+			app, err := ApplicationFromRepo(repo, repoURL, secretName, ns["cicd"])
 			if err != nil {
 				return nil, err
 			}
@@ -156,16 +157,19 @@ func bootstrapEnvironments(prefix, repoURL, secretName string, ns map[string]str
 	return envs, nil
 }
 
-func applicationFromRepo(repoURL, secretName, secretNS string) (*config.Application, error) {
+func ApplicationFromRepo(appName, repoURL, secretName, secretNS string) (*config.Application, error) {
 	repo, err := repoFromURL(repoURL)
 	if err != nil {
 		return nil, err
 	}
+	serviceName := repo + "-svc"
+
 	return &config.Application{
-		Name: repo,
+		Name: appName,
 		Services: []*config.Service{
-			{
-				Name:      repo + "-svc",
+			&config.Service{
+
+				Name:      serviceName,
 				SourceURL: repoURL,
 				Webhook: &config.Webhook{
 					Secret: &config.Secret{
@@ -178,6 +182,19 @@ func applicationFromRepo(repoURL, secretName, secretNS string) (*config.Applicat
 	}, nil
 }
 
+func GetService(serviceName, repoURL, secretName, secretNS string) *config.Service {
+	return &config.Service{
+		Name:      serviceName,
+		SourceURL: repoURL,
+		Webhook: &config.Webhook{
+			Secret: &config.Secret{
+				Name:      secretName,
+				Namespace: secretNS,
+			},
+		},
+	}
+
+}
 func repoFromURL(raw string) (string, error) {
 	u, err := url.Parse(raw)
 	if err != nil {
