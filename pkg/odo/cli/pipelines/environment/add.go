@@ -80,6 +80,6 @@ func NewCmdAddEnv(name, fullName string) *cobra.Command {
 	addEnvCmd.Flags().StringVar(&o.envName, "env-name", "", "name of the environment/namespace")
 	addEnvCmd.MarkFlagRequired("env-name")
 	addEnvCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
-	addEnvCmd.Flags().StringVar(&o.manifest, "manifest", "manifest.yaml", "path to manifest file")
+	addEnvCmd.Flags().StringVar(&o.manifest, "manifest", "pipelines.yaml", "path to manifest file")
 	return addEnvCmd
 }

@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/openshift/odo/pkg/pipelines/config"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
@@ -33,8 +34,11 @@ func AddEnv(o *EnvParameters, appFs afero.Fs) error {
 	}
 	files := res.Resources{}
 	m.Environments = append(m.Environments, &config.Environment{Name: o.EnvName})
-	files[o.ManifestFilename] = m
-
+	manifestPath, err := filepath.Rel(o.OutputPath, o.ManifestFilename)
+	if err != nil {
+		return err
+	}
+	files[manifestPath] = m
 	buildParams := &BuildParameters{
 		ManifestFilename: o.ManifestFilename,
 		OutputPath:       o.OutputPath,
@@ -43,11 +47,7 @@ func AddEnv(o *EnvParameters, appFs afero.Fs) error {
 	if err != nil {
 		return fmt.Errorf("failed to build resources: %w", err)
 	}
-	if err != nil {
-		return fmt.Errorf("failed to build resources: %w", err)
-	}
 	files = res.Merge(built, files)
-
 	_, err = yaml.WriteResources(appFs, o.OutputPath, files)
 	return err
 }
