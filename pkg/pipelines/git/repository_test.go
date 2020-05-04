@@ -72,7 +72,7 @@ func TestWebhookWithFakeClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// verfiy no webhooks
+	// verify no webhooks
 	if len(ids) > 0 {
 		t.Fatal(err)
 	}
