@@ -74,6 +74,11 @@ func AddService(o *ServiceParameters, fs afero.Fs) error {
 	files[o.Manifest] = m
 	files[secretsPath] = hookSecret
 
+	// m1, err := config.ParseFile(fs, o.Manifest)
+
+	// env1, err := m1.GetEnvironment("cicd")
+	// log.Println(env1)
+
 	buildParams := &BuildParameters{
 		ManifestFilename: o.Manifest,
 		OutputPath:       o.Output,

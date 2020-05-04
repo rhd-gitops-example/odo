@@ -1,0 +1,25 @@
+environments:
+- name: dev
+- name: stage
+- apps:
+  - name: app1
+    services:
+    - name: myservice
+      source_url: https://github.com/myproject/myservice.git
+      webhook:
+        secret:
+          name: webhook-secret
+          namespace: webhook-secret-key
+  - services:
+    - name: repo-svc
+      source_url: example/repo
+      webhook:
+        secret:
+          name: github-webhook-secret-repo-svc
+          namespace: cicd
+  name: test
+- cicd: true
+  name: cicd
+- argo: true
+  name: argocd
+
