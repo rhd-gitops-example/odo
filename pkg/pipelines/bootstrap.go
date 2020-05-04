@@ -182,6 +182,31 @@ func ApplicationFromRepo(appName, repoURL, secretName, secretNS string) (*config
 	}, nil
 }
 
+func ApplicationFromName(appName, repoURL, secretName, secretNS string) (*config.Application, error) {
+	repo, err := repoFromURL(repoURL)
+	if err != nil {
+		return nil, err
+	}
+	serviceName := repo
+
+	return &config.Application{
+		Name: appName,
+		Services: []*config.Service{
+			&config.Service{
+
+				Name:      serviceName,
+				SourceURL: repoURL,
+				Webhook: &config.Webhook{
+					Secret: &config.Secret{
+						Name:      secretName,
+						Namespace: secretNS,
+					},
+				},
+			},
+		},
+	}, nil
+}
+
 func GetService(serviceName, repoURL, secretName, secretNS string) *config.Service {
 	return &config.Service{
 		Name:      serviceName,

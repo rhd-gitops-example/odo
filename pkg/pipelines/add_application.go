@@ -50,12 +50,10 @@ func AddService(o *ServiceParameters, fs afero.Fs) error {
 		return fmt.Errorf("environment does not exist already at %s", o.EnvName)
 	}
 
-	app, err := m.GetApplication(o.EnvName, o.AppName)
-	if err != nil {
-		return err
-	}
+	app, _ := m.GetApplication(o.EnvName, o.AppName)
+
 	if app == nil {
-		Newapp, _ := ApplicationFromRepo(o.AppName, o.ServiceGitRepo, secretName, ns["cicd"])
+		Newapp, _ := ApplicationFromName(o.AppName, o.ServiceGitRepo, secretName, ns["cicd"])
 		env.Apps = append(env.Apps, Newapp)
 	} else {
 		err := checkServiceExists(app.Services, repoName)
@@ -74,11 +72,6 @@ func AddService(o *ServiceParameters, fs afero.Fs) error {
 
 	files[o.Manifest] = m
 	files[secretsPath] = hookSecret
-
-	// m1, err := config.ParseFile(fs, o.Manifest)
-
-	// env1, err := m1.GetEnvironment("cicd")
-	// log.Println(env1)
 
 	buildParams := &BuildParameters{
 		ManifestFilename: o.Manifest,
