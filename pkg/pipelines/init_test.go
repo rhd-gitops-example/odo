@@ -53,7 +53,7 @@ func TestInitialFiles(t *testing.T) {
 	}
 
 	want := res.Resources{
-		"pipelines.yaml": createManifest(gitOpsURL, testCICDEnv),
+		pipelinesFile: createManifest(gitOpsURL, testCICDEnv),
 	}
 
 	gitOpsRepo, err := orgRepoFromURL(gitOpsURL)
@@ -61,14 +61,13 @@ func TestInitialFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cicdResources, err := createResources(fakeFs, prefix, gitOpsRepo, gitOpsWebhook, "", imageRepo)
+	resources, err := createCICDResources(fakeFs, testCICDEnv, gitOpsRepo, gitOpsWebhook, "", imageRepo)
 	if err != nil {
 		t.Fatalf("CreatePipelineResources() failed due to :%s\n", err)
 	}
-	files := getResourceFiles(cicdResources)
+	files := getResourceFiles(resources)
 
-	want = res.Merge(addPrefixToResources("environments/tst-cicd/base/pipelines", cicdResources), want)
-
+	want = res.Merge(addPrefixToResources("environments/tst-cicd/base/pipelines", resources), want)
 	want = res.Merge(addPrefixToResources("environments/tst-cicd", getCICDKustomization(files)), want)
 
 	if diff := cmp.Diff(want, got, cmpopts.IgnoreMapEntries(ignoreSecrets)); diff != "" {

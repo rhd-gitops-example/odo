@@ -77,7 +77,7 @@ func (io *InitParameters) Run() error {
 		DockerConfigJSONFilename: io.dockercfgjson,
 		GitOpsWebhookSecret:      io.gitOpsWebhookSecret,
 		GitOpsRepoURL:            io.gitOpsRepoURL,
-		Output:                   io.output,
+		OutputPath:               io.output,
 		Prefix:                   io.prefix,
 		ImageRepo:                io.imageRepo,
 		InternalRegistryHostname: io.internalRegistryHostname,
