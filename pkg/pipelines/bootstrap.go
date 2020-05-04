@@ -77,7 +77,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 		return nil, err
 	}
 	ns := NamespaceNames(o.Prefix)
-	secretName := secrets.MakeSerivceWebhookSecretName(repoName)
+	secretName := secrets.MakeServiceWebhookSecretName(repoName)
 	envs, err := bootstrapEnvironments(o.Prefix, o.AppRepoURL, secretName, ns)
 	if err != nil {
 		return nil, err

@@ -3,7 +3,7 @@ package fake
 import (
 	"context"
 	"fmt"
-	"math/rand
+	"math/rand"
 	"strings"
 	"time"
 

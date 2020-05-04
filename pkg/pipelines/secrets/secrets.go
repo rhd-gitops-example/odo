@@ -30,8 +30,8 @@ var DefaultPublicKeyFunc = getClusterPublicKey
 
 type PublicKeyFunc func() (*rsa.PublicKey, error)
 
-// MakeSerivceWebhookSecretName common method to create service webhook secret name
-func MakeSerivceWebhookSecretName(serviceName string) string {
+// MakeServiceWebhookSecretName common method to create service webhook secret name
+func MakeServiceWebhookSecretName(serviceName string) string {
 	return "github-webhook-secret-" + serviceName + "-svc"
 }
 
