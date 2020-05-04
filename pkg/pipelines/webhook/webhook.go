@@ -216,7 +216,7 @@ func getWebhookSecret(r *resources, namespace string, isCICD bool, names []strin
 	} else {
 		// currently, use the app name to create webhook secret name.
 		// also currently, service webhook secret are in CICI namespace
-		secretName = secrets.MakeSerivceWebhookSecretName(names[1])
+		secretName = secrets.MakeServiceWebhookSecretName(names[1])
 	}
 
 	return r.getWebhookSecret(namespace, secretName, eventlisteners.WebhookSecretKey)
