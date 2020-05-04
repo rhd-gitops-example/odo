@@ -92,5 +92,9 @@ func NewCmdAddService(name, fullName string) *cobra.Command {
 	addServiceCmd.Flags().StringVar(&o.output, "output", ".", "folder/path to add Gitops resources")
 	addServiceCmd.Flags().StringVar(&o.manifest, "manifest", "", "folder/path to add Gitops resources")
 
+	addServiceCmd.MarkFlagRequired("service-git-repo")
+	addServiceCmd.MarkFlagRequired("service-webhook-secret")
+	addServiceCmd.MarkFlagRequired("app-name")
+	addServiceCmd.MarkFlagRequired("env-name")
 	return addServiceCmd
 }
