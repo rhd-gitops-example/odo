@@ -31,9 +31,10 @@ func AddService(o *ServiceParameters, fs afero.Fs) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
+
 	env, err := m.GetEnvironment(o.EnvName)
 	if env == nil {
-		return fmt.Errorf("environment does not exist already", o.EnvName)
+		return fmt.Errorf("environment %s does not exist already ", o.EnvName)
 	}
 
 	repoName, err := repoFromURL(o.ServiceGitRepo)
@@ -56,6 +57,11 @@ func AddService(o *ServiceParameters, fs afero.Fs) error {
 	files := resources.Resources{}
 
 	files[o.Manifest] = m
+
+	// m1, err := config.ParseFile(fs, o.Manifest)
+
+	// env1, err := m1.GetEnvironment("cicd")
+	// log.Println(env1)
 
 	buildParams := &BuildParameters{
 		ManifestFilename: o.Manifest,

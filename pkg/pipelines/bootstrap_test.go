@@ -142,8 +142,8 @@ func TestApplicationFromRepo(t *testing.T) {
 			},
 		},
 	}
-
-	got, err := applicationFromRepo(testSvcRepo, "test-svc-webhook-secret", "test-cicd")
+	repo, _ := repoFromURL(testSvcRepo)
+	got, err := ApplicationFromRepo(repo, testSvcRepo, "test-svc-webhook-secret", "test-cicd")
 	if err != nil {
 		t.Fatal(err)
 	}
