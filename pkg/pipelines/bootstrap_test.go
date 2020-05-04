@@ -143,7 +143,7 @@ func TestApplicationFromRepo(t *testing.T) {
 		},
 	}
 
-	got, err := applicationFromRepo(testSvcRepo, "test-svc-webhook-secret", "test-cicd")
+	got, err := ApplicationFromRepo("http-api", testSvcRepo, "test-svc-webhook-secret", "test-cicd")
 	if err != nil {
 		t.Fatal(err)
 	}
