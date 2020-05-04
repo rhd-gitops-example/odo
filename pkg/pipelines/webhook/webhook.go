@@ -140,7 +140,7 @@ func (w *webhookInfo) create() (string, error) {
 		return "", fmt.Errorf("failed to get webhook secret: %w", err)
 	}
 
-	return w.repository.CreateWehook(w.listenerURL, secret)
+	return w.repository.CreateWebhook(w.listenerURL, secret)
 }
 
 // Get Git repository URL whether it is CICD configuration or service source repository

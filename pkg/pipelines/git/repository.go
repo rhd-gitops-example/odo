@@ -78,9 +78,9 @@ func (r *Repository) DeleteWebhooks(ids []string) ([]string, error) {
 	return deleted, nil
 }
 
-// CreateWehook creates a new webhook in the repository
+// CreateWebhook creates a new webhook in the repository
 // It returns ID of the created webhook
-func (r *Repository) CreateWehook(listenerURL, secret string) (string, error) {
+func (r *Repository) CreateWebhook(listenerURL, secret string) (string, error) {
 
 	in := &scm.HookInput{
 		Target: listenerURL,

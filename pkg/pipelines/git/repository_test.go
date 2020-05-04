@@ -35,7 +35,7 @@ func TestWebhookWithFakeClient(t *testing.T) {
 	}
 
 	// create a webhook
-	id, err := repo.CreateWehook(listenerURL, "secret")
+	id, err := repo.CreateWebhook(listenerURL, "secret")
 	if len(ids) > 0 {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestCreateWebHook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	created, err := repo.CreateWehook("http://example.com/webhook", "mysecret")
+	created, err := repo.CreateWebhook("http://example.com/webhook", "mysecret")
 	if err != nil {
 		t.Fatal(err)
 	}
