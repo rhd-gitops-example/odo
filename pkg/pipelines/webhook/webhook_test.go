@@ -39,17 +39,16 @@ func TestBuildURL(t *testing.T) {
 func TestGetGitRepoURL(t *testing.T) {
 
 	testcases := []struct {
-		manifest *config.Manifest
-		isCICD   bool
-		names    []string
-		want     string
+		manifest    *config.Manifest
+		isCICD      bool
+		serviceName *QualifiedServiceName
+		want        string
 	}{
 		{
 			manifest: &config.Manifest{
 				GitOpsURL: "https://github.com/foo/bar.git",
 			},
 			isCICD: true,
-			names:  []string{"", "", ""},
 			want:   "https://github.com/foo/bar.git",
 		},
 		{
@@ -116,15 +115,15 @@ func TestGetGitRepoURL(t *testing.T) {
 					},
 				},
 			},
-			isCICD: false,
-			names:  []string{"myenv", "myapp", "myservice"},
-			want:   "https://github.com/foo2/bar.git",
+			isCICD:      false,
+			serviceName: &QualifiedServiceName{EnvironmentName: "myenv", ApplicationName: "myapp", ServiceName: "myservice"},
+			want:        "https://github.com/foo2/bar.git",
 		},
 	}
 
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
-			got := getRepoURL(tt.manifest, tt.isCICD, tt.names)
+			got := getRepoURL(tt.manifest, tt.isCICD, tt.serviceName)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("result mismatch got\n%s", diff)
 			}

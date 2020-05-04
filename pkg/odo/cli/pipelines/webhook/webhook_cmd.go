@@ -6,6 +6,8 @@ import (
 
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/spf13/cobra"
+
+	backend "github.com/openshift/odo/pkg/pipelines/webhook"
 )
 
 type options struct {
@@ -70,11 +72,16 @@ func (o *options) setFlags(command *cobra.Command) {
 
 // Split o.serviceName and return env app name and service name.   This method assumes o.serviceName
 // has been validated.  It does not return errors.
-func (o *options) getAppServiceNames() []string {
+func (o *options) getAppServiceNames() *backend.QualifiedServiceName {
 
 	if o.serviceName == "" {
-		return []string{"", "", ""}
+		return nil
 	}
 
-	return strings.Split(o.serviceName, "/")
+	s := strings.Split(o.serviceName, "/")
+	return &backend.QualifiedServiceName{
+		EnvironmentName: s[0],
+		ApplicationName: s[1],
+		ServiceName:     s[2],
+	}
 }
