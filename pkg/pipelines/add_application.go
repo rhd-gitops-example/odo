@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/openshift/odo/pkg/pipelines/meta"
+	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	"github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
@@ -30,7 +31,7 @@ const filename = "pipelines.yaml"
 func AddService(o *ServiceParameters, fs afero.Fs) error {
 
 	repoName, err := repoFromURL(o.ServiceGitRepo)
-	ns := NamespaceNames("")
+	ns := namespaces.NamesWithPrefix("")
 	secretName := "github-webhook-secret-" + repoName + "-svc"
 
 	secretFileName := filepath.Join("03-secrets", secretName+".yaml")
@@ -44,7 +45,7 @@ func AddService(o *ServiceParameters, fs afero.Fs) error {
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
 
-	env, err := m.GetEnvironment(o.EnvName)
+	env := m.GetEnvironment(o.EnvName)
 	if env == nil {
 		return fmt.Errorf("environment does not exist already at %s", o.EnvName)
 	}

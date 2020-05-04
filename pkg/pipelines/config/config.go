@@ -46,6 +46,17 @@ func (m *Manifest) GetApplication(environment, application string) (*Application
 	return nil, fmt.Errorf("failed to find application: %s", application)
 }
 
+func (m *Manifest) GetApplication(environment, application string) (*Application, error) {
+	for _, env := range m.Environments {
+		for _, app := range env.Apps {
+			if env.Name == environment && app.Name == application {
+				return app, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("failed to find application: %s", application)
+}
+
 // GetCICDEnvironment returns the CICD Environment if one exists.
 func (m *Manifest) GetCICDEnvironment() (*Environment, error) {
 	envs := []*Environment{}
