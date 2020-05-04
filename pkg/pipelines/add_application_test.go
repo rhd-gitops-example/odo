@@ -42,23 +42,3 @@ func TestService(t *testing.T) {
 		})
 	}
 }
-
-func TestAddEnvWithExistingName(t *testing.T) {
-	fakeFs := ioutils.NewMapFilesystem()
-	gitopsPath := afero.GetTempDir(fakeFs, "test")
-
-	manifestFile := filepath.Join(gitopsPath, "manifest.yaml")
-	svcParameters := ServiceParameters{
-		ServiceGitRepo:       testSvcRepo,
-		ServiceWebhookSecret: "123",
-		AppName:              "app-1",
-		EnvName:              "tst",
-		Output:               gitopsPath,
-		Manifest:             filepath.Join(gitopsPath, "manifest.yaml"),
-	}
-	afero.WriteFile(fakeFs, manifestFile, []byte("environments:\n - name: dev\n"), 0644)
-
-	if err := AddService(&svcParameters, fakeFs); err == nil {
-		t.Fatal("AddService() did not fail with duplicate service")
-	}
-}
