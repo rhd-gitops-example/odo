@@ -34,7 +34,7 @@ func (o *deleteOptions) Run() (err error) {
 
 	ids, err := backend.Delete(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 
-	if ids != nil && len(ids) > 0 {
+	if len(ids) > 0 {
 		if log.IsJSON() {
 			machineoutput.OutputSuccess(ids)
 		} else {
