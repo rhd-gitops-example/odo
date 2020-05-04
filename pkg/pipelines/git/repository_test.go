@@ -222,9 +222,9 @@ func TestGetDriverName(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for i, tt := range tests {
 		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
-			u, err := url.Parse(test.url)
+			u, err := url.Parse(tt.url)
 			if err != nil {
 				t.Error(err)
 			} else {
@@ -233,10 +233,10 @@ func TestGetDriverName(t *testing.T) {
 				if err != nil {
 					driverErrMsg = err.Error()
 				}
-				if diff := cmp.Diff(test.driverErrMsg, driverErrMsg); diff != "" {
+				if diff := cmp.Diff(tt.driverErrMsg, driverErrMsg); diff != "" {
 					t.Errorf("driver errMsg mismatch got\n%s", diff)
 				}
-				if diff := cmp.Diff(test.driver, gotDriver); diff != "" {
+				if diff := cmp.Diff(tt.driver, gotDriver); diff != "" {
 					t.Errorf("driver mismatch got\n%s", diff)
 				}
 
@@ -245,10 +245,10 @@ func TestGetDriverName(t *testing.T) {
 				if err != nil {
 					repoErrMsg = err.Error()
 				}
-				if diff := cmp.Diff(test.repoErrMsg, repoErrMsg); diff != "" {
+				if diff := cmp.Diff(tt.repoErrMsg, repoErrMsg); diff != "" {
 					t.Errorf("driver errMsg mismatch got\n%s", diff)
 				}
-				if diff := cmp.Diff(test.repoName, repoName); diff != "" {
+				if diff := cmp.Diff(tt.repoName, repoName); diff != "" {
 					t.Errorf("driver mismatch got\n%s", diff)
 				}
 			}
