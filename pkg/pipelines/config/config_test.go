@@ -15,36 +15,28 @@ func TestManifestWalk(t *testing.T) {
 		Environments: []*Environment{
 			{
 				Name: "development",
-				Services: []*Service{
-					{Name: "app-1-service-http"},
-					{Name: "app-1-service-test"},
-					{Name: "app-2-service"},
-				},
 				Apps: []*Application{
 					{
 						Name: "my-app-1",
-						ServiceRefs: []string{
-							"app-1-service-http",
-							"app-1-service-test",
+						Services: []*Service{
+							{Name: "app-1-service-http"},
+							{Name: "app-1-service-test"},
 						},
 					},
 					{
 						Name: "my-app-2",
-						ServiceRefs: []string{
-							"app-2-service",
+						Services: []*Service{
+							{Name: "app-2-service"},
 						},
 					},
 				},
 			},
 			{
 				Name: "staging",
-				Services: []*Service{
-					{Name: "app-1-service-user"},
-				},
 				Apps: []*Application{
 					{Name: "my-app-1",
-						ServiceRefs: []string{
-							"app-1-service-user",
+						Services: []*Service{
+							{Name: "app-1-service-user"},
 						},
 					},
 				},
@@ -60,15 +52,15 @@ func TestManifestWalk(t *testing.T) {
 	sort.Strings(v.paths)
 
 	want := []string{
-		"development/app-1-service-http",
-		"development/app-1-service-test",
-		"development/app-2-service",
 		"development/my-app-1",
+		"development/my-app-1/app-1-service-http",
+		"development/my-app-1/app-1-service-test",
 		"development/my-app-2",
+		"development/my-app-2/app-2-service",
 		"envs/development",
 		"envs/staging",
-		"staging/app-1-service-user",
 		"staging/my-app-1",
+		"staging/my-app-1/app-1-service-user",
 	}
 
 	if diff := cmp.Diff(want, v.paths); diff != "" {
@@ -85,35 +77,28 @@ func TestManifestWalkCallsCICDEnvironmentLast(t *testing.T) {
 			},
 			{
 				Name: "development",
-
-				Services: []*Service{
-					{Name: "app-1-service-http"},
-					{Name: "app-1-service-test"},
-					{Name: "app-2-service"},
-				},
 				Apps: []*Application{
 					{
 						Name: "my-app-1",
-						ServiceRefs: []string{
-							"app-1-service-http",
-							"app-1-service-test",
+						Services: []*Service{
+							{Name: "app-1-service-http"},
+							{Name: "app-1-service-test"},
 						},
 					},
 					{
-						Name:        "my-app-2",
-						ServiceRefs: []string{"app-2-service"},
+						Name: "my-app-2",
+						Services: []*Service{
+							{Name: "app-2-service"},
+						},
 					},
 				},
 			},
 			{
 				Name: "staging",
-				Services: []*Service{
-					{Name: "app-1-service-user"},
-				},
 				Apps: []*Application{
 					{Name: "my-app-1",
-						ServiceRefs: []string{
-							"app-1-service-user",
+						Services: []*Service{
+							{Name: "app-1-service-user"},
 						},
 					},
 				},
@@ -128,13 +113,13 @@ func TestManifestWalkCallsCICDEnvironmentLast(t *testing.T) {
 	}
 
 	want := []string{
-		"development/app-1-service-http",
-		"development/app-1-service-test",
-		"development/app-2-service",
+		"development/my-app-1/app-1-service-http",
+		"development/my-app-1/app-1-service-test",
 		"development/my-app-1",
+		"development/my-app-2/app-2-service",
 		"development/my-app-2",
 		"envs/development",
-		"staging/app-1-service-user",
+		"staging/my-app-1/app-1-service-user",
 		"staging/my-app-1",
 		"envs/staging",
 		"cicd/development/app-1-service-http",
@@ -237,8 +222,8 @@ type testVisitor struct {
 	paths            []string
 }
 
-func (v *testVisitor) Service(env *Environment, svc *Service) error {
-	v.paths = append(v.paths, filepath.Join(env.Name, svc.Name))
+func (v *testVisitor) Service(env *Environment, app *Application, svc *Service) error {
+	v.paths = append(v.paths, filepath.Join(env.Name, app.Name, svc.Name))
 	v.pipelineServices = append(v.pipelineServices, filepath.Join("cicd", env.Name, svc.Name))
 	return nil
 }

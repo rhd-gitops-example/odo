@@ -2,14 +2,13 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"path/filepath"
 	"sort"
 )
 
 // PathForService gives a repo-rooted path within a repository.
-func PathForService(env *Environment, serviceName string) string {
-	return filepath.Join(PathForEnvironment(env), "services", serviceName)
+func PathForService(env *Environment, svc *Service) string {
+	return filepath.Join(PathForEnvironment(env), "services", svc.Name)
 }
 
 // PathForApplication generates a repo-rooted path within a repository.
@@ -24,7 +23,6 @@ func PathForEnvironment(env *Environment) string {
 
 // Manifest describes a set of environments, apps and services for deployment.
 type Manifest struct {
-	GitOpsURL    string         `json:"gitops_url,omitempty"`
 	Environments []*Environment `json:"environments,omitempty"`
 }
 
@@ -34,39 +32,6 @@ func (m *Manifest) GetEnvironment(n string) *Environment {
 			return env
 		}
 	}
-	return nil
-}
-
-func (m *Manifest) GetApplication(environment, application string) (*Application, error) {
-	for _, env := range m.Environments {
-		if env.Name == environment {
-			for _, app := range env.Apps {
-				if app.Name == application {
-					return app, nil
-				}
-			}
-		}
-	}
-	return nil, fmt.Errorf("failed to find application: %s", application)
-}
-
-func (m *Manifest) AddService(envName, appName string, svc *Service) error {
-	env := m.GetEnvironment(envName)
-	if env == nil {
-		return fmt.Errorf("environment %s does not exist", envName)
-	}
-	for _, service := range env.Services {
-		if service.Name == svc.Name {
-			return fmt.Errorf("service %s already exists at %s", svc.Name, env.Name)
-		}
-	}
-	app, err := m.GetApplication(envName, appName)
-	if app == nil && err != nil {
-		app = &Application{Name: appName}
-		env.Apps = append(env.Apps, app)
-	}
-	env.Services = append(env.Services, svc)
-	app.ServiceRefs = append(app.ServiceRefs, svc.Name)
 	return nil
 }
 
@@ -112,7 +77,6 @@ func (m *Manifest) GetArgoCDEnvironment() (*Environment, error) {
 type Environment struct {
 	Name      string         `json:"name,omitempty"`
 	Pipelines *Pipelines     `json:"pipelines,omitempty"`
-	Services  []*Service     `json:"services,omitempty"`
 	Apps      []*Application `json:"apps,omitempty"`
 	// TODO: this should check that there is 0 or 1 CICD environment in the
 	// manfifest.
@@ -137,9 +101,9 @@ func (e Environment) IsSpecial() bool {
 // another repository.
 // TODO: validate that an app with a ConfigRepo has no services.
 type Application struct {
-	Name        string      `json:"name,omitempty"`
-	ServiceRefs []string    `json:"services,omitempty"`
-	ConfigRepo  *Repository `json:"config_repo,omitempty"`
+	Name       string      `json:"name,omitempty"`
+	Services   []*Service  `json:"services,omitempty"`
+	ConfigRepo *Repository `json:"config_repo,omitempty"`
 }
 
 // Service has an upstream source.
@@ -181,8 +145,8 @@ type Pipelines struct {
 // TemplateBinding is a combination of the template and binding to be used for a
 // pipeline execution.
 type TemplateBinding struct {
-	Template string   `json:"template,omitempty"`
-	Bindings []string `json:"bindings,omitempty"`
+	Template string `json:"template,omitempty"`
+	Binding  string `json:"binding,omitempty"`
 }
 
 // Walk implements post-node visiting of each element in the manifest.
@@ -195,16 +159,15 @@ type TemplateBinding struct {
 func (m Manifest) Walk(visitor interface{}) error {
 	sort.Sort(ByName(m.Environments))
 	for _, env := range m.Environments {
-		for _, svc := range env.Services {
-			if v, ok := visitor.(ServiceVisitor); ok {
-				err := v.Service(env, svc)
-				if err != nil {
-					return err
+		for _, app := range env.Apps {
+			for _, svc := range app.Services {
+				if v, ok := visitor.(ServiceVisitor); ok {
+					err := v.Service(env, app, svc)
+					if err != nil {
+						return err
+					}
 				}
 			}
-		}
-
-		for _, app := range env.Apps {
 			if v, ok := visitor.(ApplicationVisitor); ok {
 				err := v.Application(env, app)
 				if err != nil {

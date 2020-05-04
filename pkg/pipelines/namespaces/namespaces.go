@@ -71,3 +71,10 @@ func Exists(clientSet kubernetes.Interface, name string) (bool, error) {
 	}
 	return true, nil
 }
+
+func addPrefix(prefix, name string) string {
+	if prefix != "" {
+		return prefix + name
+	}
+	return name
+}

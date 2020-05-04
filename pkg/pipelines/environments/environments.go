@@ -19,10 +19,12 @@ import (
 const kustomization = "kustomization.yaml"
 
 type envBuilder struct {
-	files   res.Resources
-	cicdEnv *config.Environment
-	fs      afero.Fs
-	saName  string
+	// this is a mapping of app.Name to environment relative service paths.
+	appServices map[string][]string
+	files       res.Resources
+	cicdEnv     *config.Environment
+	fs          afero.Fs
+	saName      string
 }
 
 func Build(fs afero.Fs, m *config.Manifest, saName string) (res.Resources, error) {
@@ -31,14 +33,14 @@ func Build(fs afero.Fs, m *config.Manifest, saName string) (res.Resources, error
 	if err != nil {
 		return nil, err
 	}
-	eb := &envBuilder{fs: fs, files: files, cicdEnv: cicdEnv, saName: saName}
+	eb := &envBuilder{fs: fs, files: files, appServices: make(map[string][]string), cicdEnv: cicdEnv, saName: saName}
 	err = m.Walk(eb)
 	return eb.files, err
 }
 
 func (b *envBuilder) Application(env *config.Environment, app *config.Application) error {
 	appPath := filepath.Join(config.PathForApplication(env, app))
-	appFiles, err := filesForApplication(env, appPath, app)
+	appFiles, err := filesForApplication(appPath, app, b.appServices[app.Name])
 	if err != nil {
 		return err
 	}
@@ -46,9 +48,12 @@ func (b *envBuilder) Application(env *config.Environment, app *config.Applicatio
 	return nil
 }
 
-func (b *envBuilder) Service(env *config.Environment, svc *config.Service) error {
-
-	svcPath := config.PathForService(env, svc.Name)
+func (b *envBuilder) Service(env *config.Environment, app *config.Application, svc *config.Service) error {
+	if b.appServices[app.Name] == nil {
+		b.appServices[app.Name] = []string{}
+	}
+	svcPath := config.PathForService(env, svc)
+	b.appServices[app.Name] = append(b.appServices[app.Name], svcPath)
 	svcFiles, err := filesForService(svcPath, svc)
 	if err != nil {
 		return err
@@ -74,7 +79,7 @@ func (b *envBuilder) Environment(env *config.Environment) error {
 	envPath := filepath.Join(config.PathForEnvironment(env), "env")
 	basePath := filepath.Join(envPath, "base")
 	envFiles := filesForEnvironment(basePath, env)
-	kustomizedFilenames, err := ListFiles(b.fs, basePath)
+	kustomizedFilenames, err := listFiles(b.fs, basePath)
 	if err != nil {
 		return fmt.Errorf("failed to list initial files for %s: %s", basePath, err)
 	}
@@ -85,7 +90,7 @@ func (b *envBuilder) Environment(env *config.Environment) error {
 	for k, _ := range envFiles {
 		kustomizedFilenames[filepath.Base(k)] = true
 	}
-	envFiles[filepath.Join(basePath, kustomization)] = &res.Kustomization{Resources: ExtractFilenames(kustomizedFilenames)}
+	envFiles[filepath.Join(basePath, kustomization)] = &res.Kustomization{Resources: extractFilenames(kustomizedFilenames)}
 	overlaysPath := filepath.Join(envPath, "overlays")
 	relPath, err := filepath.Rel(overlaysPath, basePath)
 	if err != nil {
@@ -103,7 +108,7 @@ func filesForEnvironment(basePath string, env *config.Environment) res.Resources
 	return envFiles
 }
 
-func filesForApplication(env *config.Environment, appPath string, app *config.Application) (res.Resources, error) {
+func filesForApplication(appPath string, app *config.Application, services []string) (res.Resources, error) {
 	envFiles := res.Resources{}
 	basePath := filepath.Join(appPath, "base")
 	overlaysPath := filepath.Join(appPath, "overlays")
@@ -114,15 +119,13 @@ func filesForApplication(env *config.Environment, appPath string, app *config.Ap
 	}
 	baseKustomization := filepath.Join(appPath, "base", kustomization)
 	relServices := []string{}
-	for _, v := range app.ServiceRefs {
-		svcPath := config.PathForService(env, v)
-		relService, err := filepath.Rel(filepath.Dir(baseKustomization), svcPath)
+	for _, v := range services {
+		relService, err := filepath.Rel(filepath.Dir(baseKustomization), v)
 		if err != nil {
 			return nil, err
 		}
 		relServices = append(relServices, relService)
 	}
-
 	envFiles[filepath.Join(appPath, kustomization)] = &res.Kustomization{Bases: []string{"overlays"}}
 	envFiles[filepath.Join(appPath, "base", kustomization)] = &res.Kustomization{Bases: relServices}
 	envFiles[overlaysFile] = &res.Kustomization{Bases: []string{overlayRel}}
@@ -151,7 +154,7 @@ func filesForService(svcPath string, app *config.Service) (res.Resources, error)
 	return envFiles, nil
 }
 
-func ExtractFilenames(f map[string]bool) []string {
+func extractFilenames(f map[string]bool) []string {
 	names := []string{}
 	for k, _ := range f {
 		names = append(names, k)
@@ -160,7 +163,7 @@ func ExtractFilenames(f map[string]bool) []string {
 	return names
 }
 
-func ListFiles(fs afero.Fs, base string) (map[string]bool, error) {
+func listFiles(fs afero.Fs, base string) (map[string]bool, error) {
 	files := map[string]bool{}
 	err := afero.Walk(fs, base, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
