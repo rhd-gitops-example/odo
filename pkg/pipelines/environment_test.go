@@ -13,11 +13,10 @@ func TestAddEnv(t *testing.T) {
 	fakeFs := ioutils.NewMapFilesystem()
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
 
-	manifestFile := filepath.Join(gitopsPath, "pipelines.yaml")
+	manifestFile := filepath.Join(gitopsPath, pipelinesFile)
 	envParameters := EnvParameters{
-		ManifestFilename: filepath.Join(gitopsPath, "pipelines.yaml"),
+		ManifestFilename: manifestFile,
 		EnvName:          "dev",
-		OutputPath:       gitopsPath,
 	}
 	afero.WriteFile(fakeFs, manifestFile, []byte("environments:"), 0644)
 
@@ -41,11 +40,10 @@ func TestAddEnvWithExistingName(t *testing.T) {
 	fakeFs := ioutils.NewMapFilesystem()
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
 
-	manifestFile := filepath.Join(gitopsPath, "pipelines.yaml")
+	manifestFile := filepath.Join(gitopsPath, pipelinesFile)
 	envParameters := EnvParameters{
-		ManifestFilename: filepath.Join(gitopsPath, "pipelines.yaml"),
+		ManifestFilename: manifestFile,
 		EnvName:          "dev",
-		OutputPath:       gitopsPath,
 	}
 	afero.WriteFile(fakeFs, manifestFile, []byte("environments:\n - name: dev\n"), 0644)
 

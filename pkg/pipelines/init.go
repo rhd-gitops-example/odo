@@ -126,7 +126,7 @@ func createInitialFiles(fs afero.Fs, prefix, gitOpsRepo, gitOpsWebhookSecret, do
 	cicdEnv := &config.Environment{Name: prefix + "cicd", IsCICD: true}
 	pipelines := createManifest(cicdEnv)
 	initialFiles := res.Resources{
-		"pipelines.yaml": pipelines,
+		pipelinesFile: pipelines,
 	}
 	resources, err := createCICDResources(fs, cicdEnv, gitOpsRepo, gitOpsWebhookSecret, dockerConfigPath, imageRepo)
 	if err != nil {

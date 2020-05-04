@@ -20,7 +20,7 @@ func TestAddCommandWithMissingParams(t *testing.T) {
 		wantErr string
 	}{
 		{"Missing env-name flag",
-			[]keyValuePair{flag("output", "~/output")},
+			[]keyValuePair{flag("manifest", "~/pipelines.yaml")},
 			`Required flag(s) "env-name" have/has not been set`},
 	}
 	for _, tt := range cmdTests {

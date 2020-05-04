@@ -18,7 +18,6 @@ const (
 // EnvParameters encapsulates parameters for add env command
 type EnvParameters struct {
 	ManifestFilename string
-	OutputPath       string
 	EnvName          string
 }
 
@@ -34,20 +33,17 @@ func AddEnv(o *EnvParameters, appFs afero.Fs) error {
 	}
 	files := res.Resources{}
 	m.Environments = append(m.Environments, &config.Environment{Name: o.EnvName})
-	manifestPath, err := filepath.Rel(o.OutputPath, o.ManifestFilename)
-	if err != nil {
-		return err
-	}
-	files[manifestPath] = m
+	files[pipelinesFile] = m
+	outputPath := filepath.Dir(o.ManifestFilename)
 	buildParams := &BuildParameters{
 		ManifestFilename: o.ManifestFilename,
-		OutputPath:       o.OutputPath,
+		OutputPath:       outputPath,
 	}
 	built, err := buildResources(appFs, buildParams, m)
 	if err != nil {
 		return fmt.Errorf("failed to build resources: %w", err)
 	}
 	files = res.Merge(built, files)
-	_, err = yaml.WriteResources(appFs, o.OutputPath, files)
+	_, err = yaml.WriteResources(appFs, outputPath, files)
 	return err
 }

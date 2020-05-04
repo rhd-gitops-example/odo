@@ -52,7 +52,7 @@ func TestInitialFiles(t *testing.T) {
 	}
 
 	want := res.Resources{
-		"pipelines.yaml": createManifest(testCICDEnv),
+		pipelinesFile: createManifest(testCICDEnv),
 	}
 
 	resources, err := createCICDResources(fakeFs, testCICDEnv, gitOpsRepo, gitOpsWebhook, "", imageRepo)
