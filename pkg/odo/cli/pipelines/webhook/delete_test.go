@@ -18,7 +18,7 @@ func TestMissingRequiredFlagsForDelete(t *testing.T) {
 
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
-			_, _, err := executeCommand(NewCmdDelete("webhook", "odo pipelines webhook delete"), tt.flags...)
+			_, _, err := executeCommand(newCmdDelete("webhook", "odo pipelines webhook delete"), tt.flags...)
 
 			if err != nil {
 				if err.Error() != tt.wantErr {
@@ -43,61 +43,55 @@ func TestValidateForDelete(t *testing.T) {
 			&deleteOptions{
 				options{isCICD: true, serviceName: "foo"},
 			},
-			"Only one of --cicd or --service can be specified",
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
 		},
 		{
 			&deleteOptions{
-				options{isCICD: false, serviceName: ""},
+				options{isCICD: true, appName: "foo"},
 			},
-			"One of --cicd or --service must be specified",
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
+		},
+		{
+			&deleteOptions{
+				options{isCICD: true, envName: "foo"},
+			},
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
+		},
+		{
+			&deleteOptions{
+				options{isCICD: true, envName: "foo", serviceName: "bar", appName: "gau"},
+			},
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
+		},
+		{
+			&deleteOptions{
+				options{isCICD: false},
+			},
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
+		},
+		{
+			&deleteOptions{
+				options{isCICD: false, serviceName: "foo"},
+			},
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
+		},
+		{
+			&deleteOptions{
+				options{isCICD: false, serviceName: "foo", appName: "bar"},
+			},
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
+		},
+		{
+			&deleteOptions{
+				options{isCICD: false, serviceName: "foo", appName: "bar", envName: "gau"},
+			},
+			"",
 		},
 		{
 			&deleteOptions{
 				options{isCICD: true, serviceName: ""},
 			},
 			"",
-		},
-		{
-			&deleteOptions{
-				options{isCICD: false, serviceName: "foo/bar/gau"},
-			},
-			"",
-		},
-		{
-			&deleteOptions{
-				options{isCICD: false, serviceName: "foo/bar"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&deleteOptions{
-				options{isCICD: false, serviceName: "/foo/bar"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&deleteOptions{
-				options{isCICD: false, serviceName: "foo/bar/bar/gau"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&deleteOptions{
-				options{isCICD: false, serviceName: "/bar/foo"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&deleteOptions{
-				options{isCICD: false, serviceName: "bar/foo"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&deleteOptions{
-				options{isCICD: false, serviceName: "bar/foo/gau/"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
 		},
 	}
 

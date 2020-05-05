@@ -18,7 +18,7 @@ func TestMissingRequiredFlagsForList(t *testing.T) {
 
 	for i, tt := range testcases {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
-			_, _, err := executeCommand(NewCmdList("webhook", "odo pipelines webhook create"), tt.flags...)
+			_, _, err := executeCommand(newCmdList("webhook", "odo pipelines webhook create"), tt.flags...)
 
 			if err != nil {
 				if err.Error() != tt.wantErr {
@@ -43,61 +43,55 @@ func TestValidateForList(t *testing.T) {
 			&listOptions{
 				options{isCICD: true, serviceName: "foo"},
 			},
-			"Only one of --cicd or --service can be specified",
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
 		},
 		{
 			&listOptions{
-				options{isCICD: false, serviceName: ""},
+				options{isCICD: true, appName: "foo"},
 			},
-			"One of --cicd or --service must be specified",
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
+		},
+		{
+			&listOptions{
+				options{isCICD: true, envName: "foo"},
+			},
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
+		},
+		{
+			&listOptions{
+				options{isCICD: true, envName: "foo", serviceName: "bar", appName: "gau"},
+			},
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
+		},
+		{
+			&listOptions{
+				options{isCICD: false},
+			},
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
+		},
+		{
+			&listOptions{
+				options{isCICD: false, serviceName: "foo"},
+			},
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
+		},
+		{
+			&listOptions{
+				options{isCICD: false, serviceName: "foo", appName: "bar"},
+			},
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
+		},
+		{
+			&listOptions{
+				options{isCICD: false, serviceName: "foo", appName: "bar", envName: "gau"},
+			},
+			"",
 		},
 		{
 			&listOptions{
 				options{isCICD: true, serviceName: ""},
 			},
 			"",
-		},
-		{
-			&listOptions{
-				options{isCICD: false, serviceName: "foo/bar/gau"},
-			},
-			"",
-		},
-		{
-			&listOptions{
-				options{isCICD: false, serviceName: "foo"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&listOptions{
-				options{isCICD: false, serviceName: "/foo"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&listOptions{
-				options{isCICD: false, serviceName: "foo/bar/bar/gau"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&listOptions{
-				options{isCICD: false, serviceName: "/bar/bar"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&listOptions{
-				options{isCICD: false, serviceName: "bar/foo"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
-		},
-		{
-			&listOptions{
-				options{isCICD: false, serviceName: "bar/foo/gau/"},
-			},
-			"Fully qualified service name must be in format <environment name>/<application name>/<service name>",
 		},
 	}
 

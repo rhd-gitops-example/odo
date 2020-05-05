@@ -25,10 +25,6 @@ type deleteOptions struct {
 	options
 }
 
-func newDeleteOptions() *deleteOptions {
-	return &deleteOptions{}
-}
-
 // Run contains the logic for the odo command
 func (o *deleteOptions) Run() (err error) {
 
@@ -51,10 +47,9 @@ func (o *deleteOptions) Run() (err error) {
 	return err
 }
 
-// NewCmdDelete creates a new "delete" command
-func NewCmdDelete(name, fullName string) *cobra.Command {
+func newCmdDelete(name, fullName string) *cobra.Command {
 
-	o := newDeleteOptions()
+	o := &deleteOptions{}
 	command := &cobra.Command{
 		Use:     name,
 		Short:   "Delete webhooks.",

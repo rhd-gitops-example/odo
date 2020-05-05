@@ -95,10 +95,11 @@ func newWebhookInfo(accessToken, pipelinesFile string, serviceName *QualifiedSer
 		return nil, errors.New("failed to find Git repostory URL in manifest")
 	}
 
-	cicdNamepace := getCICDNamespace(manifest)
-	if cicdNamepace == "" {
-		return nil, errors.New("failed to find CICD namespace in manifest")
+	cicdEnv, err := manifest.GetCICDEnvironment()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get CICD environment: %w", err)
 	}
+	cicdNamepace := cicdEnv.Name
 
 	clusterResources, err := newResources()
 	if err != nil {
@@ -175,18 +176,6 @@ func getSourceRepoURL(manifest *config.Manifest, service *QualifiedServiceName) 
 				}
 			}
 			break
-		}
-	}
-
-	return ""
-}
-
-// get CICD namespace.  Return "" if not found
-func getCICDNamespace(manifest *config.Manifest) string {
-
-	for _, env := range manifest.Environments {
-		if env.IsCICD {
-			return env.Name
 		}
 	}
 

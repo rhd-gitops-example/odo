@@ -2,7 +2,6 @@ package webhook
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/spf13/cobra"
@@ -11,7 +10,9 @@ import (
 )
 
 type options struct {
+	appName     string
 	accessToken string
+	envName     string
 	isCICD      bool
 	pipelines   string
 	serviceName string
@@ -29,24 +30,12 @@ func (o *options) Complete(name string, cmd *cobra.Command, args []string) (err 
 func (o *options) Validate() (err error) {
 
 	if o.isCICD {
-		if o.serviceName != "" {
-			return fmt.Errorf("Only one of --cicd or --service can be specified")
+		if o.serviceName != "" || o.appName != "" || o.envName != "" {
+			return fmt.Errorf("Only one of 'cicd' or 'app-name/env-name/service-name' can be specified")
 		}
 	} else {
-		if o.serviceName == "" {
-			return fmt.Errorf("One of --cicd or --service must be specified")
-		}
-	}
-
-	// validate o.serviceName is composed of <env name>/<app name>/<service>
-	if o.serviceName != "" {
-		s := strings.Split(o.serviceName, "/")
-		if len(s) != 3 {
-			return fmt.Errorf("Fully qualified service name must be in format <environment name>/<application name>/<service name>")
-		}
-
-		if s[0] == "" || s[1] == "" || s[2] == "" {
-			return fmt.Errorf("Fully qualified service name must be in format <environment name>/<application name>/<service name>")
+		if o.serviceName == "" || o.appName == "" || o.envName == "" {
+			return fmt.Errorf("One of 'cicd' or 'app-name/env-name/service-name' must be specified")
 		}
 	}
 
@@ -66,22 +55,17 @@ func (o *options) setFlags(command *cobra.Command) {
 	command.Flags().BoolVar(&o.isCICD, "cicd", false, "provide this flag if the target Git repository is a CI/CD configuration repository")
 
 	// service option
-	command.Flags().StringVar(&o.serviceName, "service", "", "provide fully qualified service name in this format <env/app/<svc> if the target Git repository is a service's source repository.")
+	command.Flags().StringVar(&o.serviceName, "service-name", "", "provide fully qualified service name in this format <env/app/<svc> if the target Git repository is a service's source repository.")
+	command.Flags().StringVar(&o.appName, "app-name", "", "provide fully qualified service name in this format <env/app/<svc> if the target Git repository is a service's source repository.")
+	command.Flags().StringVar(&o.envName, "env-name", "", "provide fully qualified service name in this format <env/app/<svc> if the target Git repository is a service's source repository.")
 
 }
 
-// Split o.serviceName and return env app name and service name.   This method assumes o.serviceName
-// has been validated.  It does not return errors.
 func (o *options) getAppServiceNames() *backend.QualifiedServiceName {
 
-	if o.serviceName == "" {
-		return nil
-	}
-
-	s := strings.Split(o.serviceName, "/")
 	return &backend.QualifiedServiceName{
-		EnvironmentName: s[0],
-		ApplicationName: s[1],
-		ServiceName:     s[2],
+		EnvironmentName: o.envName,
+		ApplicationName: o.appName,
+		ServiceName:     o.serviceName,
 	}
 }

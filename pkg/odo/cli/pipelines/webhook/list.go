@@ -25,10 +25,6 @@ type listOptions struct {
 	options
 }
 
-func newListOptions() *listOptions {
-	return &listOptions{}
-}
-
 // Run contains the logic for the odo command
 func (o *listOptions) Run() (err error) {
 
@@ -54,10 +50,9 @@ func (o *listOptions) Run() (err error) {
 	return nil
 }
 
-// NewCmdList creates a new "list" command
-func NewCmdList(name, fullName string) *cobra.Command {
+func newCmdList(name, fullName string) *cobra.Command {
 
-	o := newListOptions()
+	o := &listOptions{}
 	command := &cobra.Command{
 		Use:     name,
 		Short:   "List existing webhook Ids.",

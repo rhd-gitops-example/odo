@@ -25,10 +25,6 @@ type createOptions struct {
 	options
 }
 
-func newCreateOptions() *createOptions {
-	return &createOptions{}
-}
-
 // Run contains the logic for the odo command
 func (o *createOptions) Run() (err error) {
 
@@ -53,10 +49,9 @@ func (o *createOptions) Run() (err error) {
 	return nil
 }
 
-// NewCmdCreate creates a new "create" command
-func NewCmdCreate(name, fullName string) *cobra.Command {
+func newCmdCreate(name, fullName string) *cobra.Command {
 
-	o := newCreateOptions()
+	o := &createOptions{}
 	command := &cobra.Command{
 		Use:     name,
 		Short:   "Create a new webhook.",

@@ -12,9 +12,9 @@ const RecommendedCommandName = "webhook"
 
 // NewCmdWebhook create a new webhook command
 func NewCmdWebhook(name, fullName string) *cobra.Command {
-	createCmd := NewCmdCreate(createRecommendedCommandName, odoutil.GetFullName(fullName, createRecommendedCommandName))
-	deleteCmd := NewCmdDelete(deleteRecommendedCommandName, odoutil.GetFullName(fullName, deleteRecommendedCommandName))
-	listCmd := NewCmdList(listRecommendedCommandName, odoutil.GetFullName(fullName, listRecommendedCommandName))
+	createCmd := newCmdCreate(createRecommendedCommandName, odoutil.GetFullName(fullName, createRecommendedCommandName))
+	deleteCmd := newCmdDelete(deleteRecommendedCommandName, odoutil.GetFullName(fullName, deleteRecommendedCommandName))
+	listCmd := newCmdList(listRecommendedCommandName, odoutil.GetFullName(fullName, listRecommendedCommandName))
 
 	var webhookCmd = &cobra.Command{
 		Use:   name,
