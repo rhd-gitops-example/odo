@@ -26,7 +26,7 @@ type deleteOptions struct {
 }
 
 // Run contains the logic for the odo command
-func (o *deleteOptions) Run() (err error) {
+func (o *deleteOptions) Run() error {
 
 	ids, err := backend.Delete(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 

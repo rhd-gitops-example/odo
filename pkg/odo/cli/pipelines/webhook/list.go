@@ -26,7 +26,7 @@ type listOptions struct {
 }
 
 // Run contains the logic for the odo command
-func (o *listOptions) Run() (err error) {
+func (o *listOptions) Run() error {
 
 	ids, err := backend.List(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 	if err != nil {

@@ -26,7 +26,7 @@ type createOptions struct {
 }
 
 // Run contains the logic for the odo command
-func (o *createOptions) Run() (err error) {
+func (o *createOptions) Run() error {
 
 	id, err := backend.Create(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 
