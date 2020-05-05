@@ -84,8 +84,5 @@ type (
 
 		// DeleteRef deletes the given ref
 		DeleteRef(ctx context.Context, repo, ref string) (*Response, error)
-
-		// CreateRef creates a new ref
-		CreateRef(ctx context.Context, repo, ref, sha string) (*Reference, *Response, error)
 	}
 )

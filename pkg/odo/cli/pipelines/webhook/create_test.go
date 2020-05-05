@@ -20,7 +20,7 @@ func TestMissingRequiredFlagsForCreate(t *testing.T) {
 		wantErr string
 	}{
 		{[]keyValuePair{flag("cicd", "true")},
-			`required flag(s) "access-token" not set`,
+			"Required flag(s) \"access-token\" have/has not been set",
 		},
 	}
 	for i, tt := range testcases {
@@ -49,35 +49,47 @@ func TestValidateForCreate(t *testing.T) {
 			&createOptions{
 				options{isCICD: true, serviceName: "foo"},
 			},
-			"Only one of 'cicd' or 'env-name/service-name' can be specified",
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
+		},
+		{
+			&createOptions{
+				options{isCICD: true, appName: "foo"},
+			},
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
 		},
 		{
 			&createOptions{
 				options{isCICD: true, envName: "foo"},
 			},
-			"Only one of 'cicd' or 'env-name/service-name' can be specified",
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
 		},
 		{
 			&createOptions{
-				options{isCICD: true, envName: "foo", serviceName: "bar"},
+				options{isCICD: true, envName: "foo", serviceName: "bar", appName: "gau"},
 			},
-			"Only one of 'cicd' or 'env-name/service-name' can be specified",
+			"Only one of 'cicd' or 'app-name/env-name/service-name' can be specified",
 		},
 		{
 			&createOptions{
 				options{isCICD: false},
 			},
-			"One of 'cicd' or 'env-name/service-name' must be specified",
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
 		},
 		{
 			&createOptions{
 				options{isCICD: false, serviceName: "foo"},
 			},
-			"One of 'cicd' or 'env-name/service-name' must be specified",
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
 		},
 		{
 			&createOptions{
-				options{isCICD: false, serviceName: "foo", envName: "gau"},
+				options{isCICD: false, serviceName: "foo", appName: "bar"},
+			},
+			"One of 'cicd' or 'app-name/env-name/service-name' must be specified",
+		},
+		{
+			&createOptions{
+				options{isCICD: false, serviceName: "foo", appName: "bar", envName: "gau"},
 			},
 			"",
 		},

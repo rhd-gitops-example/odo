@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	backend "github.com/openshift/odo/pkg/pipelines/webhook"
-	ktemplates "k8s.io/kubectl/pkg/util/templates"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
 const createRecommendedCommandName = "create"
@@ -28,7 +28,7 @@ type createOptions struct {
 // Run contains the logic for the odo command
 func (o *createOptions) Run() error {
 
-	id, err := backend.Create(o.accessToken, o.manifest, o.getAppServiceNames(), o.isCICD)
+	id, err := backend.Create(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 
 	if err != nil {
 		return fmt.Errorf("Unable to create webhook: %v", err)

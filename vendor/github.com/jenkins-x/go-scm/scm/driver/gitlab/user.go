@@ -51,7 +51,6 @@ type user struct {
 
 func convertUser(from *user) *scm.User {
 	return &scm.User{
-		ID:     from.ID,
 		Avatar: from.Avatar,
 		Email:  from.Email.String,
 		Login:  from.Username,

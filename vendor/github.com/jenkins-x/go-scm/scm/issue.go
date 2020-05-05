@@ -56,7 +56,6 @@ type (
 		Body    string
 		Author  User
 		Link    string
-		Version int
 		Created time.Time
 		Updated time.Time
 	}
@@ -119,9 +118,6 @@ type (
 
 		// Close closes an issue.
 		Close(context.Context, string, int) (*Response, error)
-
-		// Reopen reopens a closed issue.
-		Reopen(context.Context, string, int) (*Response, error)
 
 		// Lock locks an issue discussion.
 		Lock(context.Context, string, int) (*Response, error)

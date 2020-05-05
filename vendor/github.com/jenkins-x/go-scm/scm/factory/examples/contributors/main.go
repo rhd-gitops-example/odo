@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/go-scm/scm/factory"
 	"github.com/jenkins-x/go-scm/scm/factory/examples/helpers"
 )
@@ -27,7 +26,7 @@ func main() {
 	fmt.Printf("listing collaborators on repository %s\n", repo)
 
 	ctx := context.Background()
-	users, _, err := client.Repositories.ListCollaborators(ctx, repo, scm.ListOptions{})
+	users, _, err := client.Repositories.ListCollaborators(ctx, repo)
 	if err != nil {
 		helpers.Fail(err)
 		return

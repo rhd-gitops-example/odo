@@ -37,7 +37,6 @@ type (
 		MergeSha       string
 		Author         User
 		Assignees      []User
-		Reviewers      []User
 		Milestone      Milestone
 		Created        time.Time
 		Updated        time.Time
@@ -108,9 +107,6 @@ type (
 		// Find returns the repository pull request by number.
 		Find(context.Context, string, int) (*PullRequest, *Response, error)
 
-		// Update modifies an existing pull request.
-		Update(context.Context, string, int, *PullRequestInput) (*PullRequest, *Response, error)
-
 		// FindComment returns the pull request comment by id.
 		FindComment(context.Context, string, int, int) (*Comment, *Response, error)
 
@@ -135,9 +131,6 @@ type (
 		// Close closes the repository pull request.
 		Close(context.Context, string, int) (*Response, error)
 
-		// Reopen reopens a closed repository pull request.
-		Reopen(context.Context, string, int) (*Response, error)
-
 		// CreateComment creates a new pull request comment.
 		CreateComment(context.Context, string, int, *CommentInput) (*Comment, *Response, error)
 
@@ -161,12 +154,6 @@ type (
 
 		// Create creates a new pull request in a repo.
 		Create(context.Context, string, *PullRequestInput) (*PullRequest, *Response, error)
-
-		// RequestReview adds one or more users as a reviewer on a pull request.
-		RequestReview(ctx context.Context, repo string, number int, logins []string) (*Response, error)
-
-		// UnrequestReview removes one or more users as a reviewer on a pull request.
-		UnrequestReview(ctx context.Context, repo string, number int, logins []string) (*Response, error)
 	}
 )
 

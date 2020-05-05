@@ -100,14 +100,6 @@ func TestWebhooks(t *testing.T) {
 			after:  "testdata/webhooks/pr_ref_updated.json.golden",
 			obj:    new(scm.PullRequestHook),
 		},
-		// pull request modified
-		{
-			sig:    "71295b197fa25f4356d2fb9965df3f2379d903d7",
-			event:  "pr:modified",
-			before: "testdata/webhooks/pr_modified.json",
-			after:  "testdata/webhooks/pr_modified.json.golden",
-			obj:    new(scm.PullRequestHook),
-		},
 		// pull request fulfilled (merged)
 		{
 			sig:    "71295b197fa25f4356d2fb9965df3f2379d903d7",
@@ -135,9 +127,6 @@ func TestWebhooks(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if test.event != "pr:modified" {
-			continue
-		}
 		t.Run(test.event, func(t *testing.T) {
 			before, err := ioutil.ReadFile(test.before)
 			if err != nil {

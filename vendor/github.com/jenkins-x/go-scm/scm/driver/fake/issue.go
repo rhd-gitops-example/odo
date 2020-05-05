@@ -169,10 +169,6 @@ func (s *issueService) Close(context.Context, string, int) (*scm.Response, error
 	panic("implement me")
 }
 
-func (s *issueService) Reopen(context.Context, string, int) (*scm.Response, error) {
-	panic("implement me")
-}
-
 func (s *issueService) Lock(context.Context, string, int) (*scm.Response, error) {
 	panic("implement me")
 }

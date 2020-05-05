@@ -11,7 +11,6 @@ type (
 	Content struct {
 		Path string
 		Data []byte
-		Sha  string
 	}
 
 	// ContentParams provide parameters for creating and
@@ -21,7 +20,6 @@ type (
 		Branch  string
 		Message string
 		Data    []byte
-		Sha     string
 	}
 
 	// FileEntry returns the details of a file

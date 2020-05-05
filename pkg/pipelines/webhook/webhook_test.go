@@ -9,6 +9,7 @@ import (
 )
 
 func TestBuildURL(t *testing.T) {
+
 	testcases := []struct {
 		host   string
 		hasTLS bool
@@ -36,6 +37,7 @@ func TestBuildURL(t *testing.T) {
 	}
 }
 func TestGetGitRepoURL(t *testing.T) {
+
 	testcases := []struct {
 		manifest    *config.Manifest
 		isCICD      bool
@@ -58,60 +60,63 @@ func TestGetGitRepoURL(t *testing.T) {
 				GitOpsURL: "https://github.com/foo/bar.git",
 				Environments: []*config.Environment{
 					{
-						Services: []*config.Service{
-							{
-								Name:      "notmyservice",
-								SourceURL: "https://not/mine",
-							},
-						},
 						Name: "notmyenv",
 						Apps: []*config.Application{
 							{
-								Name:        "notmyapp",
-								ServiceRefs: []string{"notmyservice"},
+								Name: "notmyapp",
+								Services: []*config.Service{
+									{
+										Name:      "notmyservice",
+										SourceURL: "https://not/mine",
+									},
+								},
 							},
 						},
 					},
 					{
 						Name: "myenv",
-						Services: []*config.Service{
-							{
-								Name:      "notmyservice",
-								SourceURL: "https://not/mine",
-							},
-							{
-								Name:      "myservice",
-								SourceURL: "https://github.com/foo2/bar.git",
-							},
-
-							{
-								Name:      "notmyserviceagain",
-								SourceURL: "https://not/mine",
-							},
-						},
-
 						Apps: []*config.Application{
 							{
-								Name:        "notmyapp",
-								ServiceRefs: []string{"notmyservice"},
-							},
-							{
-								Name: "myapp",
-								ServiceRefs: []string{
-									"notmyservice",
-									"notmyserviceagain",
+								Name: "notmyapp",
+								Services: []*config.Service{
+									{
+										Name:      "notmyservice",
+										SourceURL: "https://not/mine",
+									},
 								},
 							},
 							{
-								Name:        "notmyapp2",
-								ServiceRefs: []string{"notmyservice"},
+								Name: "myapp",
+								Services: []*config.Service{
+									{
+										Name:      "notmyservice",
+										SourceURL: "https://not/mine",
+									},
+									{
+										Name:      "myservice",
+										SourceURL: "https://github.com/foo2/bar.git",
+									},
+									{
+										Name:      "notmyserviceagain",
+										SourceURL: "https://not/mine",
+									},
+								},
+							},
+							{
+								Name: "notmyapp2",
+								Services: []*config.Service{
+									{
+										Name:      "notmyservice",
+										SourceURL: "https://not/mine",
+									},
+								},
 							},
 						},
 					},
 				},
 			},
 			isCICD:      false,
-			serviceName: &QualifiedServiceName{EnvironmentName: "myenv", ServiceName: "myservice"},
+			serviceName: &QualifiedServiceName{EnvironmentName: "myenv", ApplicationName: "myapp", ServiceName: "myservice"},
 			want:        "https://github.com/foo2/bar.git",
 		},
 	}

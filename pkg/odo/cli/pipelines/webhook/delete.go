@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	backend "github.com/openshift/odo/pkg/pipelines/webhook"
-	ktemplates "k8s.io/kubectl/pkg/util/templates"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
 const deleteRecommendedCommandName = "delete"
@@ -28,7 +28,7 @@ type deleteOptions struct {
 // Run contains the logic for the odo command
 func (o *deleteOptions) Run() error {
 
-	ids, err := backend.Delete(o.accessToken, o.manifest, o.getAppServiceNames(), o.isCICD)
+	ids, err := backend.Delete(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 
 	if len(ids) > 0 {
 		if log.IsJSON() {

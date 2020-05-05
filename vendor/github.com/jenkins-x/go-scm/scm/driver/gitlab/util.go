@@ -103,12 +103,3 @@ func encodePullRequestListOptions(opts scm.PullRequestListOptions) string {
 	}
 	return params.Encode()
 }
-
-func gitlabStateToSCMState(glState string) string {
-	switch glState {
-	case "opened":
-		return "open"
-	default:
-		return "closed"
-	}
-}

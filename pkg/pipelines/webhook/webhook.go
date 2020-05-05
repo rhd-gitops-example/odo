@@ -26,12 +26,14 @@ type webhookInfo struct {
 // QualifiedServiceName represents three part name of a service (Environment, Application, and Service)
 type QualifiedServiceName struct {
 	EnvironmentName string
+	ApplicationName string
 	ServiceName     string
 }
 
 // Create creates a new webhook on the target Git Repository
 // It returns the ID of created webhook.
 func Create(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, isCICD bool) (string, error) {
+
 	webhook, err := newWebhookInfo(accessToken, pipelinesFile, serviceName, isCICD)
 	if err != nil {
 		return "", err
@@ -52,6 +54,7 @@ func Create(accessToken, pipelinesFile string, serviceName *QualifiedServiceName
 // Delete deletes webhooks on the target Git Repository that match the listener address
 // It returns the IDs of deleted webhooks.
 func Delete(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, isCICD bool) ([]string, error) {
+
 	webhook, err := newWebhookInfo(accessToken, pipelinesFile, serviceName, isCICD)
 	if err != nil {
 		return nil, err
@@ -67,6 +70,7 @@ func Delete(accessToken, pipelinesFile string, serviceName *QualifiedServiceName
 
 // List returns an array of webhook IDs for the target Git repository/listeners
 func List(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, isCICD bool) ([]string, error) {
+
 	webhook, err := newWebhookInfo(accessToken, pipelinesFile, serviceName, isCICD)
 	if err != nil {
 		return nil, err
@@ -76,6 +80,7 @@ func List(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, 
 }
 
 func newWebhookInfo(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, isCICD bool) (*webhookInfo, error) {
+
 	manifest, err := config.ParseFile(ioutils.NewFilesystem(), pipelinesFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse pipelines: %w", err)
@@ -157,15 +162,23 @@ func getRepoURL(manifest *config.Manifest, isCICD bool, serviceName *QualifiedSe
 
 // Get service source repository URL.  Return "" if not found
 func getSourceRepoURL(manifest *config.Manifest, service *QualifiedServiceName) string {
+
 	for _, env := range manifest.Environments {
 		if env.Name == service.EnvironmentName {
-			for _, svc := range env.Services {
-				if svc.Name == service.ServiceName {
-					return svc.SourceURL
+			for _, app := range env.Apps {
+				if app.Name == service.ApplicationName {
+					for _, svc := range app.Services {
+						if svc.Name == service.ServiceName {
+							return svc.SourceURL
+						}
+					}
+					break
 				}
 			}
+			break
 		}
 	}
+
 	return ""
 }
 
@@ -190,13 +203,15 @@ func buildURL(host string, hasTLS bool) string {
 }
 
 func getWebhookSecret(r *resources, namespace string, isCICD bool, service *QualifiedServiceName) (string, error) {
+
 	var secretName string
 	if isCICD {
 		secretName = eventlisteners.GitOpsWebhookSecret
 	} else {
 		// currently, use the app name to create webhook secret name.
 		// also currently, service webhook secret are in CICI namespace
-		secretName = secrets.MakeServiceWebhookSecretName(service.ServiceName)
+		secretName = secrets.MakeServiceWebhookSecretName(service.ApplicationName)
 	}
+
 	return r.getWebhookSecret(namespace, secretName, eventlisteners.WebhookSecretKey)
 }

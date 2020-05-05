@@ -2,7 +2,6 @@
     {
         "Number": 1,
         "Title": "JS fix",
-        "State": "closed",
         "Body": "Signed-off-by: Dmitriy Zaporozhets \u003cdmitriy.zaporozhets@gmail.com\u003e",
         "Sha": "12d65c8dd2b2676fa3ac47d955accc085a37a9c1",
         "Ref": "refs/merge-requests/1/head",
@@ -15,7 +14,6 @@
         "Mergeable": true,
         "MergeableState": "mergeable",
         "Author": {
-            "ID": 13356,
             "Login": "dblessing",
             "Name": "Drew Blessing",
             "Email": "",
@@ -24,17 +22,11 @@
         "Created": "2015-12-18T18:29:53.563Z",
         "Updated": "2015-12-18T18:30:22.522Z",
         "Head": {
-            "Ref": "fix",
-            "Sha": "12d65c8dd2b2676fa3ac47d955accc085a37a9c1",
-            "Repo": {
-                "ID": "32732"
-            }
+            "Ref": "refs/heads/fix",
+            "Sha": "12d65c8dd2b2676fa3ac47d955accc085a37a9c1"
         },
         "Base": {
-            "Ref": "master",
-            "Repo": {
-                "ID": "32732"
-            }
+            "Ref": "refs/heads/master"
         }
     }
 ]

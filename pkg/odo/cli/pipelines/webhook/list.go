@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	backend "github.com/openshift/odo/pkg/pipelines/webhook"
-	ktemplates "k8s.io/kubectl/pkg/util/templates"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
 const listRecommendedCommandName = "list"
@@ -28,7 +28,7 @@ type listOptions struct {
 // Run contains the logic for the odo command
 func (o *listOptions) Run() error {
 
-	ids, err := backend.List(o.accessToken, o.manifest, o.getAppServiceNames(), o.isCICD)
+	ids, err := backend.List(o.accessToken, o.pipelines, o.getAppServiceNames(), o.isCICD)
 	if err != nil {
 		return fmt.Errorf("Unable to a get list of webhook IDs: %v", err)
 	}
