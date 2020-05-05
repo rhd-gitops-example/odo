@@ -7,27 +7,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// EnvRecommendedCommandName is the recommended environment command name.
-const ServiceRecommendedCommandName = "service"
+// RecommendedCommandName is the recommended environment command name.
+const RecommendedCommandName = "service"
 
-// NewCmdEnv create a new environment command
-func NewCmdService(name, fullName string) *cobra.Command {
+// NewCmd creates a new environment command
+func NewCmd(name, fullName string) *cobra.Command {
 
-	addServiceCmd := NewCmdAddService(AddServiceRecommendedCommandName, odoutil.GetFullName(fullName, AddServiceRecommendedCommandName))
+	addCmd := newCmdAdd(addRecommendedCommandName, odoutil.GetFullName(fullName, addRecommendedCommandName))
 
-	var serviceCmd = &cobra.Command{
+	var cmd = &cobra.Command{
 		Use:   name,
-		Short: "Manage an environment in GitOps",
+		Short: "Manage services in an environment",
+		Long:  "Manage services in an environment of GitOps which source respositories are synchronized ",
 		Example: fmt.Sprintf("%s\n%s\n\n  See sub-commands individually for more examples",
-			fullName, AddServiceRecommendedCommandName),
+			fullName, addRecommendedCommandName),
 		Run: func(cmd *cobra.Command, args []string) {
 		},
 	}
 
-	serviceCmd.Flags().AddFlagSet(addServiceCmd.Flags())
-	serviceCmd.AddCommand(addServiceCmd)
+	cmd.Flags().AddFlagSet(addCmd.Flags())
+	cmd.AddCommand(addCmd)
 
-	serviceCmd.Annotations = map[string]string{"command": "main"}
-	serviceCmd.SetUsageTemplate(odoutil.CmdUsageTemplate)
-	return serviceCmd
+	cmd.Annotations = map[string]string{"command": "main"}
+	cmd.SetUsageTemplate(odoutil.CmdUsageTemplate)
+	return cmd
 }

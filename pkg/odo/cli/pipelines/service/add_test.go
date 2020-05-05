@@ -21,24 +21,24 @@ func TestAddCommandWithMissingParams(t *testing.T) {
 	}{
 		{"Missing app-name flag",
 			[]keyValuePair{flag("gitops-repo", "example/repo"),
-				flag("service-git-repo", "example/repo"), flag("service-webhook-secret", "abc123"), flag("env-name", "test"), flag("manifest", "../../../../config/testdata/pipelines.yaml"), flag("output", "./")},
+				flag("git-repo-url", "example/repo"), flag("webhook-secret", "abc123"), flag("env-name", "test"), flag("manifest", "../../../../config/testdata/pipelines.yaml"), flag("output", "./")},
 			`Required flag(s) "app-name" have/has not been set`},
-		{"Missing service-git-repo flag",
+		{"Missing git-repo-url flag",
 			[]keyValuePair{flag("app-name", "app"),
-				flag("gitops-repo", "example/repo"), flag("service-webhook-secret", "abc123"), flag("env-name", "test"), flag("manifest", "../../../../config/testdata/pipelines.yaml"), flag("output", "./")},
-			`Required flag(s) "service-git-repo" have/has not been set`},
-		{"Missing service-webhook-secret flag",
+				flag("gitops-repo", "example/repo"), flag("webhook-secret", "abc123"), flag("env-name", "test"), flag("manifest", "../../../../config/testdata/pipelines.yaml"), flag("output", "./")},
+			`Required flag(s) "git-repo-url" have/has not been set`},
+		{"Missing webhook-secret flag",
 			[]keyValuePair{flag("app-name", "app"),
-				flag("gitops-repo", "example/repo"), flag("service-git-repo", "sample/repo"), flag("env-name", "test"), flag("manifest", "../../../../config/testdata/pipelines.yaml"), flag("output", "./")},
-			`Required flag(s) "service-webhook-secret" have/has not been set`},
+				flag("git-repo-url", "example/repo"), flag("git-rep-url", "sample/repo"), flag("env-name", "test"), flag("manifest", "../../../../config/testdata/pipelines.yaml"), flag("output", "./")},
+			`Required flag(s) "webhook-secret" have/has not been set`},
 		{"Missing env-name flag",
 			[]keyValuePair{flag("app-name", "app"),
-				flag("gitops-repo", "example/repo"), flag("service-git-repo", "sample/repo"), flag("service-webhook-secret", "abc123"), flag("manifest", "../../../../config/testdata/pipelines.yaml"), flag("output", "./")},
+				flag("gitops-repo", "example/repo"), flag("git-repo-url", "sample/repo"), flag("webhook-secret", "abc123"), flag("manifest", "../../../../config/testdata/pipelines.yaml"), flag("output", "./")},
 			`Required flag(s) "env-name" have/has not been set`},
 	}
 	for _, tt := range cmdTests {
 		t.Run(tt.desc, func(t *testing.T) {
-			_, _, err := executeCommand(NewCmdAddService("add", "odo pipelines serviec"), tt.flags...)
+			_, _, err := executeCommand(newCmdAdd("add", "odo pipelines serviec"), tt.flags...)
 			if err.Error() != tt.wantErr {
 				t.Errorf("got %s, want %s", err, tt.wantErr)
 			}

@@ -14,16 +14,8 @@ func TestService(t *testing.T) {
 	fakeFs := ioutils.NewFilesystem()
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
 	manifestFile := "config/testdata/pipelines.yaml"
-	svcParameters := ServiceParameters{
-		ServiceGitRepo:       testSvcRepo,
-		ServiceWebhookSecret: "123",
-		AppName:              "app1",
-		EnvName:              "test",
-		Output:               gitopsPath,
-		Manifest:             manifestFile,
-	}
 
-	if err := AddService(&svcParameters, fakeFs); err != nil {
+	if err := AddService(testSvcRepo, "123", "test", "app1", manifestFile, fakeFs); err != nil {
 		t.Fatalf("AddService() failed :%s", err)
 	}
 

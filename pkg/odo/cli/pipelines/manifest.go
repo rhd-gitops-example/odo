@@ -27,7 +27,7 @@ func NewCmdPipelines(name, fullName string) *cobra.Command {
 	initCmd := NewCmdInit(InitRecommendedCommandName, odoutil.GetFullName(fullName, InitRecommendedCommandName))
 	bootstrapCmd := NewCmdBootstrap(BootstrapRecommendedCommandName, odoutil.GetFullName(fullName, BootstrapRecommendedCommandName))
 	envCmd := environment.NewCmdEnv(environment.EnvRecommendedCommandName, odoutil.GetFullName(fullName, environment.EnvRecommendedCommandName))
-	serviceCmd := service.NewCmdService(service.ServiceRecommendedCommandName, odoutil.GetFullName(fullName, service.ServiceRecommendedCommandName))
+	serviceCmd := service.NewCmd(service.RecommendedCommandName, odoutil.GetFullName(fullName, service.RecommendedCommandName))
 
 	pipelinesCmd.AddCommand(initCmd)
 	pipelinesCmd.AddCommand(bootstrapCmd)

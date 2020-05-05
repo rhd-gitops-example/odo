@@ -83,7 +83,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 		return nil, err
 	}
 	ns := namespaces.NamesWithPrefix(o.Prefix)
-	secretName := "github-webhook-secret-" + repoName + "-svc"
+	secretName := secrets.MakeServiceWebhookSecretName(repoName)
 	envs, err := bootstrapEnvironments(o.Prefix, o.AppRepoURL, secretName, ns)
 	if err != nil {
 		return nil, err
