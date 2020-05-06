@@ -50,10 +50,10 @@ func (vv *validateVisitor) Application(env *Environment, app *Application) error
 		vv.errs = append(vv.errs, err)
 	}
 
-	if app.Services == nil && app.ConfigRepo == nil {
+	if len(app.ServiceRefs) == 0 && app.ConfigRepo == nil {
 		vv.errs = append(vv.errs, missingFieldsError([]string{"services", "config_repo"}, []string{appPath}))
 	}
-	if app.Services != nil && app.ConfigRepo != nil {
+	if len(app.ServiceRefs) == 0 && app.ConfigRepo != nil {
 		vv.errs = append(vv.errs, apis.ErrMultipleOneOf(yamlJoin(appPath, "services"), yamlJoin(appPath, "config_repo")))
 	}
 	if app.ConfigRepo != nil {
@@ -62,7 +62,7 @@ func (vv *validateVisitor) Application(env *Environment, app *Application) error
 	return nil
 }
 
-func (vv *validateVisitor) Service(env *Environment, app *Application, svc *Service) error {
+func (vv *validateVisitor) Service(env *Environment, svc *Service) error {
 	svcPath := yamlPath(PathForService(env, svc))
 	if err := checkDuplicate(svc.Name, svcPath, vv.serviceNames); err != nil {
 		vv.errs = append(vv.errs, err)
