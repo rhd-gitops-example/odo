@@ -9,14 +9,14 @@ import (
 	"github.com/spf13/afero"
 )
 
-func TestService(t *testing.T) {
+func TestServiceWithoutCICD(t *testing.T) {
 
 	fakeFs := ioutils.NewMapFilesystem()
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
 
 	manifestFile := filepath.Join(gitopsPath, pipelinesFile)
 
-	afero.WriteFile(fakeFs, manifestFile, []byte("environments:\n - name: test\n - cicd: true\n   name: cicd\n"), 0644)
+	afero.WriteFile(fakeFs, manifestFile, []byte("environments:\n - name: test\n "), 0644)
 	if err := AddService(testSvcRepo, "123", "test", "app1", manifestFile, fakeFs); err != nil {
 		t.Fatalf("AddService() failed :%s", err)
 	}

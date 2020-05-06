@@ -35,6 +35,8 @@ func AddService(gitRepoURL, webhookSecret, envName, appName, manifest string, fs
 	if err != nil {
 		return fmt.Errorf("Git repository URL is invalid: %w", err)
 	}
+	secretName := secrets.MakeServiceWebhookSecretName(repoName)
+
 	orgRepo, err := orgRepoFromURL(gitRepoURL)
 	if err != nil {
 		return fmt.Errorf("Git repository URL is invalid: %w", err)
@@ -45,30 +47,17 @@ func AddService(gitRepoURL, webhookSecret, envName, appName, manifest string, fs
 	}
 	cicdEnv, err := m.GetCICDEnvironment()
 
-	secretName := secrets.MakeServiceWebhookSecretName(repoName)
-	secretFileName := filepath.Join("03-secrets", secretName+".yaml")
-	secretsPath := filepath.Join("environments", cicdEnv.Name, "base", "pipelines", secretFileName)
-	pipelineFileName := filepath.Join("08-eventlisteners", repoName+"-cicd-event-listener.yaml")
-	kustomizePath := filepath.Join("environments", "cicd", "base", "pipelines", "kustomization.yaml")
-
 	files := resources.Resources{}
 
 	app, _ := m.GetApplication(envName, appName)
 
 	if app == nil {
-		_, err = m.GetCICDEnvironment()
-		if err != nil {
-			Newapp, err := ApplicationFromWithoutCICDName(appName, gitRepoURL, secretName, cicdEnv.Name)
-			if err != nil {
-				return err
-			}
+		cicdEnv, _ = m.GetCICDEnvironment()
+		if cicdEnv == nil {
+			Newapp := &config.Application{Name: appName}
 			env.Apps = append(env.Apps, Newapp)
 		} else {
-			Newapp, err := ApplicationFromName(appName, gitRepoURL, secretName, cicdEnv.Name)
-
-			if err != nil {
-				return err
-			}
+			Newapp := &config.Application{Name: appName}
 			env.Apps = append(env.Apps, Newapp)
 		}
 
@@ -80,8 +69,9 @@ func AddService(gitRepoURL, webhookSecret, envName, appName, manifest string, fs
 
 	}
 
-	cicdExists := m.GetEnvironment(envName)
+	cicdExists, _ := m.GetCICDEnvironment()
 	if cicdExists == nil {
+		fmt.Println("was here in the if")
 		app, _ := m.GetApplication(envName, appName)
 		service := GetService(repoName, gitRepoURL)
 		app.Services = append(app.Services, service)
@@ -93,6 +83,12 @@ func AddService(gitRepoURL, webhookSecret, envName, appName, manifest string, fs
 			return err
 		}
 	} else {
+		fmt.Println("was here in the else")
+		secretFileName := filepath.Join("03-secrets", secretName+".yaml")
+		secretsPath := filepath.Join("environments", cicdEnv.Name, "base", "pipelines", secretFileName)
+		pipelineFileName := filepath.Join("08-eventlisteners", repoName+"-cicd-event-listener.yaml")
+		kustomizePath := filepath.Join("environments", "cicd", "base", "pipelines", "kustomization.yaml")
+
 		app, _ := m.GetApplication(envName, appName)
 		updatedService := GetServiceSecret(repoName, gitRepoURL, secretName, "cicd")
 		if updatedService == nil {
