@@ -14,6 +14,7 @@ func TestParse(t *testing.T) {
 		want     *Manifest
 	}{
 		{"testdata/example1.yaml", &Manifest{
+			GitOpsURL: "http://github.com/org/test",
 			Environments: []*Environment{
 				{
 					Name: "development",
@@ -70,6 +71,7 @@ func TestParse(t *testing.T) {
 		},
 
 		{"testdata/example2.yaml", &Manifest{
+			GitOpsURL: "http://github.com/org/test",
 			Environments: []*Environment{
 				{
 					Name: "development",

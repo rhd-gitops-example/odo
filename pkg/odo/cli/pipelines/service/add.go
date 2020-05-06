@@ -29,7 +29,6 @@ type AddOptions struct {
 	envName       string
 	gitRepoURL    string
 	manifest      string
-	output        string
 	webhookSecret string
 	// generic context options common to all commands
 	*genericclioptions.Context
@@ -47,7 +46,14 @@ func (o *AddOptions) Validate() error {
 
 // Run runs the project bootstrap command.
 func (o *AddOptions) Run() error {
-	return pipelines.AddService(o.gitRepoURL, o.webhookSecret, o.envName, o.appName, o.manifest, ioutils.NewFilesystem())
+	options := &pipelines.AddOptions{
+		AppName:       o.appName,
+		EnvName:       o.envName,
+		GitRepoURL:    o.gitRepoURL,
+		Manifest:      o.manifest,
+		WebhookSecret: o.webhookSecret,
+	}
+	return pipelines.AddService(options, ioutils.NewFilesystem())
 }
 
 func newCmdAdd(name, fullName string) *cobra.Command {
@@ -74,6 +80,5 @@ func newCmdAdd(name, fullName string) *cobra.Command {
 	cmd.MarkFlagRequired("webhook-secret")
 	cmd.MarkFlagRequired("app-name")
 	cmd.MarkFlagRequired("env-name")
-
 	return cmd
 }

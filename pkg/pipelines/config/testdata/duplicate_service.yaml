@@ -1,3 +1,4 @@
+gitops_url: http://github.com/org/test
 environments:
   - name: duplicate-service
     pipelines:
