@@ -18,7 +18,9 @@ type validateVisitor struct {
 
 func (m *Manifest) Validate() error {
 	vv := &validateVisitor{errs: []error{}, envNames: map[string]bool{}, appNames: map[string]bool{}, serviceNames: map[string]bool{}}
-
+	if m.GitOpsURL == "" {
+		return missingFieldsError([]string{"gitops_url"}, []string{})
+	}
 	m.Walk(vv)
 	if len(vv.errs) == 0 {
 		return nil

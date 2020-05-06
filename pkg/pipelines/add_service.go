@@ -2,171 +2,106 @@ package pipelines
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/openshift/odo/pkg/pipelines/config"
+	"github.com/openshift/odo/pkg/pipelines/environments"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/openshift/odo/pkg/pipelines/meta"
-	"github.com/openshift/odo/pkg/pipelines/resources"
+	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
 	"github.com/spf13/afero"
 )
 
-// AddService adds a new service to an environment
-func AddService(gitRepoURL, webhookSecret, envName, appName, manifest string, fs afero.Fs) error {
+type AddOptions struct {
+	AppName       string
+	EnvName       string
+	GitRepoURL    string
+	Manifest      string
+	WebhookSecret string
+}
 
-	m, err := config.ParseFile(fs, manifest)
+func AddService(o *AddOptions, fs afero.Fs) error {
+	m, err := config.ParseFile(fs, o.Manifest)
 	if err != nil {
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
 
-	if err := m.Validate(); err != nil {
+	svc, err := createService(o.GitRepoURL)
+	if err != nil {
 		return err
 	}
-
-	env := m.GetEnvironment(envName)
-	if env == nil {
-		return fmt.Errorf("environment %s does not exist", envName)
-	}
-
-	repoName, err := repoFromURL(gitRepoURL)
-	if err != nil {
-		return fmt.Errorf("Git repository URL is invalid: %w", err)
-	}
-	secretName := secrets.MakeServiceWebhookSecretName(repoName)
-
-	orgRepo, err := orgRepoFromURL(gitRepoURL)
-	if err != nil {
-		return fmt.Errorf("Git repository URL is invalid: %w", err)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to get CICD environment: %w", err)
-	}
+	files := res.Resources{}
+	// add the secret only if CI/CD env is present
 	cicdEnv, err := m.GetCICDEnvironment()
-
-	files := resources.Resources{}
-
-	app, _ := m.GetApplication(envName, appName)
-
-	if app == nil {
-		cicdEnv, _ = m.GetCICDEnvironment()
-		if cicdEnv == nil {
-			Newapp := &config.Application{Name: appName}
-			env.Apps = append(env.Apps, Newapp)
-		} else {
-			Newapp := &config.Application{Name: appName}
-			env.Apps = append(env.Apps, Newapp)
-		}
-
-	} else {
-		err := checkServiceExists(app.Services, repoName)
+	if cicdEnv != nil {
+		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
+		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), o.WebhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return err
 		}
-
+		svc.Webhook = &config.Webhook{
+			Secret: &config.Secret{
+				Name:      secretName,
+				Namespace: cicdEnv.Name,
+			},
+		}
+		secretPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines")
+		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
 	}
-
-	cicdExists, _ := m.GetCICDEnvironment()
-	if cicdExists == nil {
-		fmt.Println("was here in the if")
-		app, _ := m.GetApplication(envName, appName)
-		service := GetService(repoName, gitRepoURL)
-		app.Services = append(app.Services, service)
-
-		env.Apps = []*config.Application{app}
-
-		err := generateService(manifest, fs, files, m)
-		if err != nil {
-			return err
-		}
-	} else {
-		fmt.Println("was here in the else")
-		secretFileName := filepath.Join("03-secrets", secretName+".yaml")
-		secretsPath := filepath.Join("environments", cicdEnv.Name, "base", "pipelines", secretFileName)
-		pipelineFileName := filepath.Join("08-eventlisteners", repoName+"-cicd-event-listener.yaml")
-		kustomizePath := filepath.Join("environments", "cicd", "base", "pipelines", "kustomization.yaml")
-
-		app, _ := m.GetApplication(envName, appName)
-		updatedService := GetServiceSecret(repoName, gitRepoURL, secretName, "cicd")
-		if updatedService == nil {
-			return fmt.Errorf("This failed bad")
-		}
-		app.Services = append(app.Services, updatedService)
-		if app.Services == nil {
-			return fmt.Errorf("This failed bad")
-		}
-		env.Apps = []*config.Application{app}
-
-		err := appendKustomiseResources(pipelineFileName, secretFileName, kustomizePath, manifest, fs)
-		if err != nil {
-			return err
-		}
-
-		hookSecret, err := secrets.CreateSealedSecret(
-			meta.NamespacedName(cicdEnv.Name, secretName),
-			webhookSecret,
-			eventlisteners.WebhookSecretKey)
-
-		eventListenerService := eventlisteners.Generate(orgRepo, "cicd", saName, eventlisteners.GitOpsWebhookSecret)
-		files[eventListenerPath] = eventListenerService
-		files[secretsPath] = hookSecret
-
-		err = generateService(manifest, fs, files, m)
-		if err != nil {
-			return err
-		}
+	err = m.AddService(o.EnvName, o.AppName, svc)
+	if err != nil {
+		return err
 	}
-	return nil
-}
-
-func generateService(manifest string, fs afero.Fs, files resources.Resources, m *config.Manifest) error {
-	outputPath := filepath.Dir(manifest)
+	err = m.Validate()
+	if err != nil {
+		return err
+	}
+	files[pipelinesFile] = m
+	outputPath := filepath.Dir(o.Manifest)
 	buildParams := &BuildParameters{
-		ManifestFilename: manifest,
+		ManifestFilename: o.Manifest,
 		OutputPath:       outputPath,
+		RepositoryURL:    m.GitOpsURL,
 	}
-	files[manifest] = m
-
 	built, err := buildResources(fs, buildParams, m)
 	if err != nil {
-		return fmt.Errorf("failed to build resources: %w", err)
+		return nil
 	}
-	if err != nil {
-		return fmt.Errorf("failed to build resources: %w", err)
-	}
-	files = resources.Merge(built, files)
-
+	files = res.Merge(built, files)
 	_, err = yaml.WriteResources(fs, outputPath, files)
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func checkServiceExists(services []*config.Service, serviceName string) error {
-	for _, service := range services {
-		if service.Name == serviceName {
-			return fmt.Errorf("A Service with this name %s already exists", serviceName)
+	if cicdEnv != nil {
+		base := filepath.Join(outputPath, config.PathForEnvironment(cicdEnv), "base", "pipelines")
+		err = updateKustomization(fs, base)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func appendKustomiseResources(pipelineFileName, secretFileName, kustomizePath, manifest string, fs afero.Fs) error {
-	outputPath := filepath.Dir(manifest)
-	f, err := fs.OpenFile(filepath.Join(outputPath, kustomizePath), os.O_APPEND|os.O_WRONLY, 0600)
+func updateKustomization(fs afero.Fs, base string) error {
+	files := res.Resources{}
+	list, err := environments.ListFiles(fs, base)
 	if err != nil {
-		return fmt.Errorf("Could not locate the file %s present", err)
+		return err
 	}
-	defer f.Close()
-	if _, err = f.WriteString("\n- " + secretFileName); err != nil {
-		return fmt.Errorf("The secret kustomization file could not be appended to the kustomization.yaml file")
+	files[Kustomize] = &res.Kustomization{Resources: environments.ExtractFilenames(list)}
+	_, err = yaml.WriteResources(fs, base, files)
+	return err
+}
+
+func createService(url string) (*config.Service, error) {
+	svcName, err := repoFromURL(url)
+	if err != nil {
+		return nil, fmt.Errorf("Git repository URL is invalid: %w", err)
 	}
-	if _, err = f.WriteString("\n- " + pipelineFileName); err != nil {
-		return fmt.Errorf("The eventlistener kustomization file could not be appended to the kustomization.yaml file")
-	}
-	return nil
+	return &config.Service{
+		Name:      svcName,
+		SourceURL: url,
+	}, nil
 }

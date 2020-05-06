@@ -48,6 +48,20 @@ func (m *Manifest) GetApplication(environment, application string) (*Application
 	return nil, fmt.Errorf("failed to find application: %s", application)
 }
 
+func (m *Manifest) AddService(envName, appName string, svc *Service) error {
+	env := m.GetEnvironment(envName)
+	if env == nil {
+		return fmt.Errorf("environment %s does not exist", envName)
+	}
+	app, err := m.GetApplication(envName, appName)
+	if app == nil && err != nil {
+		app = &Application{Name: appName}
+		env.Apps = append(env.Apps, app)
+	}
+	app.Services = append(app.Services, svc)
+	return nil
+}
+
 // GetCICDEnvironment returns the CICD Environment if one exists.
 func (m *Manifest) GetCICDEnvironment() (*Environment, error) {
 	envs := []*Environment{}
