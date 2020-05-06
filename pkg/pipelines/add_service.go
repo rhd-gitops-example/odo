@@ -19,6 +19,7 @@ type AddOptions struct {
 	EnvName       string
 	GitRepoURL    string
 	Manifest      string
+	ServiceName   string
 	WebhookSecret string
 }
 
@@ -28,7 +29,7 @@ func AddService(o *AddOptions, fs afero.Fs) error {
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
 
-	svc, err := createService(o.GitRepoURL)
+	svc, err := createService(o.ServiceName, o.GitRepoURL)
 	if err != nil {
 		return err
 	}
@@ -95,13 +96,14 @@ func updateKustomization(fs afero.Fs, base string) error {
 	return err
 }
 
-func createService(url string) (*config.Service, error) {
-	svcName, err := repoFromURL(url)
-	if err != nil {
-		return nil, fmt.Errorf("Git repository URL is invalid: %w", err)
+func createService(serviceName, url string) (*config.Service, error) {
+	if url == "" {
+		return &config.Service{
+			Name: serviceName,
+		}, nil
 	}
 	return &config.Service{
-		Name:      svcName,
+		Name:      serviceName,
 		SourceURL: url,
 	}, nil
 }

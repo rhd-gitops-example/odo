@@ -30,6 +30,8 @@ type AddOptions struct {
 	gitRepoURL    string
 	manifest      string
 	webhookSecret string
+	serviceName   string
+
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -52,6 +54,7 @@ func (o *AddOptions) Run() error {
 		GitRepoURL:    o.gitRepoURL,
 		Manifest:      o.manifest,
 		WebhookSecret: o.webhookSecret,
+		ServiceName:   o.serviceName,
 	}
 	return pipelines.AddService(options, ioutils.NewFilesystem())
 }
@@ -72,13 +75,14 @@ func newCmdAdd(name, fullName string) *cobra.Command {
 	cmd.Flags().StringVar(&o.gitRepoURL, "git-repo-url", "", "folder/path to add Gitops resources")
 	cmd.Flags().StringVar(&o.webhookSecret, "webhook-secret", "", "folder/path to add Gitops resources")
 	cmd.Flags().StringVar(&o.appName, "app-name", "", "the name of the application where the service will be added")
+	cmd.Flags().StringVar(&o.serviceName, "service-name", "", "the name of the application where the service will be added")
 	cmd.Flags().StringVar(&o.envName, "env-name", "", "the name of the environment where the service will be added")
 	cmd.Flags().StringVar(&o.manifest, "manifest", "pipelines.yaml", "path to manifest file")
 
 	// required flags
-	cmd.MarkFlagRequired("git-repo-url")
-	cmd.MarkFlagRequired("webhook-secret")
+	cmd.MarkFlagRequired("service-name")
 	cmd.MarkFlagRequired("app-name")
 	cmd.MarkFlagRequired("env-name")
+	//cmd.MarkFlagRequired("git-repo-url")
 	return cmd
 }
