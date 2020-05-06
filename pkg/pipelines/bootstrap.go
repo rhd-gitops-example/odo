@@ -203,7 +203,14 @@ func ApplicationFromName(appName, repoURL, secretName, secretNS string) (*config
 	}, nil
 }
 
-func GetService(serviceName, repoURL, secretName, secretNS string) *config.Service {
+func GetService(serviceName, repoURL string) *config.Service {
+	return &config.Service{
+		Name:      serviceName,
+		SourceURL: repoURL,
+	}
+}
+
+func GetServiceSecret(serviceName, repoURL, secretName, secretNS string) *config.Service {
 	return &config.Service{
 		Name:      serviceName,
 		SourceURL: repoURL,
@@ -213,9 +220,16 @@ func GetService(serviceName, repoURL, secretName, secretNS string) *config.Servi
 				Namespace: secretNS,
 			},
 		},
+		Pipelines: &config.Pipelines{
+			Integration: &config.TemplateBinding{
+				Template: "ci-dryrun-from-pr-template",
+				Binding:  "github-pr-binding",
+			},
+		},
 	}
 
 }
+
 func repoFromURL(raw string) (string, error) {
 	u, err := url.Parse(raw)
 	if err != nil {
