@@ -48,15 +48,8 @@ func (o *AddOptions) Validate() error {
 
 // Run runs the project bootstrap command.
 func (o *AddOptions) Run() error {
-	options := &pipelines.AddOptions{
-		AppName:       o.appName,
-		EnvName:       o.envName,
-		GitRepoURL:    o.gitRepoURL,
-		Manifest:      o.manifest,
-		WebhookSecret: o.webhookSecret,
-		ServiceName:   o.serviceName,
-	}
-	return pipelines.AddService(options, ioutils.NewFilesystem())
+
+	return pipelines.AddService(o.gitRepoURL, o.appName, o.serviceName, o.webhookSecret, o.envName, o.manifest, ioutils.NewFilesystem())
 }
 
 func newCmdAdd(name, fullName string) *cobra.Command {
@@ -83,6 +76,5 @@ func newCmdAdd(name, fullName string) *cobra.Command {
 	cmd.MarkFlagRequired("service-name")
 	cmd.MarkFlagRequired("app-name")
 	cmd.MarkFlagRequired("env-name")
-	//cmd.MarkFlagRequired("git-repo-url")
 	return cmd
 }

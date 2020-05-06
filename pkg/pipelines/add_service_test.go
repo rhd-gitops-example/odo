@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
+
 	"github.com/openshift/odo/pkg/pipelines/secrets"
+
 	"github.com/spf13/afero"
 )
 
@@ -31,14 +33,8 @@ func TestServiceWithoutCICD(t *testing.T) {
 
 	//afero.WriteFile(fakeFs, manifestFile, []byte("gitops_url: http://github.com/org/test \nenvironments:\n - name: test\n "), 0644)
 	afero.WriteFile(fakeFs, manifestFile, []byte("environments:\n - name: test\ngitops_url: http://github.com/org/test"), 0644)
-	o := &AddOptions{
-		AppName:       "app",
-		ServiceName:   "svc-1",
-		EnvName:       "test",
-		Manifest:      manifestFile,
-		WebhookSecret: "123",
-	}
-	if err := AddService(o, fakeFs); err != nil {
+
+	if err := AddService("", "app", "svc-1", "123", "test", manifestFile, fakeFs); err != nil {
 		t.Fatalf("AddService() failed :%s", err)
 	}
 
@@ -74,18 +70,11 @@ func TestServiceWithCICD(t *testing.T) {
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
 
 	manifestFile := filepath.Join(gitopsPath, pipelinesFile)
-	o := &AddOptions{
-		AppName:       "app1",
-		EnvName:       "test",
-		ServiceName:   "svc-1",
-		Manifest:      manifestFile,
-		WebhookSecret: "123",
-		GitRepoURL:    "http://github.com/org/http-api",
-	}
+
 	kustomization := filepath.Join(gitopsPath, "environments/cicd/base/pipelines/kustomization.yaml")
 	afero.WriteFile(fakeFs, kustomization, []byte("resources:\n"), 0644)
 	afero.WriteFile(fakeFs, manifestFile, []byte("gitops_url: http://github.com/org/test \nenvironments:\n - name: test\n - cicd: true\n   name: cicd\n"), 0644)
-	if err := AddService(o, fakeFs); err != nil {
+	if err := AddService("", "app1", "svc-1", "123", "test", manifestFile, fakeFs); err != nil {
 		t.Fatalf("AddService() failed :%s", err)
 	}
 
@@ -105,25 +94,20 @@ func TestServiceWithCICD(t *testing.T) {
 	}
 }
 
-// func TestUpdateKustomization(t *testing.T) {
-// 	files := res.Resources{}
-// 	fakeFs := ioutils.NewMapFilesystem()
-// 	gitopsPath := afero.GetTempDir(fakeFs, "test")
-// 	files["namespace-1.yaml"] = namespaces.Create("namespace-1")
-// 	files["namespace-2.yaml"] = namespaces.Create("namespace-2")
-// 	files["namespace-3.yaml"] = namespaces.Create("namespace-3")
-// 	files[Kustomize] = res.Kustomization{Resources: []string{"namespace-1.yaml", "namespace-2.yaml"}}
-// 	_, err := yamlWriter.WriteResources(fakeFs, gitopsPath, files)
-// 	assertNoError(t, err)
-// 	want := res.Kustomization{Resources: []string{"namespace-1.yaml", "namespace-2.yaml", "namespace-3.yaml"}}
-// 	err = updateKustomization(fakeFs, gitopsPath)
-// 	assertNoError(t, err)
-// 	b, err := afero.ReadFile(fakeFs, filepath.Join(gitopsPath, Kustomize))
-// 	assertNoError(t, err)
-// 	got := res.Kustomization{}
-// 	err = yaml.Unmarshal(b, got)
-// 	assertNoError(t, err)
-// 	if diff := cmp.Diff(got, want); diff != "" {
-// 		t.Fatalf("updateKustomization() failed: %v", diff)
-// 	}
-// }
+func TestEvironmentExists(t *testing.T) {
+
+	fakeFs := ioutils.NewMapFilesystem()
+	gitopsPath := afero.GetTempDir(fakeFs, "test")
+
+	manifestFile := filepath.Join(gitopsPath, pipelinesFile)
+
+	afero.WriteFile(fakeFs, manifestFile, []byte("gitops_url: http://github.com/org/test \nenvironments:\n - cicd: true\n   name: cicd\n"), 0644)
+
+	err := AddService("", "app1", "svc-1", "123", "test", manifestFile, fakeFs)
+
+	want := `environment test does not exist`
+	if err.Error() != want {
+		t.Errorf("got %s, want %s", err, want)
+	}
+
+}

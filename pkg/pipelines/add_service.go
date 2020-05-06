@@ -14,31 +14,21 @@ import (
 	"github.com/spf13/afero"
 )
 
-type AddOptions struct {
-	AppName       string
-	EnvName       string
-	GitRepoURL    string
-	Manifest      string
-	ServiceName   string
-	WebhookSecret string
-}
-
-func AddService(o *AddOptions, fs afero.Fs) error {
-	m, err := config.ParseFile(fs, o.Manifest)
+func AddService(GitRepoURL, AppName, ServiceName, WebhookSecret, EnvName, Manifest string, fs afero.Fs) error {
+	m, err := config.ParseFile(fs, Manifest)
 	if err != nil {
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
-
-	svc, err := createService(o.ServiceName, o.GitRepoURL)
+	svc, err := createService(ServiceName, GitRepoURL)
 	if err != nil {
 		return err
 	}
 	files := res.Resources{}
 	// add the secret only if CI/CD env is present
 	cicdEnv, err := m.GetCICDEnvironment()
-	if cicdEnv != nil {
+	if cicdEnv != nil && WebhookSecret != "" {
 		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
-		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), o.WebhookSecret, eventlisteners.WebhookSecretKey)
+		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), WebhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return err
 		}
@@ -51,7 +41,7 @@ func AddService(o *AddOptions, fs afero.Fs) error {
 		secretPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines")
 		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
 	}
-	err = m.AddService(o.EnvName, o.AppName, svc)
+	err = m.AddService(EnvName, AppName, svc)
 	if err != nil {
 		return err
 	}
@@ -60,9 +50,9 @@ func AddService(o *AddOptions, fs afero.Fs) error {
 		return err
 	}
 	files[pipelinesFile] = m
-	outputPath := filepath.Dir(o.Manifest)
+	outputPath := filepath.Dir(Manifest)
 	buildParams := &BuildParameters{
-		ManifestFilename: o.Manifest,
+		ManifestFilename: Manifest,
 		OutputPath:       outputPath,
 		RepositoryURL:    m.GitOpsURL,
 	}
