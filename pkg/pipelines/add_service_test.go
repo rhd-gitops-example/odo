@@ -11,10 +11,12 @@ import (
 
 func TestService(t *testing.T) {
 
-	fakeFs := ioutils.NewFilesystem()
+	fakeFs := ioutils.NewMapFilesystem()
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
-	manifestFile := "config/testdata/pipelines.yaml"
 
+	manifestFile := filepath.Join(gitopsPath, pipelinesFile)
+
+	afero.WriteFile(fakeFs, manifestFile, []byte("environments:\n - name: test\n - cicd: true\n   name: cicd\n"), 0644)
 	if err := AddService(testSvcRepo, "123", "test", "app1", manifestFile, fakeFs); err != nil {
 		t.Fatalf("AddService() failed :%s", err)
 	}
@@ -23,9 +25,9 @@ func TestService(t *testing.T) {
 		"environments/test/apps/app1/base/kustomization.yaml",
 		"environments/test/apps/app1/kustomization.yaml",
 		"environments/test/apps/app1/overlays/kustomization.yaml",
-		"environments/test/services/myservice/base/kustomization.yaml",
-		"environments/test/services/myservice/kustomization.yaml",
-		"environments/test/services/myservice/overlays/kustomization.yaml",
+		"environments/test/services/http-api/base/kustomization.yaml",
+		"environments/test/services/http-api/kustomization.yaml",
+		"environments/test/services/http-api/overlays/kustomization.yaml",
 	}
 
 	for _, path := range wantedPaths {

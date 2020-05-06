@@ -56,11 +56,22 @@ func AddService(gitRepoURL, webhookSecret, envName, appName, manifest string, fs
 	app, _ := m.GetApplication(envName, appName)
 
 	if app == nil {
-		Newapp, err := ApplicationFromName(appName, gitRepoURL, secretName, cicdEnv.Name)
+		_, err = m.GetCICDEnvironment()
 		if err != nil {
-			return err
+			Newapp, err := ApplicationFromWithoutCICDName(appName, gitRepoURL, secretName, cicdEnv.Name)
+			if err != nil {
+				return err
+			}
+			env.Apps = append(env.Apps, Newapp)
+		} else {
+			Newapp, err := ApplicationFromName(appName, gitRepoURL, secretName, cicdEnv.Name)
+
+			if err != nil {
+				return err
+			}
+			env.Apps = append(env.Apps, Newapp)
 		}
-		env.Apps = append(env.Apps, Newapp)
+
 	} else {
 		err := checkServiceExists(app.Services, repoName)
 		if err != nil {
