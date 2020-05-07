@@ -3,12 +3,15 @@ package pipelines
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
+	"github.com/openshift/odo/pkg/pipelines/namespaces"
+
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
@@ -31,14 +34,19 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 
 	fakeFs := ioutils.NewMapFilesystem()
 	m := buildManifest(true, false)
+	namespace := namespaces.Create("test-dev")
 	hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName("cicd", "github-webhook-secret-test-svc"), "123", eventlisteners.WebhookSecretKey)
+	// eventlistener := eventlisteners.Generate("http://github.com/org/test", "cicd", saName, eventlisteners.GitOpsWebhookSecret)
 	assertNoError(t, err)
 
 	want := res.Resources{
-		"environments/test-dev/services/test/base/kustomization.yaml":                     &res.Kustomization{Bases: []string{"./config"}},
-		"environments/test-dev/services/test/kustomization.yaml":                          &res.Kustomization{Bases: []string{"overlays"}},
-		"environments/test-dev/services/test/overlays/kustomization.yaml":                 &res.Kustomization{Bases: []string{"../base"}},
 		"environments/cicd/base/pipelines/03-secrets/github-webhook-secret-test-svc.yaml": hookSecret,
+		// "environments/cicd/base/pipelines/08-eventlisteners/cicd-event-listener.yaml":     eventlistener,
+		"environments/test-dev/apps/test-app/base/kustomization.yaml":     &res.Kustomization{Bases: []string{}},
+		"environments/test-dev/apps/test-app/kustomization.yaml":          &res.Kustomization{Bases: []string{"overlays"}},
+		"environments/test-dev/apps/test-app/overlays/kustomization.yaml": &res.Kustomization{Bases: []string{"../base"}},
+		"environments/test-dev/env/base/kustomization.yaml":               &res.Kustomization{Resources: []string{"test-dev-environment.yaml"}},
+		"environments/test-dev/env/base/test-dev-environment.yaml":        namespace,
 		"pipelines.yaml": &config.Manifest{
 			GitOpsURL: "http://github.com/org/test",
 			Environments: []*config.Environment{
@@ -55,7 +63,7 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 					},
 					Services: []*config.Service{
 						{
-							Name:      "svc",
+							Name:      "test-svc",
 							SourceURL: "https://github.com/myproject/test-svc",
 							Webhook: &config.Webhook{
 								Secret: &config.Secret{
@@ -82,6 +90,7 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 	}
 
 	got, err := serviceResources(m, fakeFs, "http://github.com/org/test", "test-dev", "test-app", "test", "123", pipelinesFile)
+	fmt.Println("The got is", got)
 	assertNoError(t, err)
 	if diff := cmp.Diff(got, want, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
 		_, ok := want[k]
@@ -318,7 +327,7 @@ func buildManifest(withCICD, withArgoCD bool) *config.Manifest {
 				},
 				Services: []*config.Service{
 					{
-						Name:      "svc",
+						Name:      "test-svc",
 						SourceURL: "https://github.com/myproject/test-svc",
 						Webhook: &config.Webhook{
 							Secret: &config.Secret{
@@ -345,10 +354,3 @@ func buildManifest(withCICD, withArgoCD bool) *config.Manifest {
 	}
 	return cfg
 }
-
-// func assertNoError(t *testing.T, err error) {
-// 	t.Helper()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// }
