@@ -53,9 +53,19 @@ func (vv *validateVisitor) Application(env *Environment, app *Application) error
 	if len(app.ServiceRefs) == 0 && app.ConfigRepo == nil {
 		vv.errs = append(vv.errs, missingFieldsError([]string{"services", "config_repo"}, []string{appPath}))
 	}
-	if len(app.ServiceRefs) == 0 && app.ConfigRepo != nil {
+	if len(app.ServiceRefs) > 0 && app.ConfigRepo != nil {
 		vv.errs = append(vv.errs, apis.ErrMultipleOneOf(yamlJoin(appPath, "services"), yamlJoin(appPath, "config_repo")))
 	}
+
+	if len(app.ServiceRefs) > 0 {
+		for _, r := range app.ServiceRefs {
+			_, ok := vv.serviceNames[r]
+			if !ok {
+				vv.errs = append(vv.errs, missingServiceRefError(r, app.Name, []string{appPath}))
+			}
+		}
+	}
+
 	if app.ConfigRepo != nil {
 		vv.errs = append(vv.errs, validateConfigRepo(app.ConfigRepo, yamlJoin(appPath, "config_repo"))...)
 	}
@@ -76,6 +86,7 @@ func (vv *validateVisitor) Service(env *Environment, svc *Service) error {
 	if err := validatePipelines(svc.Pipelines, svcPath); err != nil {
 		vv.errs = append(vv.errs, err...)
 	}
+	vv.serviceNames[svc.Name] = true
 	return nil
 }
 
@@ -169,6 +180,13 @@ func missingFieldsError(fields []string, paths []string) *apis.FieldError {
 func duplicateFieldsError(fields []string, paths []string) *apis.FieldError {
 	return &apis.FieldError{
 		Message: fmt.Sprintf("duplicate field(s) %v", strings.Join(addQuotes(fields...), ",")),
+		Paths:   paths,
+	}
+}
+
+func missingServiceRefError(svc, app string, paths []string) *apis.FieldError {
+	return &apis.FieldError{
+		Message: fmt.Sprintf("missing service %q in app %q", svc, app),
 		Paths:   paths,
 	}
 }

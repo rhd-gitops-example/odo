@@ -5,6 +5,8 @@ environments:
         template: dev-ci-template
         binding: dev-ci-binding
     services:
+      - name: testing
+        source_url: https://github.com/myproject/myservice.git
       - name:           # invalid name
         source_url: https://github.com/myproject/myservice.git
         webhook:
@@ -15,8 +17,6 @@ environments:
               integration:
                 template: dev-ci-template
                 binding:    # invalid name
-        source_url: https://github.com/myproject/myservice.git
-      - name: testing
     apps:
       - name: app-1$.       # invalid name
         services:

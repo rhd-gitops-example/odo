@@ -22,7 +22,7 @@ environments:
           target_revision: master                       # url and path are missing
       - name: app-5                                     # both service and config_repo are present
         services:
-          - app-5
+          - service-5
         config_repo:
           url: http://github.com/org/repo.git
           target_revision: master
