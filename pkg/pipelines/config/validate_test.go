@@ -89,6 +89,15 @@ func TestValidate(t *testing.T) {
 			),
 		},
 		{
+			"missing app service reference",
+			"testdata/duplicate_source_url.yaml",
+			multierror.Join(
+				[]error{
+					duplicateSourceError("https://github.com/testing/testing.git", []string{"environments.duplicate-source.services.app-1-service-http", "environments.duplicate-source.services.app-2-service-http"}),
+				},
+			),
+		},
+		{
 			"valid manifest file",
 			"testdata/valid_manifest.yaml",
 			nil,
