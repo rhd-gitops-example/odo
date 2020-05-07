@@ -14,21 +14,28 @@ import (
 	"github.com/spf13/afero"
 )
 
-func AddService(GitRepoURL, AppName, ServiceName, WebhookSecret, EnvName, Manifest string, fs afero.Fs) error {
-	m, err := config.ParseFile(fs, Manifest)
+func AddService(gitRepoURL, envName, appName, serviceName, webhookSecret, manifest string, fs afero.Fs) error {
+	m, err := config.ParseFile(fs, manifest)
 	if err != nil {
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
-	svc, err := createService(ServiceName, GitRepoURL)
+
+	svc, err := createService(serviceName, gitRepoURL)
 	if err != nil {
 		return err
 	}
-	files := res.Resources{}
-	// add the secret only if CI/CD env is present
+
 	cicdEnv, err := m.GetCICDEnvironment()
-	if cicdEnv != nil && WebhookSecret != "" {
+	if err != nil {
+		return err
+	}
+
+	files := res.Resources{}
+
+	// add the secret only if CI/CD env is present
+	if cicdEnv != nil && webhookSecret != "" {
 		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
-		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), WebhookSecret, eventlisteners.WebhookSecretKey)
+		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), webhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return err
 		}
@@ -41,7 +48,8 @@ func AddService(GitRepoURL, AppName, ServiceName, WebhookSecret, EnvName, Manife
 		secretPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines")
 		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
 	}
-	err = m.AddService(EnvName, AppName, svc)
+
+	err = m.AddService(envName, appName, svc)
 	if err != nil {
 		return err
 	}
@@ -49,10 +57,11 @@ func AddService(GitRepoURL, AppName, ServiceName, WebhookSecret, EnvName, Manife
 	if err != nil {
 		return err
 	}
-	files[pipelinesFile] = m
-	outputPath := filepath.Dir(Manifest)
+
+	files[filepath.Base(manifest)] = m
+	outputPath := filepath.Dir(manifest)
 	buildParams := &BuildParameters{
-		ManifestFilename: Manifest,
+		ManifestFilename: manifest,
 		OutputPath:       outputPath,
 		RepositoryURL:    m.GitOpsURL,
 	}

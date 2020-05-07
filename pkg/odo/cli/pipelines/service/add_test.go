@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"regexp"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -21,6 +20,10 @@ func TestAddCommandWithMissingParams(t *testing.T) {
 		flags   []keyValuePair
 		wantErr string
 	}{
+		{"Missing git-repo-url flag",
+			[]keyValuePair{
+				flag("service-name", "sample"), flag("app-name", "example/repo"), flag("webhook-secret", "abc123"), flag("env-name", "test")},
+			`Required flag(s) "git-repo-url" have/has not been set`},
 		{"Missing app-name flag",
 			[]keyValuePair{
 				flag("service-name", "sample"), flag("git-repo-url", "example/repo"), flag("webhook-secret", "abc123"), flag("env-name", "test")},
@@ -48,25 +51,12 @@ func executeCommand(cmd *cobra.Command, flags ...keyValuePair) (c *cobra.Command
 	buf := new(bytes.Buffer)
 	cmd.SetOutput(buf)
 	for _, flag := range flags {
-		cmd.Flags().Set(flag.key, flag.value)
+		if err := cmd.Flags().Set(flag.key, flag.value); err != nil {
+			return nil, "", err
+		}
 	}
 	c, err = cmd.ExecuteC()
 	return c, buf.String(), err
-}
-
-func matchError(t *testing.T, s string, e error) bool {
-	t.Helper()
-	if s == "" && e == nil {
-		return true
-	}
-	if s != "" && e == nil {
-		return false
-	}
-	match, err := regexp.MatchString(s, e.Error())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return match
 }
 
 func flag(k, v string) keyValuePair {

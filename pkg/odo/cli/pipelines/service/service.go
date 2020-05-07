@@ -18,7 +18,7 @@ func NewCmd(name, fullName string) *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:   name,
 		Short: "Manage services in an environment",
-		Long:  "Manage services in an environment of GitOps which source respositories are synchronized ",
+		Long:  "Manage services in a GitOps environment where service source repositories are synchronized",
 		Example: fmt.Sprintf("%s\n%s\n\n  See sub-commands individually for more examples",
 			fullName, addRecommendedCommandName),
 		Run: func(cmd *cobra.Command, args []string) {

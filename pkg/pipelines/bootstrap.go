@@ -163,8 +163,7 @@ func ApplicationFromRepo(appName, repoURL, secretName, secretNS string) (*config
 	return &config.Application{
 		Name: appName,
 		Services: []*config.Service{
-			&config.Service{
-
+			{
 				Name:      serviceName,
 				SourceURL: repoURL,
 				Webhook: &config.Webhook{
@@ -188,8 +187,7 @@ func ApplicationFromName(appName, repoURL, secretName, secretNS string) (*config
 	return &config.Application{
 		Name: appName,
 		Services: []*config.Service{
-			&config.Service{
-
+			{
 				Name:      serviceName,
 				SourceURL: repoURL,
 				Webhook: &config.Webhook{

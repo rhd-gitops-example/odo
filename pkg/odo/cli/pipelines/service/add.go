@@ -29,8 +29,8 @@ type AddOptions struct {
 	envName       string
 	gitRepoURL    string
 	manifest      string
-	webhookSecret string
 	serviceName   string
+	webhookSecret string
 
 	// generic context options common to all commands
 	*genericclioptions.Context
@@ -49,7 +49,7 @@ func (o *AddOptions) Validate() error {
 // Run runs the project bootstrap command.
 func (o *AddOptions) Run() error {
 
-	return pipelines.AddService(o.gitRepoURL, o.appName, o.serviceName, o.webhookSecret, o.envName, o.manifest, ioutils.NewFilesystem())
+	return pipelines.AddService(o.gitRepoURL, o.envName, o.appName, o.serviceName, o.webhookSecret, o.manifest, ioutils.NewFilesystem())
 }
 
 func newCmdAdd(name, fullName string) *cobra.Command {
@@ -57,24 +57,25 @@ func newCmdAdd(name, fullName string) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     name,
-		Short:   addExample,
-		Long:    addExample,
+		Short:   addShortDesc,
+		Long:    addLongDesc,
 		Example: fmt.Sprintf(addExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			genericclioptions.GenericRun(o, cmd, args)
 		},
 	}
 
-	cmd.Flags().StringVar(&o.gitRepoURL, "git-repo-url", "", "folder/path to add Gitops resources")
-	cmd.Flags().StringVar(&o.webhookSecret, "webhook-secret", "", "folder/path to add Gitops resources")
+	cmd.Flags().StringVar(&o.gitRepoURL, "git-repo-url", "", "source Git repository URL")
+	cmd.Flags().StringVar(&o.webhookSecret, "webhook-secret", "", "source Git repository webhook secret")
 	cmd.Flags().StringVar(&o.appName, "app-name", "", "the name of the application where the service will be added")
-	cmd.Flags().StringVar(&o.serviceName, "service-name", "", "the name of the application where the service will be added")
+	cmd.Flags().StringVar(&o.serviceName, "service-name", "", "the name of the service to be added")
 	cmd.Flags().StringVar(&o.envName, "env-name", "", "the name of the environment where the service will be added")
 	cmd.Flags().StringVar(&o.manifest, "manifest", "pipelines.yaml", "path to manifest file")
 
 	// required flags
-	cmd.MarkFlagRequired("service-name")
-	cmd.MarkFlagRequired("app-name")
-	cmd.MarkFlagRequired("env-name")
+	_ = cmd.MarkFlagRequired("git-repo-url")
+	_ = cmd.MarkFlagRequired("service-name")
+	_ = cmd.MarkFlagRequired("app-name")
+	_ = cmd.MarkFlagRequired("env-name")
 	return cmd
 }

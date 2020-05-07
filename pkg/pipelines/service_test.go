@@ -31,10 +31,11 @@ func TestServiceWithoutCICD(t *testing.T) {
 
 	manifestFile := filepath.Join(gitopsPath, pipelinesFile)
 
-	//afero.WriteFile(fakeFs, manifestFile, []byte("gitops_url: http://github.com/org/test \nenvironments:\n - name: test\n "), 0644)
-	afero.WriteFile(fakeFs, manifestFile, []byte("environments:\n - name: test\ngitops_url: http://github.com/org/test"), 0644)
+	if err := afero.WriteFile(fakeFs, manifestFile, []byte("environments:\n - name: test\ngitops_url: http://github.com/org/test"), 0644); err != nil {
+		t.Fatalf("failed to write manifest to fake filesystem: %s", err)
+	}
 
-	if err := AddService("", "app", "svc-1", "123", "test", manifestFile, fakeFs); err != nil {
+	if err := AddService("", "test", "app", "svc-1", "123", manifestFile, fakeFs); err != nil {
 		t.Fatalf("AddService() failed :%s", err)
 	}
 
@@ -74,7 +75,7 @@ func TestServiceWithCICD(t *testing.T) {
 	kustomization := filepath.Join(gitopsPath, "environments/cicd/base/pipelines/kustomization.yaml")
 	afero.WriteFile(fakeFs, kustomization, []byte("resources:\n"), 0644)
 	afero.WriteFile(fakeFs, manifestFile, []byte("gitops_url: http://github.com/org/test \nenvironments:\n - name: test\n - cicd: true\n   name: cicd\n"), 0644)
-	if err := AddService("", "app1", "svc-1", "123", "test", manifestFile, fakeFs); err != nil {
+	if err := AddService("", "test", "app1", "svc-1", "123", manifestFile, fakeFs); err != nil {
 		t.Fatalf("AddService() failed :%s", err)
 	}
 
@@ -103,7 +104,7 @@ func TestEvironmentExists(t *testing.T) {
 
 	afero.WriteFile(fakeFs, manifestFile, []byte("gitops_url: http://github.com/org/test \nenvironments:\n - cicd: true\n   name: cicd\n"), 0644)
 
-	err := AddService("", "app1", "svc-1", "123", "test", manifestFile, fakeFs)
+	err := AddService("", "test", "app1", "svc-1", "123", manifestFile, fakeFs)
 
 	want := `environment test does not exist`
 	if err.Error() != want {
