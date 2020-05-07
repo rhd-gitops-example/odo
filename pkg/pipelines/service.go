@@ -20,56 +20,17 @@ func AddService(gitRepoURL, envName, appName, serviceName, webhookSecret, manife
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
 
-	svc, err := createService(serviceName, gitRepoURL)
-	if err != nil {
-		return err
-	}
-
 	cicdEnv, err := m.GetCICDEnvironment()
 	if err != nil {
 		return err
 	}
-
-	files := res.Resources{}
-
-	// add the secret only if CI/CD env is present
-	if cicdEnv != nil && webhookSecret != "" {
-		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
-		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), webhookSecret, eventlisteners.WebhookSecretKey)
-		if err != nil {
-			return err
-		}
-		svc.Webhook = &config.Webhook{
-			Secret: &config.Secret{
-				Name:      secretName,
-				Namespace: cicdEnv.Name,
-			},
-		}
-		secretPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines")
-		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
-	}
-
-	err = m.AddService(envName, appName, svc)
-	if err != nil {
-		return err
-	}
-	err = m.Validate()
-	if err != nil {
-		return err
-	}
-
-	files[filepath.Base(manifest)] = m
 	outputPath := filepath.Dir(manifest)
-	buildParams := &BuildParameters{
-		ManifestFilename: manifest,
-		OutputPath:       outputPath,
-		RepositoryURL:    m.GitOpsURL,
-	}
-	built, err := buildResources(fs, buildParams, m)
+
+	files, err := serviceResources(m, fs, gitRepoURL, envName, appName, serviceName, webhookSecret, manifest)
 	if err != nil {
-		return nil
+		return err
 	}
-	files = res.Merge(built, files)
+
 	_, err = yaml.WriteResources(fs, outputPath, files)
 	if err != nil {
 		return err
@@ -84,15 +45,59 @@ func AddService(gitRepoURL, envName, appName, serviceName, webhookSecret, manife
 	return nil
 }
 
-func updateKustomization(fs afero.Fs, base string) error {
+func serviceResources(m *config.Manifest, fs afero.Fs, gitRepoURL, envName, appName, serviceName, webhookSecret, manifest string) (res.Resources, error) {
 	files := res.Resources{}
-	list, err := environments.ListFiles(fs, base)
+
+	svc, err := createService(serviceName, gitRepoURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	files[Kustomize] = &res.Kustomization{Resources: environments.ExtractFilenames(list)}
-	_, err = yaml.WriteResources(fs, base, files)
-	return err
+
+	cicdEnv, err := m.GetCICDEnvironment()
+	if err != nil {
+		return nil, err
+	}
+	// add the secret only if CI/CD env is present
+	if cicdEnv != nil && webhookSecret != "" {
+		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
+		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), webhookSecret, eventlisteners.WebhookSecretKey)
+		if err != nil {
+			return nil, err
+		}
+		svc.Webhook = &config.Webhook{
+			Secret: &config.Secret{
+				Name:      secretName,
+				Namespace: cicdEnv.Name,
+			},
+		}
+		secretPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines")
+		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
+	}
+
+	err = m.AddService(envName, appName, svc)
+	if err != nil {
+		return nil, err
+	}
+	err = m.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	files[filepath.Base(manifest)] = m
+	outputPath := filepath.Dir(manifest)
+	buildParams := &BuildParameters{
+		ManifestFilename: manifest,
+		OutputPath:       outputPath,
+		RepositoryURL:    m.GitOpsURL,
+	}
+	built, err := buildResources(fs, buildParams, m)
+	if err != nil {
+		return nil, err
+	}
+	files = res.Merge(built, files)
+
+	return files, nil
+
 }
 
 func createService(serviceName, url string) (*config.Service, error) {
@@ -105,4 +110,15 @@ func createService(serviceName, url string) (*config.Service, error) {
 		Name:      serviceName,
 		SourceURL: url,
 	}, nil
+}
+
+func updateKustomization(fs afero.Fs, base string) error {
+	files := res.Resources{}
+	list, err := environments.ListFiles(fs, base)
+	if err != nil {
+		return err
+	}
+	files[Kustomize] = &res.Kustomization{Resources: environments.ExtractFilenames(list)}
+	_, err = yaml.WriteResources(fs, base, files)
+	return err
 }

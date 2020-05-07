@@ -43,9 +43,11 @@ func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Re
 		return nil, err
 	}
 	resources = res.Merge(envs, resources)
-
 	// eventlisteners are generated only if the CI/CD environment is present
 	cicdEnv, err := m.GetCICDEnvironment()
+	if err != nil {
+		return nil, err
+	}
 	if cicdEnv != nil {
 		elFiles, err := buildEventListenerResources(o.RepositoryURL, m)
 		if err != nil {
@@ -53,7 +55,6 @@ func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Re
 		}
 		resources = res.Merge(elFiles, resources)
 	}
-
 	argoApps, err := argocd.Build(argocd.ArgoCDNamespace, o.RepositoryURL, m)
 	if err != nil {
 		return nil, err

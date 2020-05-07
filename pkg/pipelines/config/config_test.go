@@ -202,6 +202,47 @@ func TestGetEnvironment(t *testing.T) {
 	}
 }
 
+func TestAddService(t *testing.T) {
+	tests := []struct {
+		desc string
+		m    Manifest
+		want string
+	}{
+		{
+			"Environment doesn't exist",
+			Manifest{
+				Environments: []*Environment{},
+			},
+			fmt.Sprintf("environment %s does not exist", "test-env"),
+		},
+		{
+			"Service already exists",
+			Manifest{
+				Environments: []*Environment{
+					{
+						Name: "test-env",
+						Apps: []*Application{
+							{
+								Name:     "test-app",
+								Services: []*Service{{Name: "test-svc"}},
+							},
+						},
+					},
+				},
+			},
+			fmt.Sprintf("service %s already exists at %s", "test-svc", "test-app"),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.desc, func(rt *testing.T) {
+			got := test.m.AddService("test-env", "test-app", &Service{Name: "test-svc"})
+			if !matchErrorString(rt, test.want, got) {
+				rt.Fatalf("AddService failed: got %v , want %v", got, test.want)
+			}
+		})
+	}
+}
+
 func makeEnvs(ns []testEnv) []*Environment {
 	n := make([]*Environment, len(ns))
 	for i, v := range ns {

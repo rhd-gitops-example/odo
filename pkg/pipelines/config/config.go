@@ -57,11 +57,10 @@ func (m *Manifest) AddService(envName, appName string, svc *Service) error {
 	if app == nil && err != nil {
 		app = &Application{Name: appName}
 		env.Apps = append(env.Apps, app)
-	} else {
-		for _, service := range app.Services {
-			if service.Name == svc.Name {
-				return fmt.Errorf("A Service with this name %s already exists", svc.Name)
-			}
+	}
+	for _, service := range app.Services {
+		if service.Name == svc.Name {
+			return fmt.Errorf("service %s already exists at %s", svc.Name, app.Name)
 		}
 	}
 	app.Services = append(app.Services, svc)
