@@ -65,7 +65,7 @@ func (o *options) getAppServiceNames() *backend.QualifiedServiceName {
 
 	return &backend.QualifiedServiceName{
 		EnvironmentName: o.envName,
-		ApplicationName: o.appName,
-		ServiceName:     o.serviceName,
+		// ApplicationName: o.appName,
+		ServiceName: o.serviceName,
 	}
 }
