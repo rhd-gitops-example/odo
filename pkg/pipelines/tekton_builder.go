@@ -44,11 +44,13 @@ func (tk *tektonBuilder) Service(env *config.Environment, svc *config.Service) e
 	if svc.SourceURL == "" {
 		return nil
 	}
-	ciTrigger, err := createCITrigger(tk.gitOpsRepo, env, svc)
-	if err != nil {
-		return err
+	if env.IsCICD {
+		ciTrigger, err := createCITrigger(tk.gitOpsRepo, env, svc)
+		if err != nil {
+			return err
+		}
+		tk.triggers = append(tk.triggers, ciTrigger)
 	}
-	tk.triggers = append(tk.triggers, ciTrigger)
 	return nil
 }
 

@@ -58,8 +58,11 @@ func serviceResources(m *config.Manifest, fs afero.Fs, gitRepoURL, envName, appN
 	if err != nil {
 		return nil, err
 	}
+	if cicdEnv != nil && webhookSecret == "" && gitRepoURL != "" {
+		return nil, fmt.Errorf("The webhook secret is required")
+	}
 	// add the secret only if CI/CD env is present
-	if cicdEnv != nil && webhookSecret != "" {
+	if cicdEnv != nil {
 		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
 		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), webhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {

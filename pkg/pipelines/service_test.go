@@ -41,12 +41,11 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 
 	want := res.Resources{
 		"environments/cicd/base/pipelines/03-secrets/github-webhook-secret-test-svc.yaml": hookSecret,
-		// "environments/cicd/base/pipelines/08-eventlisteners/cicd-event-listener.yaml":     eventlistener,
-		"environments/test-dev/apps/test-app/base/kustomization.yaml":     &res.Kustomization{Bases: []string{}},
-		"environments/test-dev/apps/test-app/kustomization.yaml":          &res.Kustomization{Bases: []string{"overlays"}},
-		"environments/test-dev/apps/test-app/overlays/kustomization.yaml": &res.Kustomization{Bases: []string{"../base"}},
-		"environments/test-dev/env/base/kustomization.yaml":               &res.Kustomization{Resources: []string{"test-dev-environment.yaml"}},
-		"environments/test-dev/env/base/test-dev-environment.yaml":        namespace,
+		"environments/test-dev/apps/test-app/base/kustomization.yaml":                     &res.Kustomization{Bases: []string{}},
+		"environments/test-dev/apps/test-app/kustomization.yaml":                          &res.Kustomization{Bases: []string{"overlays"}},
+		"environments/test-dev/apps/test-app/overlays/kustomization.yaml":                 &res.Kustomization{Bases: []string{"../base"}},
+		"environments/test-dev/env/base/kustomization.yaml":                               &res.Kustomization{Resources: []string{"test-dev-environment.yaml"}},
+		"environments/test-dev/env/base/test-dev-environment.yaml":                        namespace,
 		"pipelines.yaml": &config.Manifest{
 			GitOpsURL: "http://github.com/org/test",
 			Environments: []*config.Environment{
@@ -102,11 +101,16 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 
 // func TestServiceResourcesWithoutCICD(t *testing.T) {
 // 	fakeFs := ioutils.NewMapFilesystem()
+// 	namespace := namespaces.Create("test-dev")
+// 	hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName("cicd", "github-webhook-secret-test-svc"), "123", eventlisteners.WebhookSecretKey)
 // 	m := buildManifest(false, false)
 // 	want := res.Resources{
-// 		"environments/test-dev/services/test/base/kustomization.yaml":     &res.Kustomization{Bases: []string{"./config"}},
-// 		"environments/test-dev/services/test/kustomization.yaml":          &res.Kustomization{Bases: []string{"overlays"}},
-// 		"environments/test-dev/services/test/overlays/kustomization.yaml": &res.Kustomization{Bases: []string{"../base"}},
+// 		"environments/cicd/base/pipelines/03-secrets/github-webhook-secret-test-svc.yaml": hookSecret,
+// 		"environments/test-dev/apps/test-app/base/kustomization.yaml":                     &res.Kustomization{Bases: []string{}},
+// 		"environments/test-dev/apps/test-app/kustomization.yaml":                          &res.Kustomization{Bases: []string{"overlays"}},
+// 		"environments/test-dev/apps/test-app/overlays/kustomization.yaml":                 &res.Kustomization{Bases: []string{"../base"}},
+// 		"environments/test-dev/env/base/kustomization.yaml":                               &res.Kustomization{Resources: []string{"test-dev-environment.yaml"}},
+// 		"environments/test-dev/env/base/test-dev-environment.yaml":                        namespace,
 // 		"pipelines.yaml": &config.Manifest{
 // 			GitOpsURL: "http://github.com/org/test",
 // 			Environments: []*config.Environment{
@@ -115,20 +119,30 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 // 					Apps: []*config.Application{
 // 						{
 // 							Name: "test-app",
-// 							Services: []*config.Service{
-// 								{
-// 									Name:      "svc",
-// 									SourceURL: "https://github.com/myproject/test-svc",
-// 									Webhook: &config.Webhook{
-// 										Secret: &config.Secret{
-// 											Name:      "github-webhook-secret-test-svc-svc",
-// 											Namespace: "cicd",
-// 										},
-// 									},
+// 							ServiceRefs: []string{
+// 								"test-svc",
+// 								"test",
+// 							},
+// 						},
+// 					},
+// 					Services: []*config.Service{
+// 						{
+// 							Name:      "test-svc",
+// 							SourceURL: "https://github.com/myproject/test-svc",
+// 							Webhook: &config.Webhook{
+// 								Secret: &config.Secret{
+// 									Name:      "github-webhook-secret-test-svc-svc",
+// 									Namespace: "cicd",
 // 								},
-// 								{
-// 									Name:      "test",
-// 									SourceURL: "http://github.com/org/test",
+// 							},
+// 						},
+// 						{
+// 							Name:      "test",
+// 							SourceURL: "http://github.com/org/test",
+// 							Webhook: &config.Webhook{
+// 								Secret: &config.Secret{
+// 									Name:      "github-webhook-secret-test-svc",
+// 									Namespace: "cicd",
 // 								},
 // 							},
 // 						},

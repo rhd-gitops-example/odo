@@ -43,12 +43,6 @@ func (o *AddOptions) Complete(name string, cmd *cobra.Command, args []string) er
 
 // Validate validates the parameters of the EnvParameters.
 func (o *AddOptions) Validate() error {
-	if o.gitRepoURL != "" && o.webhookSecret == "" {
-		fmt.Errorf(" Please pass webhook-secret for the %s", o.gitRepoURL)
-	}
-	if o.gitRepoURL == "" && o.webhookSecret != "" {
-		fmt.Errorf(" Please pass git-url for the webhook-secret %s", o.webhookSecret)
-	}
 	return nil
 }
 
