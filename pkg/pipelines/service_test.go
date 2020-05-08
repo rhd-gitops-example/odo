@@ -36,14 +36,14 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 
 	fakeFs := ioutils.NewMapFilesystem()
 	m := buildManifest(true, false)
-	hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName("cicd", "github-webhook-secret-test-svc"), "123", eventlisteners.WebhookSecretKey)
+	hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName("cicd", "github-webhook-secret-test"), "123", eventlisteners.WebhookSecretKey)
 	assertNoError(t, err)
 
 	want := res.Resources{
-		"environments/cicd/base/pipelines/03-secrets/github-webhook-secret-test-svc.yaml": hookSecret,
-		"environments/test-dev/apps/test-app/base/kustomization.yaml":                     &res.Kustomization{Bases: []string{"../../../services/test-svc", "../../../services/test"}},
-		"environments/test-dev/apps/test-app/kustomization.yaml":                          &res.Kustomization{Bases: []string{"overlays"}},
-		"environments/test-dev/apps/test-app/overlays/kustomization.yaml":                 &res.Kustomization{Bases: []string{"../base"}},
+		"environments/cicd/base/pipelines/03-secrets/github-webhook-secret-test.yaml": hookSecret,
+		"environments/test-dev/apps/test-app/base/kustomization.yaml":                 &res.Kustomization{Bases: []string{"../../../services/test-svc", "../../../services/test"}},
+		"environments/test-dev/apps/test-app/kustomization.yaml":                      &res.Kustomization{Bases: []string{"overlays"}},
+		"environments/test-dev/apps/test-app/overlays/kustomization.yaml":             &res.Kustomization{Bases: []string{"../base"}},
 		"pipelines.yaml": &config.Manifest{
 			GitOpsURL: "http://github.com/org/test",
 			Environments: []*config.Environment{
@@ -64,7 +64,7 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 							SourceURL: "https://github.com/myproject/test-svc",
 							Webhook: &config.Webhook{
 								Secret: &config.Secret{
-									Name:      "github-webhook-secret-test-svc-svc",
+									Name:      "github-webhook-secret-test-svc",
 									Namespace: "cicd",
 								},
 							},
@@ -74,7 +74,7 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 							SourceURL: "http://github.com/org/test",
 							Webhook: &config.Webhook{
 								Secret: &config.Secret{
-									Name:      "github-webhook-secret-test-svc",
+									Name:      "github-webhook-secret-test",
 									Namespace: "cicd",
 								},
 							},
@@ -123,7 +123,7 @@ func TestServiceResourcesWithoutCICD(t *testing.T) {
 							Name:      "test-svc",
 							SourceURL: "https://github.com/myproject/test-svc",
 							Webhook: &config.Webhook{
-								Secret: &config.Secret{Name: "github-webhook-secret-test-svc-svc", Namespace: "cicd"},
+								Secret: &config.Secret{Name: "github-webhook-secret-test-svc", Namespace: "cicd"},
 							},
 						},
 						{
@@ -178,7 +178,7 @@ func TestAddServiceWithoutApp(t *testing.T) {
 							SourceURL: "https://github.com/myproject/test-svc",
 							Webhook: &config.Webhook{
 								Secret: &config.Secret{
-									Name:      "github-webhook-secret-test-svc-svc",
+									Name:      "github-webhook-secret-test-svc",
 									Namespace: "cicd",
 								},
 							},
@@ -227,7 +227,7 @@ func TestAddService(t *testing.T) {
 		"environments/test-dev/services/test/base/kustomization.yaml",
 		"environments/test-dev/services/test/overlays/kustomization.yaml",
 		"environments/test-dev/services/test/kustomization.yaml",
-		"environments/cicd/base/pipelines/03-secrets/github-webhook-secret-test-svc.yaml",
+		"environments/cicd/base/pipelines/03-secrets/github-webhook-secret-test.yaml",
 		"environments/cicd/base/pipelines/kustomization.yaml",
 		"pipelines.yaml",
 		"environments/argocd/config/test-dev-test-app-app.yaml",
@@ -275,7 +275,7 @@ func TestServiceWithArgoCD(t *testing.T) {
 							SourceURL: "https://github.com/myproject/test-svc",
 							Webhook: &config.Webhook{
 								Secret: &config.Secret{
-									Name:      "github-webhook-secret-test-svc-svc",
+									Name:      "github-webhook-secret-test-svc",
 									Namespace: "cicd",
 								},
 							},
@@ -285,7 +285,7 @@ func TestServiceWithArgoCD(t *testing.T) {
 							SourceURL: "http://github.com/org/test",
 							Webhook: &config.Webhook{
 								Secret: &config.Secret{
-									Name:      "github-webhook-secret-test-svc",
+									Name:      "github-webhook-secret-test",
 									Namespace: "cicd",
 								},
 							},
@@ -330,7 +330,7 @@ func buildManifest(withCICD, withArgoCD bool) *config.Manifest {
 						SourceURL: "https://github.com/myproject/test-svc",
 						Webhook: &config.Webhook{
 							Secret: &config.Secret{
-								Name:      "github-webhook-secret-test-svc-svc",
+								Name:      "github-webhook-secret-test-svc",
 								Namespace: "cicd",
 							},
 						},
