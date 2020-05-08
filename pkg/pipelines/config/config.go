@@ -39,9 +39,11 @@ func (m *Manifest) GetEnvironment(n string) *Environment {
 
 func (m *Manifest) GetApplication(environment, application string) (*Application, error) {
 	for _, env := range m.Environments {
-		for _, app := range env.Apps {
-			if env.Name == environment && app.Name == application {
-				return app, nil
+		if env.Name == environment {
+			for _, app := range env.Apps {
+				if app.Name == application {
+					return app, nil
+				}
 			}
 		}
 	}
@@ -65,7 +67,6 @@ func (m *Manifest) AddService(envName, appName string, svc *Service) error {
 	}
 	env.Services = append(env.Services, svc)
 	app.ServiceRefs = append(app.ServiceRefs, svc.Name)
-
 	return nil
 }
 
