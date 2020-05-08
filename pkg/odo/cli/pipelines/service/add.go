@@ -73,7 +73,6 @@ func newCmdAdd(name, fullName string) *cobra.Command {
 	cmd.Flags().StringVar(&o.manifest, "manifest", "pipelines.yaml", "path to manifest file")
 
 	// required flags
-	// _ = cmd.MarkFlagRequired("git-repo-url")
 	_ = cmd.MarkFlagRequired("service-name")
 	_ = cmd.MarkFlagRequired("app-name")
 	_ = cmd.MarkFlagRequired("env-name")

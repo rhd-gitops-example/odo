@@ -75,15 +75,6 @@ func (vv *validateVisitor) Application(env *Environment, app *Application) error
 		vv.errs = append(vv.errs, apis.ErrMultipleOneOf(yamlJoin(appPath, "services"), yamlJoin(appPath, "config_repo")))
 	}
 
-	if len(app.ServiceRefs) > 0 {
-		for _, r := range app.ServiceRefs {
-			_, ok := vv.serviceNames[r]
-			if !ok {
-				vv.errs = append(vv.errs, missingServiceRefError(r, app.Name, []string{appPath}))
-			}
-		}
-	}
-
 	if app.ConfigRepo != nil {
 		vv.errs = append(vv.errs, validateConfigRepo(app.ConfigRepo, yamlJoin(appPath, "config_repo"))...)
 	}
