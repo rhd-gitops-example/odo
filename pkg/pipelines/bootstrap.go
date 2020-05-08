@@ -121,7 +121,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 
 func bootstrapServiceDeployment(dev *config.Environment) (res.Resources, error) {
 	svc := dev.Services[0]
-	svcBase := filepath.Join(config.PathForService(dev, svc), "base", "config")
+	svcBase := filepath.Join(config.PathForService(dev, svc.Name), "base", "config")
 	resources := res.Resources{}
 	// TODO: This should change if we add Namespace to Environment.
 	resources[filepath.Join(svcBase, "100-deployment.yaml")] = deployment.Create(dev.Name, svc.Name, bootstrapImage, deployment.ContainerPort(8080))

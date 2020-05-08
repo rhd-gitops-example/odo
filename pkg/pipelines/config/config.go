@@ -8,8 +8,8 @@ import (
 )
 
 // PathForService gives a repo-rooted path within a repository.
-func PathForService(env *Environment, svc *Service) string {
-	return filepath.Join(PathForEnvironment(env), "services", svc.Name)
+func PathForService(env *Environment, serviceName string) string {
+	return filepath.Join(PathForEnvironment(env), "services", serviceName)
 }
 
 // PathForApplication generates a repo-rooted path within a repository.

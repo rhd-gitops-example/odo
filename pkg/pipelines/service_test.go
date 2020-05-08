@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
-
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 )
 
@@ -176,7 +175,7 @@ func TestAddServiceWithoutApp(t *testing.T) {
 					},
 					Services: []*config.Service{
 						{
-							Name:      "svc",
+							Name:      "test-svc",
 							SourceURL: "https://github.com/myproject/test-svc",
 							Webhook: &config.Webhook{
 								Secret: &config.Secret{
@@ -236,6 +235,7 @@ func TestAddServiceWithoutApp(t *testing.T) {
 // 		"environments/argocd/config/test-dev-new-app-app.yaml",
 // 	}
 // 	err = AddService("http://github.com/org/test", "test-dev", "new-app", "test", "123", manifestPath, fakeFs)
+// 	log.Println(err)
 // 	assertNoError(t, err)
 // 	for _, path := range wantedPaths {
 // 		t.Run(fmt.Sprintf("checking path %s already exists", path), func(rt *testing.T) {
@@ -257,58 +257,58 @@ func TestAddServiceWithoutApp(t *testing.T) {
 // 		return &key.PublicKey, nil
 // 	}
 
-// 	fakeFs := ioutils.NewMapFilesystem()
-// 	m := buildManifest(true, true)
-// 	want := res.Resources{
-// 		"pipelines.yaml": &config.Manifest{
-// 			GitOpsURL: "http://github.com/org/test",
-// 			Environments: []*config.Environment{
-// 				{
-// 					Name: "test-dev",
-// 					Apps: []*config.Application{
-// 						{
-// 							Name: "test-app",
-// 							Services: []*config.Service{
-// 								{
-// 									Name:      "svc",
-// 									SourceURL: "https://github.com/myproject/test-svc",
-// 									Webhook: &config.Webhook{
-// 										Secret: &config.Secret{
-// 											Name:      "github-webhook-secret-test-svc-svc",
-// 											Namespace: "cicd",
-// 										},
+// fakeFs := ioutils.NewMapFilesystem()
+// m := buildManifest(true, true)
+// want := res.Resources{
+// 	"pipelines.yaml": &config.Manifest{
+// 		GitOpsURL: "http://github.com/org/test",
+// 		Environments: []*config.Environment{
+// 			{
+// 				Name: "test-dev",
+// 				Apps: []*config.Application{
+// 					{
+// 						Name: "test-app",
+// 						Services: []*config.Service{
+// 							{
+// 								Name:      "svc",
+// 								SourceURL: "https://github.com/myproject/test-svc",
+// 								Webhook: &config.Webhook{
+// 									Secret: &config.Secret{
+// 										Name:      "github-webhook-secret-test-svc-svc",
+// 										Namespace: "cicd",
 // 									},
 // 								},
-// 								{
-// 									Name:      "test",
-// 									SourceURL: "http://github.com/org/test",
-// 									Webhook: &config.Webhook{
-// 										Secret: &config.Secret{
-// 											Name:      "github-webhook-secret-test-svc",
-// 											Namespace: "cicd",
-// 										},
+// 							},
+// 							{
+// 								Name:      "test",
+// 								SourceURL: "http://github.com/org/test",
+// 								Webhook: &config.Webhook{
+// 									Secret: &config.Secret{
+// 										Name:      "github-webhook-secret-test-svc",
+// 										Namespace: "cicd",
 // 									},
 // 								},
 // 							},
 // 						},
 // 					},
 // 				},
-// 				{Name: "cicd", IsCICD: true},
-// 				{Name: "argocd", IsArgoCD: true},
 // 			},
+// 			{Name: "cicd", IsCICD: true},
+// 			{Name: "argocd", IsArgoCD: true},
 // 		},
-// 	}
-// 	argo, err := argocd.Build("argocd", "http://github.com/org/test", m)
-// 	assertNoError(t, err)
-// 	want = res.Merge(argo, want)
-// 	got, err := serviceResources(m, fakeFs, "http://github.com/org/test", "test-dev", "test-app", "test", "123", pipelinesFile)
-// 	assertNoError(t, err)
-// 	if diff := cmp.Diff(got, want, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
-// 		_, ok := want[k]
-// 		return !ok
-// 	})); diff != "" {
-// 		t.Fatalf("serviceResources() failed: %v", diff)
-// 	}
+// 	},
+// }
+// argo, err := argocd.Build("argocd", "http://github.com/org/test", m)
+// assertNoError(t, err)
+// want = res.Merge(argo, want)
+// got, err := serviceResources(m, fakeFs, "http://github.com/org/test", "test-dev", "test-app", "test", "123", pipelinesFile)
+// assertNoError(t, err)
+// if diff := cmp.Diff(got, want, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
+// 	_, ok := want[k]
+// 	return !ok
+// })); diff != "" {
+// 	t.Fatalf("serviceResources() failed: %v", diff)
+// }
 // }
 
 func buildManifest(withCICD, withArgoCD bool) *config.Manifest {
