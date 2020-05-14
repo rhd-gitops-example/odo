@@ -69,7 +69,7 @@ func TestCreateDevCIBuildPRTemplate(t *testing.T) {
 					Description: "The GitHub repository for this PullRequest.",
 				},
 				{
-					Name:        "imagerepo",
+					Name:        "imageRepo",
 					Description: "The repository to push built images to.",
 				},
 			},
