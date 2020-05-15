@@ -20,16 +20,18 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	tb "github.com/tektoncd/pipeline/internal/builder/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	resourcev1alpha1 "github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/logging"
-	tb "github.com/tektoncd/pipeline/test/builder"
+	"github.com/tektoncd/pipeline/test/diff"
 )
 
 func TestCloudEventDeliveryFromTargets(t *testing.T) {
 	tests := []struct {
 		name            string
 		targets         []string
-		wantCloudEvents []v1alpha1.CloudEventDelivery
+		wantCloudEvents []v1beta1.CloudEventDelivery
 	}{{
 		name:            "testWithNilTarget",
 		targets:         nil,
@@ -41,11 +43,11 @@ func TestCloudEventDeliveryFromTargets(t *testing.T) {
 	}, {
 		name:    "testWithTwoTargets",
 		targets: []string{"target1", "target2"},
-		wantCloudEvents: []v1alpha1.CloudEventDelivery{
+		wantCloudEvents: []v1beta1.CloudEventDelivery{
 			{
 				Target: "target1",
-				Status: v1alpha1.CloudEventDeliveryState{
-					Condition:  v1alpha1.CloudEventConditionUnknown,
+				Status: v1beta1.CloudEventDeliveryState{
+					Condition:  v1beta1.CloudEventConditionUnknown,
 					SentAt:     nil,
 					Error:      "",
 					RetryCount: 0,
@@ -53,8 +55,8 @@ func TestCloudEventDeliveryFromTargets(t *testing.T) {
 			},
 			{
 				Target: "target2",
-				Status: v1alpha1.CloudEventDeliveryState{
-					Condition:  v1alpha1.CloudEventConditionUnknown,
+				Status: v1beta1.CloudEventDeliveryState{
+					Condition:  v1beta1.CloudEventConditionUnknown,
 					SentAt:     nil,
 					Error:      "",
 					RetryCount: 0,
@@ -65,8 +67,8 @@ func TestCloudEventDeliveryFromTargets(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			gotCloudEvents := cloudEventDeliveryFromTargets(tc.targets)
-			if diff := cmp.Diff(tc.wantCloudEvents, gotCloudEvents); diff != "" {
-				t.Errorf("Wrong Cloud Events (-want +got) = %s", diff)
+			if d := cmp.Diff(tc.wantCloudEvents, gotCloudEvents); d != "" {
+				t.Errorf("Wrong Cloud Events %s", diff.PrintWantGot(d))
 			}
 		})
 	}
@@ -75,35 +77,37 @@ func TestCloudEventDeliveryFromTargets(t *testing.T) {
 func TestSendCloudEvents(t *testing.T) {
 	tests := []struct {
 		name        string
-		taskRun     *v1alpha1.TaskRun
-		wantTaskRun *v1alpha1.TaskRun
+		taskRun     *v1beta1.TaskRun
+		wantTaskRun *v1beta1.TaskRun
 	}{{
 		name: "testWithMultipleMixedCloudEvents",
-		taskRun: tb.TaskRun("test-taskrun-multiple-cloudeventdelivery", "foo",
+		taskRun: tb.TaskRun("test-taskrun-multiple-cloudeventdelivery",
+			tb.TaskRunNamespace("foo"),
 			tb.TaskRunSelfLink("/task/1234"),
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("fakeTaskName"),
 			),
 			tb.TaskRunStatus(
-				tb.TaskRunCloudEvent("http//notattemptedunknown", "", 0, v1alpha1.CloudEventConditionUnknown),
-				tb.TaskRunCloudEvent("http//notattemptedfailed", "somehow", 0, v1alpha1.CloudEventConditionFailed),
-				tb.TaskRunCloudEvent("http//notattemptedsucceeded", "", 0, v1alpha1.CloudEventConditionSent),
-				tb.TaskRunCloudEvent("http//attemptedunknown", "", 1, v1alpha1.CloudEventConditionUnknown),
-				tb.TaskRunCloudEvent("http//attemptedfailed", "iknewit", 1, v1alpha1.CloudEventConditionFailed),
-				tb.TaskRunCloudEvent("http//attemptedsucceeded", "", 1, v1alpha1.CloudEventConditionSent),
+				tb.TaskRunCloudEvent("http//notattemptedunknown", "", 0, v1beta1.CloudEventConditionUnknown),
+				tb.TaskRunCloudEvent("http//notattemptedfailed", "somehow", 0, v1beta1.CloudEventConditionFailed),
+				tb.TaskRunCloudEvent("http//notattemptedsucceeded", "", 0, v1beta1.CloudEventConditionSent),
+				tb.TaskRunCloudEvent("http//attemptedunknown", "", 1, v1beta1.CloudEventConditionUnknown),
+				tb.TaskRunCloudEvent("http//attemptedfailed", "iknewit", 1, v1beta1.CloudEventConditionFailed),
+				tb.TaskRunCloudEvent("http//attemptedsucceeded", "", 1, v1beta1.CloudEventConditionSent),
 			),
 		),
-		wantTaskRun: tb.TaskRun("test-taskrun-multiple-cloudeventdelivery", "foo",
+		wantTaskRun: tb.TaskRun("test-taskrun-multiple-cloudeventdelivery",
+			tb.TaskRunNamespace("foo"),
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("fakeTaskName"),
 			),
 			tb.TaskRunStatus(
-				tb.TaskRunCloudEvent("http//notattemptedunknown", "", 1, v1alpha1.CloudEventConditionSent),
-				tb.TaskRunCloudEvent("http//notattemptedfailed", "somehow", 0, v1alpha1.CloudEventConditionFailed),
-				tb.TaskRunCloudEvent("http//notattemptedsucceeded", "", 0, v1alpha1.CloudEventConditionSent),
-				tb.TaskRunCloudEvent("http//attemptedunknown", "", 1, v1alpha1.CloudEventConditionUnknown),
-				tb.TaskRunCloudEvent("http//attemptedfailed", "iknewit", 1, v1alpha1.CloudEventConditionFailed),
-				tb.TaskRunCloudEvent("http//attemptedsucceeded", "", 1, v1alpha1.CloudEventConditionSent),
+				tb.TaskRunCloudEvent("http//notattemptedunknown", "", 1, v1beta1.CloudEventConditionSent),
+				tb.TaskRunCloudEvent("http//notattemptedfailed", "somehow", 0, v1beta1.CloudEventConditionFailed),
+				tb.TaskRunCloudEvent("http//notattemptedsucceeded", "", 0, v1beta1.CloudEventConditionSent),
+				tb.TaskRunCloudEvent("http//attemptedunknown", "", 1, v1beta1.CloudEventConditionUnknown),
+				tb.TaskRunCloudEvent("http//attemptedfailed", "iknewit", 1, v1beta1.CloudEventConditionFailed),
+				tb.TaskRunCloudEvent("http//attemptedsucceeded", "", 1, v1beta1.CloudEventConditionSent),
 			),
 		),
 	}}
@@ -118,8 +122,8 @@ func TestSendCloudEvents(t *testing.T) {
 				t.Fatalf("Unexpected error sending cloud events: %v", err)
 			}
 			opts := GetCloudEventDeliveryCompareOptions()
-			if diff := cmp.Diff(tc.wantTaskRun.Status, tc.taskRun.Status, opts...); diff != "" {
-				t.Errorf("Wrong Cloud Events Status (-want +got) = %s", diff)
+			if d := cmp.Diff(tc.wantTaskRun.Status, tc.taskRun.Status, opts...); d != "" {
+				t.Errorf("Wrong Cloud Events Status %s", diff.PrintWantGot(d))
 			}
 		})
 	}
@@ -128,28 +132,30 @@ func TestSendCloudEvents(t *testing.T) {
 func TestSendCloudEventsErrors(t *testing.T) {
 	tests := []struct {
 		name        string
-		taskRun     *v1alpha1.TaskRun
-		wantTaskRun *v1alpha1.TaskRun
+		taskRun     *v1beta1.TaskRun
+		wantTaskRun *v1beta1.TaskRun
 	}{{
 		name: "testWithMultipleMixedCloudEvents",
-		taskRun: tb.TaskRun("test-taskrun-multiple-cloudeventdelivery", "foo",
+		taskRun: tb.TaskRun("test-taskrun-multiple-cloudeventdelivery",
+			tb.TaskRunNamespace("foo"),
 			tb.TaskRunSelfLink("/task/1234"),
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("fakeTaskName"),
 			),
 			tb.TaskRunStatus(
-				tb.TaskRunCloudEvent("http//sink1", "", 0, v1alpha1.CloudEventConditionUnknown),
-				tb.TaskRunCloudEvent("http//sink2", "", 0, v1alpha1.CloudEventConditionUnknown),
+				tb.TaskRunCloudEvent("http//sink1", "", 0, v1beta1.CloudEventConditionUnknown),
+				tb.TaskRunCloudEvent("http//sink2", "", 0, v1beta1.CloudEventConditionUnknown),
 			),
 		),
-		wantTaskRun: tb.TaskRun("test-taskrun-multiple-cloudeventdelivery", "foo",
+		wantTaskRun: tb.TaskRun("test-taskrun-multiple-cloudeventdelivery",
+			tb.TaskRunNamespace("foo"),
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("fakeTaskName"),
 			),
 			tb.TaskRunStatus(
 				// Error message is not checked in the Diff below
-				tb.TaskRunCloudEvent("http//sink1", "", 1, v1alpha1.CloudEventConditionFailed),
-				tb.TaskRunCloudEvent("http//sink2", "", 1, v1alpha1.CloudEventConditionFailed),
+				tb.TaskRunCloudEvent("http//sink1", "", 1, v1beta1.CloudEventConditionFailed),
+				tb.TaskRunCloudEvent("http//sink2", "", 1, v1beta1.CloudEventConditionFailed),
 			),
 		),
 	}}
@@ -164,8 +170,8 @@ func TestSendCloudEventsErrors(t *testing.T) {
 				t.Fatalf("Unexpected success sending cloud events: %v", err)
 			}
 			opts := GetCloudEventDeliveryCompareOptions()
-			if diff := cmp.Diff(tc.wantTaskRun.Status, tc.taskRun.Status, opts...); diff != "" {
-				t.Errorf("Wrong Cloud Events Status (-want +got) = %s", diff)
+			if d := cmp.Diff(tc.wantTaskRun.Status, tc.taskRun.Status, opts...); d != "" {
+				t.Errorf("Wrong Cloud Events Status %s", diff.PrintWantGot(d))
 			}
 		})
 	}
@@ -174,63 +180,67 @@ func TestSendCloudEventsErrors(t *testing.T) {
 func TestInitializeCloudEvents(t *testing.T) {
 	tests := []struct {
 		name              string
-		taskRun           *v1alpha1.TaskRun
-		pipelineResources []*v1alpha1.PipelineResource
-		wantTaskRun       *v1alpha1.TaskRun
+		taskRun           *v1beta1.TaskRun
+		pipelineResources []*resourcev1alpha1.PipelineResource
+		wantTaskRun       *v1beta1.TaskRun
 	}{{
 		name: "testWithMultipleMixedResources",
-		taskRun: tb.TaskRun("test-taskrun-multiple-mixed-resources", "foo",
+		taskRun: tb.TaskRun("test-taskrun-multiple-mixed-resources",
+			tb.TaskRunNamespace("foo"),
 			tb.TaskRunSelfLink("/task/1234"), tb.TaskRunSpec(
 				tb.TaskRunTaskRef("fakeTaskName"),
-				tb.TaskRunOutputs(
-					tb.TaskRunOutputsResource("ce1", tb.TaskResourceBindingRef("ce1")),
-					tb.TaskRunOutputsResource("git", tb.TaskResourceBindingRef("git")),
-					tb.TaskRunOutputsResource("ce2", tb.TaskResourceBindingRef("ce2")),
+				tb.TaskRunResources(
+					tb.TaskRunResourcesOutput("ce1", tb.TaskResourceBindingRef("ce1")),
+					tb.TaskRunResourcesOutput("git", tb.TaskResourceBindingRef("git")),
+					tb.TaskRunResourcesOutput("ce2", tb.TaskResourceBindingRef("ce2")),
 				),
 			),
 		),
-		pipelineResources: []*v1alpha1.PipelineResource{
-			tb.PipelineResource("ce1", "foo", tb.PipelineResourceSpec(
-				v1alpha1.PipelineResourceTypeCloudEvent,
+		pipelineResources: []*resourcev1alpha1.PipelineResource{
+			tb.PipelineResource("ce1", tb.PipelineResourceNamespace("foo"), tb.PipelineResourceSpec(
+				resourcev1alpha1.PipelineResourceTypeCloudEvent,
 				tb.PipelineResourceSpecParam("TargetURI", "http://foosink"),
 			)),
-			tb.PipelineResource("ce2", "foo", tb.PipelineResourceSpec(
-				v1alpha1.PipelineResourceTypeCloudEvent,
+			tb.PipelineResource("ce2", tb.PipelineResourceNamespace("foo"), tb.PipelineResourceSpec(
+				resourcev1alpha1.PipelineResourceTypeCloudEvent,
 				tb.PipelineResourceSpecParam("TargetURI", "http://barsink"),
 			)),
-			tb.PipelineResource("git", "foo", tb.PipelineResourceSpec(
-				v1alpha1.PipelineResourceTypeGit,
+			tb.PipelineResource("git", tb.PipelineResourceNamespace("foo"), tb.PipelineResourceSpec(
+				resourcev1alpha1.PipelineResourceTypeGit,
 				tb.PipelineResourceSpecParam("URL", "http://git.fake"),
 				tb.PipelineResourceSpecParam("Revision", "abcd"),
 			)),
 		},
-		wantTaskRun: tb.TaskRun("test-taskrun-multiple-mixed-resources", "foo",
+		wantTaskRun: tb.TaskRun("test-taskrun-multiple-mixed-resources",
+			tb.TaskRunNamespace("foo"),
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("fakeTaskName"),
 			),
 			tb.TaskRunStatus(
-				tb.TaskRunCloudEvent("http://barsink", "", 0, v1alpha1.CloudEventConditionUnknown),
-				tb.TaskRunCloudEvent("http://foosink", "", 0, v1alpha1.CloudEventConditionUnknown),
+				tb.TaskRunCloudEvent("http://barsink", "", 0, v1beta1.CloudEventConditionUnknown),
+				tb.TaskRunCloudEvent("http://foosink", "", 0, v1beta1.CloudEventConditionUnknown),
 			),
 		),
 	}, {
 		name: "testWithNoCloudEventResources",
-		taskRun: tb.TaskRun("test-taskrun-no-cloudevent-resources", "foo",
+		taskRun: tb.TaskRun("test-taskrun-no-cloudevent-resources",
+			tb.TaskRunNamespace("foo"),
 			tb.TaskRunSelfLink("/task/1234"), tb.TaskRunSpec(
 				tb.TaskRunTaskRef("fakeTaskName"),
-				tb.TaskRunOutputs(
-					tb.TaskRunOutputsResource("git", tb.TaskResourceBindingRef("git")),
+				tb.TaskRunResources(
+					tb.TaskRunResourcesOutput("git", tb.TaskResourceBindingRef("git")),
 				),
 			),
 		),
-		pipelineResources: []*v1alpha1.PipelineResource{
-			tb.PipelineResource("git", "foo", tb.PipelineResourceSpec(
-				v1alpha1.PipelineResourceTypeGit,
+		pipelineResources: []*resourcev1alpha1.PipelineResource{
+			tb.PipelineResource("git", tb.PipelineResourceNamespace("foo"), tb.PipelineResourceSpec(
+				resourcev1alpha1.PipelineResourceTypeGit,
 				tb.PipelineResourceSpecParam("URL", "http://git.fake"),
 				tb.PipelineResourceSpecParam("Revision", "abcd"),
 			)),
 		},
-		wantTaskRun: tb.TaskRun("test-taskrun-no-cloudevent-resources", "foo",
+		wantTaskRun: tb.TaskRun("test-taskrun-no-cloudevent-resources",
+			tb.TaskRunNamespace("foo"),
 			tb.TaskRunSpec(
 				tb.TaskRunTaskRef("fakeTaskName"),
 			),
@@ -241,8 +251,8 @@ func TestInitializeCloudEvents(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			InitializeCloudEvents(tc.taskRun, tc.pipelineResources)
 			opts := GetCloudEventDeliveryCompareOptions()
-			if diff := cmp.Diff(tc.wantTaskRun.Status, tc.taskRun.Status, opts...); diff != "" {
-				t.Errorf("Wrong Cloud Events Status (-want +got) = %s", diff)
+			if d := cmp.Diff(tc.wantTaskRun.Status, tc.taskRun.Status, opts...); d != "" {
+				t.Errorf("Wrong Cloud Events Status %s", diff.PrintWantGot(d))
 			}
 		})
 	}

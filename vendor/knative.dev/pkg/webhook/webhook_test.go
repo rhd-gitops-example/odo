@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"testing"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 	"knative.dev/pkg/controller"
@@ -34,17 +35,20 @@ import (
 func newDefaultOptions() Options {
 	return Options{
 		ServiceName: "webhook",
-		Port:        443,
+		Port:        8443,
 		SecretName:  "webhook-certs",
 	}
 }
 
 const (
-	testNamespace    = "test-namespace"
 	testResourceName = "test-resource"
 	user1            = "brutto@knative.dev"
-	user2            = "arrabbiato@knative.dev"
 )
+
+func init() {
+	// Don't hang forever when running tests.
+	GracePeriod = 100 * time.Millisecond
+}
 
 func newNonRunningTestWebhook(t *testing.T, options Options, acs ...interface{}) (
 	ctx context.Context, ac *Webhook, cancel context.CancelFunc) {

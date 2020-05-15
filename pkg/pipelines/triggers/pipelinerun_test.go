@@ -38,8 +38,8 @@ func TestCreateDevCIPipelineRun(t *testing.T) {
 			ServiceAccountName: sName,
 			PipelineRef:        createPipelineRef("app-ci-pipeline"),
 			Params: []pipelinev1.Param{
-				createBindingParam("REPO", "$(params.fullname)"),
-				createBindingParam("COMMIT_SHA", "$(params.gitsha)"),
+				createPipelineBindingParam("REPO", "$(params.fullname)"),
+				createPipelineBindingParam("COMMIT_SHA", "$(params.gitsha)"),
 			},
 			Resources: createDevResource("$(params.gitref)"),
 		},

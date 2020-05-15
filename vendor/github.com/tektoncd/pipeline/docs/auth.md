@@ -1,3 +1,9 @@
+<!--
+---
+linkTitle: "Authentication"
+weight: 7
+---
+-->
 # Authentication
 
 This document defines how authentication is provided during execution of a
@@ -68,7 +74,7 @@ aggregates them into their respective files in `$HOME`.
 1. Then use that `ServiceAccount` in your `TaskRun` (in `run.yaml`):
 
 ```yaml
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: TaskRun
 metadata:
   name: build-push-task-run-2
@@ -81,7 +87,7 @@ spec:
 1. Or use that `ServiceAccount` in your `PipelineRun` (in `run.yaml`):
 
    ```yaml
-   apiVersion: tekton.dev/v1alpha1
+   apiVersion: tekton.dev/v1beta1
    kind: PipelineRun
    metadata:
      name: demo-pipeline
@@ -140,7 +146,7 @@ to authenticate when retrieving any `PipelineResources`.
 1. Then use that `ServiceAccount` in your `TaskRun` (in `run.yaml`):
 
    ```yaml
-   apiVersion: tekton.dev/v1alpha1
+   apiVersion: tekton.dev/v1beta1
    kind: TaskRun
    metadata:
      name: build-push-task-run-2
@@ -153,7 +159,7 @@ to authenticate when retrieving any `PipelineResources`.
 1. Or use that `ServiceAccount` in your `PipelineRun` (in `run.yaml`):
 
    ```yaml
-   apiVersion: tekton.dev/v1alpha1
+   apiVersion: tekton.dev/v1beta1
    kind: PipelineRun
    metadata:
      name: demo-pipeline
@@ -213,7 +219,7 @@ credentials are then used to authenticate when retrieving any
 1. Then use that `ServiceAccount` in your `TaskRun` (in `run.yaml`):
 
 ```yaml
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: TaskRun
 metadata:
   name: build-push-task-run-2
@@ -226,7 +232,7 @@ spec:
 1. Or use that `ServiceAccount` in your `PipelineRun` (in `run.yaml`):
 
    ```yaml
-   apiVersion: tekton.dev/v1alpha1
+   apiVersion: tekton.dev/v1beta1
    kind: PipelineRun
    metadata:
      name: demo-pipeline
@@ -250,7 +256,7 @@ credentials are then used to authenticate when retrieving any
 
 ## Kubernetes's Docker registry's secret
 
-Kubernetes defines two types of secrets for Docker registries : 
+Kubernetes defines two types of secrets for Docker registries :
 the old format `kubernetes.io/dockercfg` and the new
 `kubernetes.io/dockerconfigjson`. Tekton supports those secrets in
 addition to the one described above.
@@ -278,7 +284,7 @@ addition to the one described above.
 1. Use that `ServiceAccount` in your `TaskRun`:
 
    ```yaml
-   apiVersion: tetkon.dev/v1alpha1
+   apiVersion: tetkon.dev/v1beta1
    kind: TaskRun
    metadata:
      name: build-with-basic-auth

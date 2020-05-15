@@ -30,8 +30,8 @@ func createDevCIPipelineRun(saName string) pipelinev1.PipelineRun {
 			ServiceAccountName: saName,
 			PipelineRef:        createPipelineRef("app-ci-pipeline"),
 			Params: []pipelinev1.Param{
-				createBindingParam("REPO", "$(params.fullname)"),
-				createBindingParam("COMMIT_SHA", "$(params.gitsha)"),
+				createPipelineBindingParam("REPO", "$(params.fullname)"),
+				createPipelineBindingParam("COMMIT_SHA", "$(params.gitsha)"),
 			},
 			Resources: createDevResource("$(params.gitref)"),
 		},
@@ -113,5 +113,15 @@ func createResourceParams(name string, value string) pipelinev1.ResourceParam {
 func createPipelineRef(name string) *pipelinev1.PipelineRef {
 	return &pipelinev1.PipelineRef{
 		Name: name,
+	}
+}
+
+func createPipelineBindingParam(name string, value string) pipelinev1.Param {
+	return pipelinev1.Param{
+		Name: name,
+		Value: pipelinev1.ArrayOrString{
+			StringVal: value,
+			Type:      pipelinev1.ParamTypeString,
+		},
 	}
 }

@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: EventListener
 metadata:
   name: github-listener-interceptor
@@ -12,10 +12,9 @@ spec:
             secretRef:
               secretName: foo
               secretKey: bar
-              namespace: baz
             eventTypes:
               - pull_request
       bindings:
-        - name: pipeline-binding
+        - ref: pipeline-binding
       template:
         name: pipeline-template

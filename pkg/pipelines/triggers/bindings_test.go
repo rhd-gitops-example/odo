@@ -17,34 +17,22 @@ func TestCreatePRBinding(t *testing.T) {
 			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
-			Params: []pipelinev1.Param{
+			Params: []triggersv1.Param{
 				{
-					Name: "gitref",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.pull_request.head.ref)",
-						Type:      pipelinev1.ParamTypeString,
-					},
+					Name:  "gitref",
+					Value: "$(body.pull_request.head.ref)",
 				},
 				{
-					Name: "gitsha",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.pull_request.head.sha)",
-						Type:      pipelinev1.ParamTypeString,
-					},
+					Name:  "gitsha",
+					Value: "$(body.pull_request.head.sha)",
 				},
 				{
-					Name: "gitrepositoryurl",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.repository.clone_url)",
-						Type:      pipelinev1.ParamTypeString,
-					},
+					Name:  "gitrepositoryurl",
+					Value: "$(body.repository.clone_url)",
 				},
 				{
-					Name: "fullname",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.repository.full_name)",
-						Type:      pipelinev1.ParamTypeString,
-					},
+					Name:  "fullname",
+					Value: "$(body.repository.full_name)",
 				},
 			},
 		},
@@ -63,27 +51,18 @@ func TestCreatePushBinding(t *testing.T) {
 			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
-			Params: []pipelinev1.Param{
+			Params: []triggersv1.Param{
 				{
-					Name: "gitref",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.ref)",
-						Type:      pipelinev1.ParamTypeString,
-					},
+					Name:  "gitref",
+					Value: "$(body.ref)",
 				},
 				{
-					Name: "gitsha",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.head_commit.id)",
-						Type:      pipelinev1.ParamTypeString,
-					},
+					Name:  "gitsha",
+					Value: "$(body.head_commit.id)",
 				},
 				{
-					Name: "gitrepositoryurl",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "$(body.repository.clone_url)",
-						Type:      pipelinev1.ParamTypeString,
-					},
+					Name:  "gitrepositoryurl",
+					Value: "$(body.repository.clone_url)",
 				},
 			},
 		},
@@ -95,6 +74,17 @@ func TestCreatePushBinding(t *testing.T) {
 }
 
 func TestCreateBindingParam(t *testing.T) {
+	validParam := triggersv1.Param{
+		Name:  "gitref",
+		Value: "$(body.ref)",
+	}
+	bindingParam := createBindingParam("gitref", "$(body.ref)")
+	if diff := cmp.Diff(validParam, bindingParam); diff != "" {
+		t.Fatalf("createBindingParam() failed\n%s", diff)
+	}
+}
+
+func TestCreatePiplineBindingParam(t *testing.T) {
 	validParam := pipelinev1.Param{
 		Name: "gitref",
 		Value: pipelinev1.ArrayOrString{
@@ -102,9 +92,9 @@ func TestCreateBindingParam(t *testing.T) {
 			Type:      pipelinev1.ParamTypeString,
 		},
 	}
-	bindingParam := createBindingParam("gitref", "$(body.ref)")
+	bindingParam := createPipelineBindingParam("gitref", "$(body.ref)")
 	if diff := cmp.Diff(validParam, bindingParam); diff != "" {
-		t.Fatalf("createBindingParam() failed\n%s", diff)
+		t.Fatalf("createPipelineBindingParam() failed\n%s", diff)
 	}
 }
 
@@ -116,13 +106,10 @@ func TestCreateImageRepoBinding(t *testing.T) {
 			Namespace: "testns",
 		},
 		Spec: triggersv1.TriggerBindingSpec{
-			Params: []pipelinev1.Param{
+			Params: []triggersv1.Param{
 				{
-					Name: "imageRepo",
-					Value: pipelinev1.ArrayOrString{
-						StringVal: "quay.io/user/testing",
-						Type:      pipelinev1.ParamTypeString,
-					},
+					Name:  "imageRepo",
+					Value: "quay.io/user/testing",
 				},
 			},
 		},

@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"github.com/tektoncd/pipeline/pkg/logging"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/termination"
+	"go.uber.org/zap"
 )
 
 // Entrypointer holds fields for running commands with redirected
@@ -80,16 +80,27 @@ type PostWriter interface {
 // Go optionally waits for a file, runs the command, and writes a
 // post file.
 func (e Entrypointer) Go() error {
-	logger, _ := logging.NewLogger("", "entrypoint")
+	prod, _ := zap.NewProduction()
+	logger := prod.Sugar()
+
+	output := []v1beta1.PipelineResourceResult{}
 	defer func() {
+		if wErr := termination.WriteMessage(e.TerminationPath, output); wErr != nil {
+			logger.Fatalf("Error while writing message: %s", wErr)
+		}
 		_ = logger.Sync()
 	}()
-	output := []v1alpha1.PipelineResourceResult{}
+
 	for _, f := range e.WaitFiles {
 		if err := e.Waiter.Wait(f, e.WaitFileContent); err != nil {
 			// An error happened while waiting, so we bail
 			// *but* we write postfile to make next steps bail too.
 			e.WritePostFile(e.PostFile, err)
+			output = append(output, v1beta1.PipelineResourceResult{
+				Key:   "StartedAt",
+				Value: time.Now().Format(time.RFC3339),
+			})
+
 			return err
 		}
 	}
@@ -97,7 +108,7 @@ func (e Entrypointer) Go() error {
 	if e.Entrypoint != "" {
 		e.Args = append([]string{e.Entrypoint}, e.Args...)
 	}
-	output = append(output, v1alpha1.PipelineResourceResult{
+	output = append(output, v1beta1.PipelineResourceResult{
 		Key:   "StartedAt",
 		Value: time.Now().Format(time.RFC3339),
 	})
@@ -114,14 +125,12 @@ func (e Entrypointer) Go() error {
 			logger.Fatalf("Error while handling results: %s", err)
 		}
 	}
-	if wErr := termination.WriteMessage(e.TerminationPath, output); wErr != nil {
-		logger.Fatalf("Error while writing message: %s", wErr)
-	}
+
 	return err
 }
 
 func (e Entrypointer) readResultsFromDisk() error {
-	output := []v1alpha1.PipelineResourceResult{}
+	output := []v1beta1.PipelineResourceResult{}
 	for _, resultFile := range e.Results {
 		if resultFile == "" {
 			continue
@@ -133,10 +142,10 @@ func (e Entrypointer) readResultsFromDisk() error {
 			return err
 		}
 		// if the file doesn't exist, ignore it
-		output = append(output, v1alpha1.PipelineResourceResult{
+		output = append(output, v1beta1.PipelineResourceResult{
 			Key:        resultFile,
 			Value:      string(fileContents),
-			ResultType: v1alpha1.TaskRunResultType,
+			ResultType: v1beta1.TaskRunResultType,
 		})
 	}
 	// push output to termination path

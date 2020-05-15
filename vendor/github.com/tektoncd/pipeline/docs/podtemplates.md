@@ -1,3 +1,9 @@
+<!--
+---
+linkTitle: "Pod Templates"
+weight: 12
+---
+-->
 # PodTemplates
 
 A pod template specifies a subset of
@@ -6,8 +12,8 @@ configuration that will be used as the basis for the `Task` pod.
 
 This allows to customize some Pod specific field per `Task` execution, aka `TaskRun`.
 
-Alternatively, you can also define a default pod template in tekton config, see [here](./install.md)
-When a pod template is specified for a `PipelineRun` or `TaskRun`, the default pod template is ignored, ie
+Alternatively, you can also define a default pod template in tekton config, see [here](https://github.com/tektoncd/pipeline/blob/master/docs/install.md)
+When a pod template is specified for a `PipelineRun` or `TaskRun`, the default pod template is ignored, i.e.
 both templates are **NOT** merged, it's always one or the other.
 
 ---
@@ -46,6 +52,11 @@ The current fields supported are:
   [priority class](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/)
   to use when running the pod. Use this, for example, to selectively enable
   preemption on lower priority workloads.
+- `schedulerName` the name of the 
+  [scheduler](https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/)
+  to use when dispatching the Pod. This can be used when workloads of specific types need specific schedulers,
+  e.g.: If you are using volcano.sh for Machine Learning Workloads, you can pass the schedulerName and have Tasks be 
+  dispatched by the volcano.sh scheduler.
 
 
 A pod template can be specified for `TaskRun` or `PipelineRun` resources.
