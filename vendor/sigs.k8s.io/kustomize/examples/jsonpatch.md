@@ -6,11 +6,7 @@ The example below modifies an `Ingress` object with such a patch.
 
 Make a `kustomization` containing an ingress resource.
 
-<<<<<<< HEAD
 <!-- @createIngress @test -->
-=======
-<!-- @createIngress @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 
@@ -20,11 +16,7 @@ resources:
 EOF
 
 cat <<EOF >$DEMO_HOME/ingress.yaml
-<<<<<<< HEAD
 apiVersion: extensions/v1beta1
-=======
-apiVersion: networking.k8s.io/v1beta1
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Ingress
 metadata:
   name: my-ingress
@@ -44,11 +36,7 @@ Declare a JSON patch file to update two fields of the Ingress object:
 - change host from `foo.bar.com` to `foo.bar.io`
 - change servicePort from `80` to `8080`
 
-<<<<<<< HEAD
 <!-- @addJsonPatch @test -->
-=======
-<!-- @addJsonPatch @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$DEMO_HOME/ingress_patch.json
 [
@@ -60,11 +48,7 @@ EOF
 
 You can also write the patch in YAML format. This example also shows the "add" operation:
 
-<<<<<<< HEAD
 <!-- @addYamlPatch @test -->
-=======
-<!-- @addYamlPatch @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$DEMO_HOME/ingress_patch.yaml
 - op: replace
@@ -83,20 +67,12 @@ EOF
 
 Apply the patch by adding _patchesJson6902_ field in kustomization.yaml
 
-<<<<<<< HEAD
 <!-- @applyJsonPatch @test -->
-=======
-<!-- @applyJsonPatch @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >>$DEMO_HOME/kustomization.yaml
 patchesJson6902:
 - target:
-<<<<<<< HEAD
     group: extensions
-=======
-    group: networking.k8s.io
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
     version: v1beta1
     kind: Ingress
     name: my-ingress
@@ -105,22 +81,14 @@ EOF
 ```
 
 Running `kustomize build $DEMO_HOME`, in the output confirm that host has been updated correctly.
-<<<<<<< HEAD
 <!-- @confirmHost @test -->
-=======
-<!-- @confirmHost @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 test 1 == \
   $(kustomize build $DEMO_HOME | grep "host: foo.bar.io" | wc -l); \
   echo $?
 ```
 Running `kustomize build $DEMO_HOME`, in the output confirm that the servicePort has been updated correctly.
-<<<<<<< HEAD
 <!-- @confirmServicePort @test -->
-=======
-<!-- @confirmServicePort @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 test 1 == \
   $(kustomize build $DEMO_HOME | grep "servicePort: 8080" | wc -l); \
@@ -129,20 +97,12 @@ test 1 == \
 
 If the patch is YAML-formatted, it will be parsed correctly:
 
-<<<<<<< HEAD
 <!-- @applyYamlPatch @test -->
-=======
-<!-- @applyYamlPatch @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >>$DEMO_HOME/kustomization.yaml
 patchesJson6902:
 - target:
-<<<<<<< HEAD
     group: extensions
-=======
-    group: networking.k8s.io
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
     version: v1beta1
     kind: Ingress
     name: my-ingress
@@ -150,11 +110,7 @@ patchesJson6902:
 EOF
 ```
 
-<<<<<<< HEAD
 <!-- @confirmYamlPatch @test -->
-=======
-<!-- @confirmYamlPatch @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 test 1 == \
   $(kustomize build $DEMO_HOME | grep "path: /test" | wc -l); \

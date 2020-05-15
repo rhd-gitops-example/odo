@@ -18,21 +18,11 @@ package target_test
 
 import (
 	"testing"
-<<<<<<< HEAD
 )
 
 func TestNamespacedGenerator(t *testing.T) {
 	th := NewKustTestHarness(t, "/app")
 	th.writeK("/app", `
-=======
-
-	"sigs.k8s.io/kustomize/v3/pkg/kusttest"
-)
-
-func TestNamespacedGenerator(t *testing.T) {
-	th := kusttest_test.NewKustTestHarness(t, "/app")
-	th.WriteK("/app", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 configMapGenerator:
@@ -50,7 +40,6 @@ secretGenerator:
 - name: the-non-default-namespace-secret
   namespace: non-default
   literals:
-<<<<<<< HEAD
     - password.txt=verySecret
 - name: the-secret
   literals:
@@ -61,18 +50,6 @@ secretGenerator:
 		t.Fatalf("Err: %v", err)
 	}
 	th.assertActualEqualsExpected(m, `
-=======
-  - password.txt=verySecret
-- name: the-secret
-  literals:
-  - password.txt=anotherSecret
-`)
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	th.AssertActualEqualsExpected(m, `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 data:
   altGreeting: Good Morning from non-default namespace!
@@ -108,46 +85,3 @@ metadata:
 type: Opaque
 `)
 }
-<<<<<<< HEAD
-=======
-
-func TestNamespacedGeneratorWithOverlays(t *testing.T) {
-	th := kusttest_test.NewKustTestHarness(t, "/app/overlay")
-	th.WriteK("/app/base", `
-namespace: base
-
-configMapGenerator:
-- name: testCase
-  literals:
-    - base=true
-`)
-	th.WriteK("/app/overlay", `
-resources:
-  - ../base
-
-namespace: overlay
-
-configMapGenerator:
-  - name: testCase
-    behavior: merge
-    literals:
-      - overlay=true
-`)
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	th.AssertActualEqualsExpected(m, `
-apiVersion: v1
-data:
-  base: "true"
-  overlay: "true"
-kind: ConfigMap
-metadata:
-  annotations: {}
-  labels: {}
-  name: testCase-4g75kbk6gm
-  namespace: overlay
-`)
-}
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)

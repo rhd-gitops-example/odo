@@ -18,11 +18,7 @@ Steps:
 
 First define a place to work:
 
-<<<<<<< HEAD
 <!-- @makeWorkplace @test -->
-=======
-<!-- @makeWorkplace @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 ```
@@ -42,11 +38,7 @@ To keep this document shorter, the base resources are
 off in a supplemental data directory rather than
 declared here as HERE documents.  Download them:
 
-<<<<<<< HEAD
 <!-- @downloadBase @test -->
-=======
-<!-- @downloadBase @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 BASE=$DEMO_HOME/base
 mkdir -p $BASE
@@ -61,11 +53,7 @@ curl -s -o "$BASE/#1" "$CONTENT/base\
 
 Look at the directory:
 
-<<<<<<< HEAD
 <!-- @runTree @test -->
-=======
-<!-- @runTree @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 tree $DEMO_HOME
 ```
@@ -96,11 +84,7 @@ would only recognize the resource files.
 
 The `base` directory has a [kustomization] file:
 
-<<<<<<< HEAD
 <!-- @showKustomization @test -->
-=======
-<!-- @showKustomization @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 more $BASE/kustomization.yaml
 ```
@@ -108,11 +92,7 @@ more $BASE/kustomization.yaml
 Optionally, run `kustomize` on the base to emit
 customized resources to `stdout`:
 
-<<<<<<< HEAD
 <!-- @buildBase @test -->
-=======
-<!-- @buildBase @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $BASE
 ```
@@ -121,22 +101,14 @@ kustomize build $BASE
 
 A first customization step could be to set the name prefix to all resources:
 
-<<<<<<< HEAD
 <!-- @namePrefix @test -->
-=======
-<!-- @namePrefix @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cd $BASE
 kustomize edit set nameprefix "my-"
 ```
 
 See the effect:
-<<<<<<< HEAD
 <!-- @checkNameprefix @test -->
-=======
-<!-- @checkNameprefix @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $BASE | grep -C 3 "my-"
 ```
@@ -149,11 +121,7 @@ Create a _staging_ and _production_ [overlay]:
  * _Production_ has a higher replica count and a persistent disk.
  * [variants] will differ from each other.
 
-<<<<<<< HEAD
 <!-- @overlayDirectories @test -->
-=======
-<!-- @overlayDirectories @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 OVERLAYS=$DEMO_HOME/overlays
 mkdir -p $OVERLAYS/staging
@@ -164,11 +132,7 @@ mkdir -p $OVERLAYS/production
 
 Download the staging customization and patch.
 
-<<<<<<< HEAD
 <!-- @downloadStagingKustomization @test -->
-=======
-<!-- @downloadStagingKustomization @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 curl -s -o "$OVERLAYS/staging/#1" "$CONTENT/overlays/staging\
 /{config.env,deployment.yaml,kustomization.yaml}"
@@ -195,11 +159,7 @@ as well as 2 replica
 #### Production Kustomization
 
 Download the production customization and patch.
-<<<<<<< HEAD
 <!-- @downloadProductionKustomization @test -->
-=======
-<!-- @downloadProductionKustomization @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 curl -s -o "$OVERLAYS/production/#1" "$CONTENT/overlays/production\
 /{deployment.yaml,kustomization.yaml}"
@@ -236,11 +196,7 @@ The production customization adds 6 replica as well as a consistent disk.
 
 Review the directory structure and differences:
 
-<<<<<<< HEAD
 <!-- @listFiles @test -->
-=======
-<!-- @listFiles @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 tree $DEMO_HOME
 ```
@@ -302,20 +258,12 @@ The difference output should look something like
 
 The individual resource sets are:
 
-<<<<<<< HEAD
 <!-- @buildStaging @test -->
-=======
-<!-- @buildStaging @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/staging
 ```
 
-<<<<<<< HEAD
 <!-- @buildProduction @test -->
-=======
-<!-- @buildProduction @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/production
 ```

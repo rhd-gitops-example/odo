@@ -3,11 +3,7 @@
 This tutorial shows how to add transformer configurations to support a custom resource.
 
 Create a workspace by
-<<<<<<< HEAD
 <!-- @createws @test -->
-=======
-<!-- @createws @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 ```
@@ -21,11 +17,7 @@ Consider a CRD of kind `MyKind` with fields
 - `.spec.selectors` as the label selectors
 
 Add the following file to configure the transformers for the above fields
-<<<<<<< HEAD
 <!-- @addConfig @test -->
-=======
-<!-- @addConfig @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 mkdir $DEMO_HOME/kustomizeconfig
 cat > $DEMO_HOME/kustomizeconfig/mykind.yaml << EOF
@@ -59,11 +51,7 @@ EOF
 Create a file with some resources that
 includes an instance of `MyKind`:
 
-<<<<<<< HEAD
 <!-- @createResource @test -->
-=======
-<!-- @createResource @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat > $DEMO_HOME/resources.yaml << EOF
 apiVersion: v1
@@ -100,11 +88,7 @@ EOF
 
 Create a kustomization referring to it:
 
-<<<<<<< HEAD
 <!-- @createKustomization @test -->
-=======
-<!-- @createKustomization @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat > $DEMO_HOME/kustomization.yaml << EOF
 resources:
@@ -128,11 +112,7 @@ EOF
 
 Use the customized transformer configurations by specifying them
 in the kustomization file:
-<<<<<<< HEAD
 <!-- @addTransformerConfigs @test -->
-=======
-<!-- @addTransformerConfigs @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat >> $DEMO_HOME/kustomization.yaml << EOF
 configurations:
@@ -142,11 +122,7 @@ EOF
 
 Run `kustomize build` and verify that the namereference is correctly resolved.
 
-<<<<<<< HEAD
 <!-- @build @test -->
-=======
-<!-- @build @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 test 2 == \
 $(kustomize build $DEMO_HOME | grep -A 2 ".*Ref" | grep "test-" | wc -l); \
@@ -155,11 +131,7 @@ echo $?
 
 Run `kustomize build` and verify that the vars correctly resolved.
 
-<<<<<<< HEAD
 <!-- @verify @test -->
-=======
-<!-- @verify @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 test 0 == \
 $(kustomize build $DEMO_HOME | grep "BEE_ACTION" | wc -l); \

@@ -1,13 +1,6 @@
-<<<<<<< HEAD
 bases:
 - ./dev
 - ./staging
 - ./production
 
-=======
-resources:
-- dev
-- staging
-- production
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 namePrefix: cluster-a-

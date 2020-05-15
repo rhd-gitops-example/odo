@@ -128,11 +128,7 @@ defined in the [helloworld] demo.
 
 It will all live in this work directory:
 
-<<<<<<< HEAD
 <!-- @makeWorkplace @test -->
-=======
-<!-- @makeWorkplace @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 ```
@@ -143,11 +139,7 @@ DEMO_HOME=$(mktemp -d)
 
 Make a place to put the base configuration:
 
-<<<<<<< HEAD
 <!-- @baseDir @test -->
-=======
-<!-- @baseDir @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 mkdir -p $DEMO_HOME/base
 ```
@@ -158,11 +150,7 @@ environments. Here we're only defining a java
 properties file, and a `kustomization` file that
 references it.
 
-<<<<<<< HEAD
 <!-- @baseKustomization @test -->
-=======
-<!-- @baseKustomization @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat <<EOF >$DEMO_HOME/base/common.properties
 color=blue
@@ -183,22 +171,14 @@ EOF
 Make an abbreviation for the parent of the overlay
 directories:
 
-<<<<<<< HEAD
 <!-- @overlays @test -->
-=======
-<!-- @overlays @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 OVERLAYS=$DEMO_HOME/overlays
 ```
 
 Create the files that define the _development_ overlay:
 
-<<<<<<< HEAD
 <!-- @developmentFiles @test -->
-=======
-<!-- @developmentFiles @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 mkdir -p $OVERLAYS/development
 
@@ -211,11 +191,7 @@ dbpassword=mothersMaidenName
 EOF
 
 cat <<EOF >$OVERLAYS/development/kustomization.yaml
-<<<<<<< HEAD
 bases:
-=======
-resources:
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 - ../../base
 namePrefix: dev-
 nameSuffix: -v1
@@ -230,11 +206,7 @@ EOF
 
 One can now generate the configMaps for development:
 
-<<<<<<< HEAD
 <!-- @runDev @test -->
-=======
-<!-- @runDev @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/development
 ```
@@ -288,11 +260,7 @@ deletes unused configMaps.
 Next, create the files for the _production_ overlay:
 
 
-<<<<<<< HEAD
 <!-- @productionFiles @test -->
-=======
-<!-- @productionFiles @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 mkdir -p $OVERLAYS/production
 
@@ -305,11 +273,7 @@ dbpassword=thisShouldProbablyBeInASecretInstead
 EOF
 
 cat <<EOF >$OVERLAYS/production/kustomization.yaml
-<<<<<<< HEAD
 bases:
-=======
-resources:
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 - ../../base
 namePrefix: prod-
 configMapGenerator:
@@ -323,11 +287,7 @@ EOF
 
 One can now generate the configMaps for production:
 
-<<<<<<< HEAD
 <!-- @runProd @test -->
-=======
-<!-- @runProd @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/production
 ```

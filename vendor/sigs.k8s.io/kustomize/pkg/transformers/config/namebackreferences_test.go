@@ -18,11 +18,7 @@ package config
 
 import (
 	"reflect"
-<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/gvk"
-=======
-	"sigs.k8s.io/kustomize/v3/pkg/gvk"
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	"testing"
 )
 

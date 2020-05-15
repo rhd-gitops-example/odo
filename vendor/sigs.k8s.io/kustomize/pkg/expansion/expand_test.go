@@ -17,16 +17,9 @@ limitations under the License.
 package expansion_test
 
 import (
-<<<<<<< HEAD
 	"testing"
 
 	. "sigs.k8s.io/kustomize/pkg/expansion"
-=======
-	"fmt"
-	"testing"
-
-	. "sigs.k8s.io/kustomize/v3/pkg/expansion"
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 type expected struct {
@@ -37,11 +30,7 @@ type expected struct {
 func TestMapReference(t *testing.T) {
 	type env struct {
 		Name  string
-<<<<<<< HEAD
 		Value string
-=======
-		Value interface{}
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 	envs := []env{
 		{
@@ -56,48 +45,18 @@ func TestMapReference(t *testing.T) {
 			Name:  "BLU",
 			Value: "$(ZOO)-2",
 		},
-<<<<<<< HEAD
 	}
 
 	declaredEnv := map[string]string{
 		"FOO": "bar",
 		"ZOO": "$(FOO)-1",
 		"BLU": "$(ZOO)-2",
-=======
-		{
-			Name:  "INT",
-			Value: 2,
-		},
-		{
-			Name:  "ZINT",
-			Value: "$(INT)",
-		},
-		{
-			Name:  "BOOL",
-			Value: true,
-		},
-		{
-			Name:  "ZBOOL",
-			Value: "$(BOOL)",
-		},
-	}
-
-	declaredEnv := map[string]interface{}{
-		"FOO":   "bar",
-		"ZOO":   "$(FOO)-1",
-		"BLU":   "$(ZOO)-2",
-		"INT":   "2",
-		"ZINT":  "$(INT)",
-		"BOOL":  "true",
-		"ZBOOL": "$(BOOL)",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 
 	counts := make(map[string]int)
 	mapping := MappingFuncFor(counts, declaredEnv)
 
 	for _, env := range envs {
-<<<<<<< HEAD
 		declaredEnv[env.Name] = Expand(env.Value, mapping)
 	}
 
@@ -105,19 +64,6 @@ func TestMapReference(t *testing.T) {
 		"FOO": {count: 1, edited: "bar"},
 		"ZOO": {count: 1, edited: "bar-1"},
 		"BLU": {count: 0, edited: "bar-1-2"},
-=======
-		declaredEnv[env.Name] = Expand(fmt.Sprintf("%v", env.Value), mapping)
-	}
-
-	expectedEnv := map[string]expected{
-		"FOO":   {count: 1, edited: "bar"},
-		"ZOO":   {count: 1, edited: "bar-1"},
-		"BLU":   {count: 0, edited: "bar-1-2"},
-		"INT":   {count: 1, edited: "2"},
-		"ZINT":  {count: 0, edited: "2"},
-		"BOOL":  {count: 1, edited: "true"},
-		"ZBOOL": {count: 0, edited: "true"},
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 
 	for k, v := range expectedEnv {
@@ -135,11 +81,7 @@ func TestMapReference(t *testing.T) {
 }
 
 func TestMapping(t *testing.T) {
-<<<<<<< HEAD
 	context := map[string]string{
-=======
-	context := map[string]interface{}{
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		"VAR_A":     "A",
 		"VAR_B":     "B",
 		"VAR_C":     "C",
@@ -150,19 +92,11 @@ func TestMapping(t *testing.T) {
 }
 
 func TestMappingDual(t *testing.T) {
-<<<<<<< HEAD
 	context := map[string]string{
 		"VAR_A":     "A",
 		"VAR_EMPTY": "",
 	}
 	context2 := map[string]string{
-=======
-	context := map[string]interface{}{
-		"VAR_A":     "A",
-		"VAR_EMPTY": "",
-	}
-	context2 := map[string]interface{}{
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		"VAR_B":   "B",
 		"VAR_C":   "C",
 		"VAR_REF": "$(VAR_A)",
@@ -171,11 +105,7 @@ func TestMappingDual(t *testing.T) {
 	doExpansionTest(t, context, context2)
 }
 
-<<<<<<< HEAD
 func doExpansionTest(t *testing.T, context ...map[string]string) {
-=======
-func doExpansionTest(t *testing.T, context ...map[string]interface{}) {
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	cases := []struct {
 		name     string
 		input    string
@@ -395,11 +325,7 @@ func doExpansionTest(t *testing.T, context ...map[string]interface{}) {
 	for _, tc := range cases {
 		counts := make(map[string]int)
 		mapping := MappingFuncFor(counts, context...)
-<<<<<<< HEAD
 		expanded := Expand(tc.input, mapping)
-=======
-		expanded := Expand(fmt.Sprintf("%v", tc.input), mapping)
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		if e, a := tc.expected, expanded; e != a {
 			t.Errorf("%v: expected %q, got %q", tc.name, e, a)
 		}

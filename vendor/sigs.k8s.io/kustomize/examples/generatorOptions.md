@@ -13,11 +13,7 @@ DEMO_HOME=$(mktemp -d)
 
 Create a kustomization and add a ConfigMap generator to it.
 
-<<<<<<< HEAD
 <!-- @createCMGenerator @test -->
-=======
-<!-- @createCMGenerator @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat > $DEMO_HOME/kustomization.yaml << EOF
 configMapGenerator:
@@ -29,11 +25,7 @@ EOF
 ```
 
 Add following generatorOptions
-<<<<<<< HEAD
 <!-- @addGeneratorOptions @test -->
-=======
-<!-- @addGeneratorOptions @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat >> $DEMO_HOME/kustomization.yaml << EOF
 generatorOptions:
@@ -47,11 +39,7 @@ EOF
 Run `kustomize build` and make sure that the generated ConfigMap
  
  - doesn't have name suffix
-<<<<<<< HEAD
     <!-- @verify @test -->
-=======
-    <!-- @verify @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
     ```
     test 1 == \
     $(kustomize build $DEMO_HOME | grep "name: my-configmap$" | wc -l); \

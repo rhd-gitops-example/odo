@@ -208,10 +208,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, m visitedPointers) (out t
 func formatMapKey(v reflect.Value) string {
 	var opts formatOptions
 	opts.TypeMode = elideType
-<<<<<<< HEAD
 	opts.AvoidStringer = true
-=======
->>>>>>> Start of generating Secrets.
 	opts.ShallowPointers = true
 	s := opts.FormatValue(v, visitedPointers{}).String()
 	return strings.TrimSpace(s)

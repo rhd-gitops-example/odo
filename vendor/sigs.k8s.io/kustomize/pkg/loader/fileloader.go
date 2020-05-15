@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -14,10 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-=======
-// Copyright 2019 The Kubernetes Authors.
-// SPDX-License-Identifier: Apache-2.0
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package loader
 
@@ -27,25 +22,15 @@ import (
 	"path/filepath"
 	"strings"
 
-<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/git"
 	"sigs.k8s.io/kustomize/pkg/ifc"
-=======
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
-	"sigs.k8s.io/kustomize/v3/pkg/git"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 // fileLoader is a kustomization's interface to files.
 //
 // The directory in which a kustomization file sits
-<<<<<<< HEAD
 // is referred to below as the kustomization's root.
-=======
-// is referred to below as the kustomization's _root_.
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 //
 // An instance of fileLoader has an immutable root,
 // and offers a `New` method returning a new loader
@@ -57,22 +42,12 @@ import (
 //
 //   `Load` is used to visit these paths.
 //
-<<<<<<< HEAD
 //   They must terminate in or below the root.
 //
 //   They hold things like resources, patches,
 //   data for ConfigMaps, etc.
 //
 // * bases; other kustomizations
-=======
-//   These paths refer to resources, patches,
-//   data for ConfigMaps and Secrets, etc.
-//
-//   The loadRestrictor may disallow certain paths
-//   or classes of paths.
-//
-// * bases (other kustomizations)
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 //
 //   `New` is used to load bases.
 //
@@ -100,19 +75,13 @@ import (
 // These restrictions assure that kustomizations
 // are self-contained and relocatable, and impose
 // some safety when relying on remote kustomizations,
-<<<<<<< HEAD
 // e.g. a ConfigMap generator specified to read
 // from /etc/passwd will fail.
-=======
-// e.g. a remotely loaded ConfigMap generator specified
-// to read from /etc/passwd will fail.
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 //
 type fileLoader struct {
 	// Loader that spawned this loader.
 	// Used to avoid cycles.
 	referrer *fileLoader
-<<<<<<< HEAD
 	// An absolute, cleaned path to a directory.
 	// The Load function reads from this directory,
 	// or directories below it.
@@ -124,35 +93,10 @@ type fileLoader struct {
 	fSys fs.FileSystem
 	// Used to clone repositories.
 	cloner git.Cloner
-=======
-
-	// An absolute, cleaned path to a directory.
-	// The Load function will read non-absolute
-	// paths relative to this directory.
-	root fs.ConfirmedDir
-
-	// Restricts behavior of Load function.
-	loadRestrictor LoadRestrictorFunc
-
-	// Used to validate various k8s data fields.
-	validator ifc.Validator
-
-	// If this is non-nil, the files were
-	// obtained from the given repository.
-	repoSpec *git.RepoSpec
-
-	// File system utilities.
-	fSys fs.FileSystem
-
-	// Used to clone repositories.
-	cloner git.Cloner
-
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	// Used to clean up, as needed.
 	cleaner func() error
 }
 
-<<<<<<< HEAD
 // NewFileLoaderAtCwd returns a loader that loads from ".".
 func NewFileLoaderAtCwd(fSys fs.FileSystem) *fileLoader {
 	return newLoaderOrDie(fSys, ".")
@@ -161,56 +105,25 @@ func NewFileLoaderAtCwd(fSys fs.FileSystem) *fileLoader {
 // NewFileLoaderAtRoot returns a loader that loads from "/".
 func NewFileLoaderAtRoot(fSys fs.FileSystem) *fileLoader {
 	return newLoaderOrDie(fSys, string(filepath.Separator))
-=======
-const CWD = "."
-
-// NewFileLoaderAtCwd returns a loader that loads from ".".
-// A convenience for kustomize edit commands.
-func NewFileLoaderAtCwd(v ifc.Validator, fSys fs.FileSystem) *fileLoader {
-	return newLoaderOrDie(
-		RestrictionRootOnly, v, fSys, CWD)
-}
-
-// NewFileLoaderAtRoot returns a loader that loads from "/".
-// A convenience for tests.
-func NewFileLoaderAtRoot(v ifc.Validator, fSys fs.FileSystem) *fileLoader {
-	return newLoaderOrDie(
-		RestrictionRootOnly, v, fSys, string(filepath.Separator))
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // Root returns the absolute path that is prepended to any
 // relative paths used in Load.
-<<<<<<< HEAD
 func (l *fileLoader) Root() string {
 	return l.root.String()
 }
 
 func newLoaderOrDie(fSys fs.FileSystem, path string) *fileLoader {
-=======
-func (fl *fileLoader) Root() string {
-	return fl.root.String()
-}
-
-func newLoaderOrDie(
-	lr LoadRestrictorFunc, v ifc.Validator,
-	fSys fs.FileSystem, path string) *fileLoader {
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	root, err := demandDirectoryRoot(fSys, path)
 	if err != nil {
 		log.Fatalf("unable to make loader at '%s'; %v", path, err)
 	}
 	return newLoaderAtConfirmedDir(
-<<<<<<< HEAD
 		root, fSys, nil, git.ClonerUsingGitExec)
-=======
-		lr, v, root, fSys, nil, git.ClonerUsingGitExec)
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // newLoaderAtConfirmedDir returns a new fileLoader with given root.
 func newLoaderAtConfirmedDir(
-<<<<<<< HEAD
 	root fs.ConfirmedDir, fSys fs.FileSystem,
 	referrer *fileLoader, cloner git.Cloner) *fileLoader {
 	return &fileLoader{
@@ -219,20 +132,6 @@ func newLoaderAtConfirmedDir(
 		fSys:     fSys,
 		cloner:   cloner,
 		cleaner:  func() error { return nil },
-=======
-	lr LoadRestrictorFunc,
-	v ifc.Validator,
-	root fs.ConfirmedDir, fSys fs.FileSystem,
-	referrer *fileLoader, cloner git.Cloner) *fileLoader {
-	return &fileLoader{
-		loadRestrictor: lr,
-		validator:      v,
-		root:           root,
-		referrer:       referrer,
-		fSys:           fSys,
-		cloner:         cloner,
-		cleaner:        func() error { return nil },
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 }
 
@@ -258,34 +157,21 @@ func demandDirectoryRoot(
 
 // New returns a new Loader, rooted relative to current loader,
 // or rooted in a temp directory holding a git repo clone.
-<<<<<<< HEAD
 func (l *fileLoader) New(path string) (ifc.Loader, error) {
-=======
-func (fl *fileLoader) New(path string) (ifc.Loader, error) {
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if path == "" {
 		return nil, fmt.Errorf("new root cannot be empty")
 	}
 	repoSpec, err := git.NewRepoSpecFromUrl(path)
 	if err == nil {
 		// Treat this as git repo clone request.
-<<<<<<< HEAD
 		if err := l.errIfRepoCycle(repoSpec); err != nil {
 			return nil, err
 		}
 		return newLoaderAtGitClone(repoSpec, l.fSys, l.referrer, l.cloner)
-=======
-		if err := fl.errIfRepoCycle(repoSpec); err != nil {
-			return nil, err
-		}
-		return newLoaderAtGitClone(
-			repoSpec, fl.validator, fl.fSys, fl, fl.cloner)
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 	if filepath.IsAbs(path) {
 		return nil, fmt.Errorf("new root '%s' cannot be absolute", path)
 	}
-<<<<<<< HEAD
 	root, err := demandDirectoryRoot(l.fSys, l.root.Join(path))
 	if err != nil {
 		return nil, err
@@ -298,31 +184,12 @@ func (fl *fileLoader) New(path string) (ifc.Loader, error) {
 	}
 	return newLoaderAtConfirmedDir(
 		root, l.fSys, l, l.cloner), nil
-=======
-	root, err := demandDirectoryRoot(fl.fSys, fl.root.Join(path))
-	if err != nil {
-		return nil, err
-	}
-	if err := fl.errIfGitContainmentViolation(root); err != nil {
-		return nil, err
-	}
-	if err := fl.errIfArgEqualOrHigher(root); err != nil {
-		return nil, err
-	}
-	return newLoaderAtConfirmedDir(
-		fl.loadRestrictor, fl.validator, root, fl.fSys, fl, fl.cloner), nil
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // newLoaderAtGitClone returns a new Loader pinned to a temporary
 // directory holding a cloned git repo.
 func newLoaderAtGitClone(
-<<<<<<< HEAD
 	repoSpec *git.RepoSpec, fSys fs.FileSystem,
-=======
-	repoSpec *git.RepoSpec,
-	v ifc.Validator, fSys fs.FileSystem,
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	referrer *fileLoader, cloner git.Cloner) (ifc.Loader, error) {
 	err := cloner(repoSpec)
 	if err != nil {
@@ -342,7 +209,6 @@ func newLoaderAtGitClone(
 			repoSpec.AbsPath(), f)
 	}
 	return &fileLoader{
-<<<<<<< HEAD
 		root:     root,
 		referrer: referrer,
 		repoSpec: repoSpec,
@@ -355,23 +221,6 @@ func newLoaderAtGitClone(
 func (l *fileLoader) errIfGitContainmentViolation(
 	base fs.ConfirmedDir) error {
 	containingRepo := l.containingRepo()
-=======
-		// Clones never allowed to escape root.
-		loadRestrictor: RestrictionRootOnly,
-		validator:      v,
-		root:           root,
-		referrer:       referrer,
-		repoSpec:       repoSpec,
-		fSys:           fSys,
-		cloner:         cloner,
-		cleaner:        repoSpec.Cleaner(fSys),
-	}, nil
-}
-
-func (fl *fileLoader) errIfGitContainmentViolation(
-	base fs.ConfirmedDir) error {
-	containingRepo := fl.containingRepo()
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if containingRepo == nil {
 		return nil
 	}
@@ -387,7 +236,6 @@ func (fl *fileLoader) errIfGitContainmentViolation(
 
 // Looks back through referrers for a git repo, returning nil
 // if none found.
-<<<<<<< HEAD
 func (l *fileLoader) containingRepo() *git.RepoSpec {
 	if l.repoSpec != nil {
 		return l.repoSpec
@@ -396,21 +244,10 @@ func (l *fileLoader) containingRepo() *git.RepoSpec {
 		return nil
 	}
 	return l.referrer.containingRepo()
-=======
-func (fl *fileLoader) containingRepo() *git.RepoSpec {
-	if fl.repoSpec != nil {
-		return fl.repoSpec
-	}
-	if fl.referrer == nil {
-		return nil
-	}
-	return fl.referrer.containingRepo()
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // errIfArgEqualOrHigher tests whether the argument,
 // is equal to or above the root of any ancestor.
-<<<<<<< HEAD
 func (l *fileLoader) errIfArgEqualOrHigher(
 	candidateRoot fs.ConfirmedDir) error {
 	if l.root.HasPrefix(candidateRoot) {
@@ -422,26 +259,12 @@ func (l *fileLoader) errIfArgEqualOrHigher(
 		return nil
 	}
 	return l.referrer.errIfArgEqualOrHigher(candidateRoot)
-=======
-func (fl *fileLoader) errIfArgEqualOrHigher(
-	candidateRoot fs.ConfirmedDir) error {
-	if fl.root.HasPrefix(candidateRoot) {
-		return fmt.Errorf(
-			"cycle detected: candidate root '%s' contains visited root '%s'",
-			candidateRoot, fl.root)
-	}
-	if fl.referrer == nil {
-		return nil
-	}
-	return fl.referrer.errIfArgEqualOrHigher(candidateRoot)
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }
 
 // TODO(monopole): Distinguish branches?
 // I.e. Allow a distinction between git URI with
 // path foo and tag bar and a git URI with the same
 // path but a different tag?
-<<<<<<< HEAD
 func (l *fileLoader) errIfRepoCycle(newRepoSpec *git.RepoSpec) error {
 	// TODO(monopole): Use parsed data instead of Raw().
 	if l.repoSpec != nil &&
@@ -486,37 +309,4 @@ func (l *fileLoader) loadOutOfBounds(path string) error {
 // Cleanup runs the cleaner.
 func (l *fileLoader) Cleanup() error {
 	return l.cleaner()
-=======
-func (fl *fileLoader) errIfRepoCycle(newRepoSpec *git.RepoSpec) error {
-	// TODO(monopole): Use parsed data instead of Raw().
-	if fl.repoSpec != nil &&
-		strings.HasPrefix(fl.repoSpec.Raw(), newRepoSpec.Raw()) {
-		return fmt.Errorf(
-			"cycle detected: URI '%s' referenced by previous URI '%s'",
-			newRepoSpec.Raw(), fl.repoSpec.Raw())
-	}
-	if fl.referrer == nil {
-		return nil
-	}
-	return fl.referrer.errIfRepoCycle(newRepoSpec)
-}
-
-// Load returns the content of file at the given path,
-// else an error.  Relative paths are taken relative
-// to the root.
-func (fl *fileLoader) Load(path string) ([]byte, error) {
-	if !filepath.IsAbs(path) {
-		path = fl.root.Join(path)
-	}
-	path, err := fl.loadRestrictor(fl.fSys, fl.root, path)
-	if err != nil {
-		return nil, err
-	}
-	return fl.fSys.ReadFile(path)
-}
-
-// Cleanup runs the cleaner.
-func (fl *fileLoader) Cleanup() error {
-	return fl.cleaner()
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 }

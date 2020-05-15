@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -14,33 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-=======
-// Copyright 2019 The Kubernetes Authors.
-// SPDX-License-Identifier: Apache-2.0
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package configmapandsecret
 
 import (
-<<<<<<< HEAD
-=======
-	"path/filepath"
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	"reflect"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/loader"
 	"sigs.k8s.io/kustomize/pkg/types"
-=======
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
-	"sigs.k8s.io/kustomize/v3/pkg/loader"
-	"sigs.k8s.io/kustomize/v3/pkg/types"
-	"sigs.k8s.io/kustomize/v3/pkg/validators"
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 func makeEnvConfigMap(name string) *corev1.ConfigMap {
@@ -114,13 +98,7 @@ func TestConstructConfigMap(t *testing.T) {
 				GeneratorArgs: types.GeneratorArgs{
 					Name: "envConfigMap",
 					DataSources: types.DataSources{
-<<<<<<< HEAD
 						EnvSource: "configmap/app.env",
-=======
-						EnvSources: []string{
-							filepath.Join("configmap", "app.env"),
-						},
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 					},
 				},
 			},
@@ -133,14 +111,7 @@ func TestConstructConfigMap(t *testing.T) {
 				GeneratorArgs: types.GeneratorArgs{
 					Name: "fileConfigMap",
 					DataSources: types.DataSources{
-<<<<<<< HEAD
 						FileSources: []string{"configmap/app-init.ini", "configmap/app.bin"},
-=======
-						FileSources: []string{
-							filepath.Join("configmap", "app-init.ini"),
-							filepath.Join("configmap", "app.bin"),
-						},
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 					},
 				},
 			},
@@ -166,7 +137,6 @@ func TestConstructConfigMap(t *testing.T) {
 		},
 	}
 
-<<<<<<< HEAD
 	fSys := fs.MakeFakeFS()
 	fSys.WriteFile("/configmap/app.env", []byte("DB_USERNAME=admin\nDB_PASSWORD=somepw\n"))
 	fSys.WriteFile("/configmap/app-init.ini", []byte("FOO=bar\nBAR=baz\n"))
@@ -174,22 +144,6 @@ func TestConstructConfigMap(t *testing.T) {
 	f := NewConfigMapFactory(loader.NewFileLoaderAtRoot(fSys))
 	for _, tc := range testCases {
 		cm, err := f.MakeConfigMap(&tc.input, tc.options)
-=======
-	fSys := fs.MakeFsInMemory()
-	fSys.WriteFile(
-		fs.RPath("configmap", "app.env"),
-		[]byte("DB_USERNAME=admin\nDB_PASSWORD=somepw\n"))
-	fSys.WriteFile(
-		fs.RPath("configmap", "app-init.ini"),
-		[]byte("FOO=bar\nBAR=baz\n"))
-	fSys.WriteFile(
-		fs.RPath("configmap", "app.bin"),
-		[]byte{0xff, 0xfd})
-	ldr := loader.NewFileLoaderAtRoot(validators.MakeFakeValidator(), fSys)
-	for _, tc := range testCases {
-		f := NewFactory(ldr, tc.options)
-		cm, err := f.MakeConfigMap(&tc.input)
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

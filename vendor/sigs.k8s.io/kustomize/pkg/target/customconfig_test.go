@@ -18,19 +18,10 @@ package target_test
 
 import (
 	"testing"
-<<<<<<< HEAD
 )
 
 func makeBaseReferencingCustomConfig(th *KustTestHarness) {
 	th.writeK("/app/base", `
-=======
-
-	"sigs.k8s.io/kustomize/v3/pkg/kusttest"
-)
-
-func makeBaseReferencingCustomConfig(th *kusttest_test.KustTestHarness) {
-	th.WriteK("/app/base", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 namePrefix: x-
 commonLabels:
   app: myApp
@@ -48,20 +39,13 @@ vars:
   fieldref:
     fieldpath: spec.diet
 resources:
-<<<<<<< HEAD
 - giraffes.yaml
 - gorilla.yaml
 - animalPark.yaml
-=======
-- animalPark.yaml
-- giraffes.yaml
-- gorilla.yaml
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 configurations:
 - config/defaults.yaml
 - config/custom.yaml
 `)
-<<<<<<< HEAD
 	th.writeF("/app/base/giraffes.yaml", `
 kind: Giraffe
 metadata:
@@ -78,24 +62,6 @@ spec:
   location: NE
 `)
 	th.writeF("/app/base/gorilla.yaml", `
-=======
-	th.WriteF("/app/base/giraffes.yaml", `
-kind: Giraffe
-metadata:
-  name: april
-spec:
-  diet: mimosa
-  location: NE
----
-kind: Giraffe
-metadata:
-  name: may
-spec:
-  diet: acacia
-  location: SE
-`)
-	th.WriteF("/app/base/gorilla.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Gorilla
 metadata:
   name: koko
@@ -103,11 +69,7 @@ spec:
   diet: bambooshoots
   location: SW
 `)
-<<<<<<< HEAD
 	th.writeF("/app/base/animalPark.yaml", `
-=======
-	th.WriteF("/app/base/animalPark.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: AnimalPark
 metadata:
   name: sandiego
@@ -123,17 +85,10 @@ spec:
 }
 
 func TestCustomConfig(t *testing.T) {
-<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/base")
 	makeBaseReferencingCustomConfig(th)
 	th.writeDefaultConfigs("/app/base/config/defaults.yaml")
 	th.writeF("/app/base/config/custom.yaml", `
-=======
-	th := kusttest_test.NewKustTestHarness(t, "/app/base")
-	makeBaseReferencingCustomConfig(th)
-	th.WriteDefaultConfigs("/app/base/config/defaults.yaml")
-	th.WriteF("/app/base/config/custom.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 nameReference:
 - kind: Gorilla
   fieldSpecs:
@@ -147,19 +102,11 @@ varReference:
 - path: spec/food
   kind: AnimalPark
 `)
-<<<<<<< HEAD
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
 	th.assertActualEqualsExpected(m, `
-=======
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	th.AssertActualEqualsExpected(m, `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: AnimalPark
 metadata:
   labels:
@@ -204,7 +151,6 @@ spec:
 }
 
 func TestCustomConfigWithDefaultOverspecification(t *testing.T) {
-<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/base")
 	makeBaseReferencingCustomConfig(th)
 	th.writeDefaultConfigs("/app/base/config/defaults.yaml")
@@ -212,15 +158,6 @@ func TestCustomConfigWithDefaultOverspecification(t *testing.T) {
 	// the defaults written above.  This is intentional in the
 	// test to assure duplicate config doesn't cause problems.
 	th.writeF("/app/base/config/custom.yaml", `
-=======
-	th := kusttest_test.NewKustTestHarness(t, "/app/base")
-	makeBaseReferencingCustomConfig(th)
-	th.WriteDefaultConfigs("/app/base/config/defaults.yaml")
-	// Specifying namePrefix here conflicts with (is the same as)
-	// the defaults written above.  This is intentional in the
-	// test to assure duplicate config doesn't cause problems.
-	th.WriteF("/app/base/config/custom.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 namePrefix:
 - path: metadata/name
 nameReference:
@@ -236,19 +173,11 @@ varReference:
 - path: spec/food
   kind: AnimalPark
 `)
-<<<<<<< HEAD
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
 	th.assertActualEqualsExpected(m, `
-=======
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	th.AssertActualEqualsExpected(m, `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: AnimalPark
 metadata:
   labels:
@@ -293,17 +222,10 @@ spec:
 }
 
 func TestFixedBug605_BaseCustomizationAvailableInOverlay(t *testing.T) {
-<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/overlay")
 	makeBaseReferencingCustomConfig(th)
 	th.writeDefaultConfigs("/app/base/config/defaults.yaml")
 	th.writeF("/app/base/config/custom.yaml", `
-=======
-	th := kusttest_test.NewKustTestHarness(t, "/app/overlay")
-	makeBaseReferencingCustomConfig(th)
-	th.WriteDefaultConfigs("/app/base/config/defaults.yaml")
-	th.WriteF("/app/base/config/custom.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 nameReference:
 - kind: Gorilla
   fieldSpecs:
@@ -317,29 +239,18 @@ varReference:
 - path: spec/food
   kind: AnimalPark
 `)
-<<<<<<< HEAD
 	th.writeK("/app/overlay", `
-=======
-	th.WriteK("/app/overlay", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 namePrefix: o-
 commonLabels:
   movie: planetOfTheApes
 patchesStrategicMerge:
 - animalPark.yaml
 resources:
-<<<<<<< HEAD
 - ursus.yaml
 bases:
 - ../base
 `)
 	th.writeF("/app/overlay/ursus.yaml", `
-=======
-- ../base
-- ursus.yaml
-`)
-	th.WriteF("/app/overlay/ursus.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: Gorilla
 metadata:
   name: ursus
@@ -348,11 +259,7 @@ spec:
   location: Arizona
 `)
 	// The following replaces the gorillaRef in the AnimalPark.
-<<<<<<< HEAD
 	th.writeF("/app/overlay/animalPark.yaml", `
-=======
-	th.WriteF("/app/overlay/animalPark.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: AnimalPark
 metadata:
   name: sandiego
@@ -361,7 +268,6 @@ spec:
     name: ursus
 `)
 
-<<<<<<< HEAD
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
 	if err != nil {
 		t.Fatalf("Err: %v", err)
@@ -369,24 +275,12 @@ spec:
 	// TODO(#669): The name of AnimalPark should be x-o-sandiego,
 	// not o-sandiego, since AnimalPark appears in the base.
 	th.assertActualEqualsExpected(m, `
-=======
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-
-	th.AssertActualEqualsExpected(m, `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 kind: AnimalPark
 metadata:
   labels:
     app: myApp
     movie: planetOfTheApes
-<<<<<<< HEAD
   name: o-sandiego
-=======
-  name: o-x-sandiego
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 spec:
   food:
   - mimosa

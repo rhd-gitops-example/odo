@@ -31,11 +31,6 @@ func GetDefaultFieldSpecs() []byte {
 		[]byte(namespaceFieldSpecs),
 		[]byte(varReferenceFieldSpecs),
 		[]byte(nameReferenceFieldSpecs),
-<<<<<<< HEAD
-=======
-		[]byte(imagesFieldSpecs),
-		[]byte(replicasFieldSpecs),
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 	return bytes.Join(configData, []byte("\n"))
 }
@@ -50,10 +45,5 @@ func GetDefaultFieldSpecsAsMap() map[string]string {
 	result["namespace"] = namespaceFieldSpecs
 	result["varreference"] = varReferenceFieldSpecs
 	result["namereference"] = nameReferenceFieldSpecs
-<<<<<<< HEAD
-=======
-	result["images"] = imagesFieldSpecs
-	result["replicas"] = replicasFieldSpecs
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	return result
 }

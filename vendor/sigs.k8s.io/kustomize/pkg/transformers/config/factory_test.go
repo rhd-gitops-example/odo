@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -14,27 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-=======
-// Copyright 2019 The Kubernetes Authors.
-// SPDX-License-Identifier: Apache-2.0
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package config
 
 import (
 	"reflect"
-<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/gvk"
 	"sigs.k8s.io/kustomize/pkg/ifc"
 	"sigs.k8s.io/kustomize/pkg/loader"
 	"testing"
-=======
-	"testing"
-
-	"sigs.k8s.io/kustomize/v3/internal/loadertest"
-	"sigs.k8s.io/kustomize/v3/pkg/gvk"
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 func TestMakeDefaultConfig(t *testing.T) {
@@ -42,7 +30,6 @@ func TestMakeDefaultConfig(t *testing.T) {
 	_ = MakeDefaultConfig()
 }
 
-<<<<<<< HEAD
 func makeTestLoader(path, content string) ifc.Loader {
 	fSys := fs.MakeFakeFS()
 	fSys.WriteFile(path, []byte(content))
@@ -57,17 +44,6 @@ namePrefix:
   kind: SomeKind
 `)
 	tcfg, err := NewFactory(ldr).FromFiles([]string{"transformerconfig/test/config.yaml"})
-=======
-func TestFromFiles(t *testing.T) {
-
-	ldr := loadertest.NewFakeLoader("/app")
-	ldr.AddFile("/app/config.yaml", []byte(`
-namePrefix:
-- path: nameprefix/path
-  kind: SomeKind
-`))
-	tcfg, err := NewFactory(ldr).FromFiles([]string{"/app/config.yaml"})
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

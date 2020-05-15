@@ -18,13 +18,8 @@ package transformers
 
 import (
 	"fmt"
-<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/pkg/ifc"
-=======
-	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	"testing"
 )
 
@@ -84,11 +79,7 @@ func makeTestDeployment() ifc.Kunstructured {
 }
 
 func getFieldValue(t *testing.T, obj ifc.Kunstructured, fieldName string) string {
-<<<<<<< HEAD
 	v, err := obj.GetFieldValue(fieldName)
-=======
-	v, err := obj.GetString(fieldName)
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err != nil {
 		t.Fatalf("unexpected field error: %v", err)
 	}
@@ -98,11 +89,7 @@ func getFieldValue(t *testing.T, obj ifc.Kunstructured, fieldName string) string
 func TestNoPath(t *testing.T) {
 	obj := makeTestDeployment()
 	m := &noopMutator{}
-<<<<<<< HEAD
 	err := mutateField(
-=======
-	err := MutateField(
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		obj.Map(), []string{}, false, m.mutate)
 	if m.wasCalled {
 		t.Fatalf("mutator should not have been called.")
@@ -124,11 +111,7 @@ func TestHappyPath(t *testing.T) {
 	}
 
 	m := &noopMutator{}
-<<<<<<< HEAD
 	err := mutateField(
-=======
-	err := MutateField(
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		obj.Map(), []string{"metadata", "name"}, false, m.mutate)
 	if !m.wasCalled {
 		t.Fatalf("mutator should have been called.")
@@ -142,11 +125,7 @@ func TestHappyPath(t *testing.T) {
 	}
 
 	m = &noopMutator{}
-<<<<<<< HEAD
 	err = mutateField(
-=======
-	err = MutateField(
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		obj.Map(), []string{"spec", "template", "metadata", "labels", "vegetable"}, false, m.mutate)
 	if !m.wasCalled {
 		t.Fatalf("mutator should have been called.")
@@ -163,11 +142,7 @@ func TestHappyPath(t *testing.T) {
 func TestWithError(t *testing.T) {
 	obj := makeTestDeployment()
 	m := noopMutator{errorToReturn: errExpected}
-<<<<<<< HEAD
 	err := mutateField(
-=======
-	err := MutateField(
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		obj.Map(), []string{"metadata", "name"}, false, m.mutate)
 	if !m.wasCalled {
 		t.Fatalf("mutator was not called!")
@@ -185,11 +160,7 @@ func TestWithNil(t *testing.T) {
 	foo.(map[string]interface{})["labels"] = nil
 
 	m := &noopMutator{}
-<<<<<<< HEAD
 	err := mutateField(
-=======
-	err := MutateField(
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		obj.Map(), []string{"spec", "template", "metadata", "labels", "vegetable"}, false, m.mutate)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

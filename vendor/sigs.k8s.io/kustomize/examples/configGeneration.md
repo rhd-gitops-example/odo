@@ -26,11 +26,7 @@ In this demo, the same [hello_world](helloWorld/README.md) is used while the Con
 ### Establish base and staging
 
 Establish the base with a configMapGenerator
-<<<<<<< HEAD
 <!-- @establishBase @test -->
-=======
-<!-- @establishBase @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 DEMO_HOME=$(mktemp -d)
 
@@ -57,11 +53,7 @@ EOF
 ```
 
 Establish the staging with a patch applied to the ConfigMap
-<<<<<<< HEAD
 <!-- @establishStaging @test -->
-=======
-<!-- @establishStaging @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 OVERLAYS=$DEMO_HOME/overlays
 mkdir -p $OVERLAYS/staging
@@ -74,11 +66,7 @@ commonLabels:
   org: acmeCorporation
 commonAnnotations:
   note: Hello, I am staging!
-<<<<<<< HEAD
 bases:
-=======
-resources:
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 - ../../base
 patchesStrategicMerge:
 - map.yaml
@@ -103,11 +91,7 @@ configured with data from a configMap.
 The deployment refers to this map by name:
 
 
-<<<<<<< HEAD
 <!-- @showDeployment @test -->
-=======
-<!-- @showDeployment @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 grep -C 2 configMapKeyRef $BASE/deployment.yaml
 ```
@@ -133,11 +117,7 @@ collected](https://github.com/kubernetes-sigs/kustomize/issues/242).
 
 The _staging_ [variant] here has a configMap [patch]:
 
-<<<<<<< HEAD
 <!-- @showMapPatch @test -->
-=======
-<!-- @showMapPatch @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 cat $OVERLAYS/staging/map.yaml
 ```
@@ -148,11 +128,7 @@ resource spec.
 
 The ConfigMap it modifies is declared from a configMapGenerator.
 
-<<<<<<< HEAD
 <!-- @showMapBase @test -->
-=======
-<!-- @showMapBase @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 grep -C 4 configMapGenerator $BASE/kustomization.yaml
 ```
@@ -165,11 +141,7 @@ _not_ what gets used in the cluster.  By design,
 kustomize modifies names of ConfigMaps declared from ConfigMapGenerator.  To see the names
 ultimately used in the cluster, just run kustomize:
 
-<<<<<<< HEAD
 <!-- @grepStagingName @test -->
-=======
-<!-- @grepStagingName @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/staging |\
     grep -B 8 -A 1 staging-the-map
@@ -187,11 +159,7 @@ The suffix to the configMap name is generated from a
 hash of the maps content - in this case the name suffix
 is _k25m8k5k5m_:
 
-<<<<<<< HEAD
 <!-- @grepStagingHash @test -->
-=======
-<!-- @grepStagingHash @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/staging | grep k25m8k5k5m
 ```
@@ -199,11 +167,7 @@ kustomize build $OVERLAYS/staging | grep k25m8k5k5m
 Now modify the map patch, to change the greeting
 the server will use:
 
-<<<<<<< HEAD
 <!-- @changeMap @test -->
-=======
-<!-- @changeMap @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 sed -i.bak 's/pineapple/kiwi/' $OVERLAYS/staging/map.yaml
 ```
@@ -217,11 +181,7 @@ kustomize build $OVERLAYS/staging |\
 
 Run kustomize again to see the new configMap names:
 
-<<<<<<< HEAD
 <!-- @grepStagingName @test -->
-=======
-<!-- @grepStagingName @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 kustomize build $OVERLAYS/staging |\
     grep -B 8 -A 1 staging-the-map
@@ -232,11 +192,7 @@ in three new names ending in _cd7kdh48fd_ - one in the
 configMap name itself, and two in the deployment that
 uses the map:
 
-<<<<<<< HEAD
 <!-- @countHashes @test -->
-=======
-<!-- @countHashes @testAgainstLatestRelease -->
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 ```
 test 3 == \
   $(kustomize build $OVERLAYS/staging | grep cd7kdh48fd | wc -l); \

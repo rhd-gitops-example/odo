@@ -1,10 +1,4 @@
-<<<<<<< HEAD
 bases:
 - ./../base
 
 namePrefix: dev-
-=======
-resources:
-- ../base
-namePrefix: dev-
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)

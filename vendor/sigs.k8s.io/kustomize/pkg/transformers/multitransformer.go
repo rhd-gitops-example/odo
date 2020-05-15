@@ -18,19 +18,13 @@ package transformers
 
 import (
 	"fmt"
-<<<<<<< HEAD
 	"sigs.k8s.io/kustomize/pkg/resource"
 
 	"sigs.k8s.io/kustomize/pkg/resmap"
-=======
-
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 )
 
 // multiTransformer contains a list of transformers.
 type multiTransformer struct {
-<<<<<<< HEAD
 	transformers         []Transformer
 	checkConflictEnabled bool
 	rf                   *resource.Factory
@@ -42,24 +36,11 @@ var _ Transformer = &multiTransformer{}
 func NewMultiTransformer(t []Transformer) Transformer {
 	r := &multiTransformer{
 		transformers:         make([]Transformer, len(t)),
-=======
-	transformers         []resmap.Transformer
-	checkConflictEnabled bool
-}
-
-var _ resmap.Transformer = &multiTransformer{}
-
-// NewMultiTransformer constructs a multiTransformer.
-func NewMultiTransformer(t []resmap.Transformer) resmap.Transformer {
-	r := &multiTransformer{
-		transformers:         make([]resmap.Transformer, len(t)),
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		checkConflictEnabled: false}
 	copy(r.transformers, t)
 	return r
 }
 
-<<<<<<< HEAD
 // NewMultiTransformerWithConflictCheck constructs a multiTransformer with checking of conflicts.
 func NewMultiTransformerWithConflictCheck(t []Transformer) Transformer {
 	r := &multiTransformer{
@@ -69,8 +50,6 @@ func NewMultiTransformerWithConflictCheck(t []Transformer) Transformer {
 	return r
 }
 
-=======
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 // Transform prepends the name prefix.
 func (o *multiTransformer) Transform(m resmap.ResMap) error {
 	if o.checkConflictEnabled {
@@ -92,11 +71,7 @@ func (o *multiTransformer) transform(m resmap.ResMap) error {
 // A spot check to perform when the transformations are supposed to be commutative.
 // Fail if there's a difference in the result.
 func (o *multiTransformer) transformWithCheckConflict(m resmap.ResMap) error {
-<<<<<<< HEAD
 	mcopy := m.DeepCopy(o.rf)
-=======
-	mcopy := m.DeepCopy()
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	err := o.transform(m)
 	if err != nil {
 		return err
@@ -106,11 +81,7 @@ func (o *multiTransformer) transformWithCheckConflict(m resmap.ResMap) error {
 	if err != nil {
 		return err
 	}
-<<<<<<< HEAD
 	err = m.ErrorIfNotEqual(mcopy)
-=======
-	err = m.ErrorIfNotEqualSets(mcopy)
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err != nil {
 		return fmt.Errorf("found conflict between different patches\n%v", err)
 	}

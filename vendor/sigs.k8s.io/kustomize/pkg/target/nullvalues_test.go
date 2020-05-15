@@ -18,21 +18,11 @@ package target_test
 
 import (
 	"testing"
-<<<<<<< HEAD
 )
 
 func TestNullValues(t *testing.T) {
 	th := NewKustTestHarness(t, "/app")
 	th.writeF("/app/deployment.yaml", `
-=======
-
-	"sigs.k8s.io/kustomize/v3/pkg/kusttest"
-)
-
-func TestNullValues(t *testing.T) {
-	th := kusttest_test.NewKustTestHarness(t, "/app")
-	th.WriteF("/app/deployment.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -53,30 +43,18 @@ spec:
         image: image
         name: example
 `)
-<<<<<<< HEAD
 	th.writeF("/app/kustomization.yaml", `
-=======
-	th.WriteF("/app/kustomization.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - deployment.yaml
 `)
-<<<<<<< HEAD
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
-=======
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
 
-<<<<<<< HEAD
 	th.assertActualEqualsExpected(m, `
-=======
-	th.AssertActualEqualsExpected(m, `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: apps/v1
 kind: Deployment
 metadata:

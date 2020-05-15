@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 bases:
   - ../../base
 patchesStrategicMerge:
@@ -8,14 +7,3 @@ configMapGenerator:
   - name: env-config
     files:
       - config.env
-=======
-resources:
-- ../../base
-patchesStrategicMerge:
- - deployment.yaml
-namePrefix: staging-
-configMapGenerator:
-- name: env-config
-  files:
-  - config.env
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)

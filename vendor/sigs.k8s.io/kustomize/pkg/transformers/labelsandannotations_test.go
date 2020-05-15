@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -14,15 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-=======
-// Copyright 2019 The Kubernetes Authors.
-// SPDX-License-Identifier: Apache-2.0
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 
 package transformers
 
 import (
-<<<<<<< HEAD
 	"reflect"
 	"testing"
 
@@ -49,21 +43,10 @@ var cr = gvk.Gvk{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "Clust
 var crb = gvk.Gvk{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "ClusterRoleBinding"}
 var sa = gvk.Gvk{Version: "v1", Kind: "ServiceAccount"}
 var ingress = gvk.Gvk{Kind: "Ingress"}
-=======
-	"testing"
-
-	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
-	"sigs.k8s.io/kustomize/v3/pkg/resmaptest"
-	"sigs.k8s.io/kustomize/v3/pkg/resource"
-	"sigs.k8s.io/kustomize/v3/pkg/transformers/config"
-)
-
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 var rf = resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl())
 var defaultTransformerConfig = config.MakeDefaultConfig()
 
 func TestLabelsRun(t *testing.T) {
-<<<<<<< HEAD
 	m := resmap.ResMap{
 		resid.NewResId(cmap, "cm1"): rf.FromMap(
 			map[string]interface{}{
@@ -94,40 +77,10 @@ func TestLabelsRun(t *testing.T) {
 									"name":  "nginx",
 									"image": "nginx:1.7.9",
 								},
-=======
-	m := resmaptest_test.NewRmBuilder(t, rf).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name": "cm1",
-			},
-		}).
-		Add(map[string]interface{}{
-			"group":      "apps",
-			"apiVersion": "v1",
-			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "deploy1",
-			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
-							"old-label": "old-value",
-						},
-					},
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "nginx",
-								"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 		resid.NewResId(service, "svc1"): rf.FromMap(
 			map[string]interface{}{
@@ -160,43 +113,10 @@ func TestLabelsRun(t *testing.T) {
 									"name":  "nginx",
 									"image": "nginx:1.7.9",
 								},
-=======
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Service",
-			"metadata": map[string]interface{}{
-				"name": "svc1",
-			},
-			"spec": map[string]interface{}{
-				"ports": []interface{}{
-					map[string]interface{}{
-						"name": "port1",
-						"port": "12345",
-					},
-				},
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "batch/v1",
-			"kind":       "Job",
-			"metadata": map[string]interface{}{
-				"name": "job1",
-			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "nginx",
-								"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 		resid.NewResId(job, "job2"): rf.FromMap(
 			map[string]interface{}{
@@ -218,33 +138,10 @@ func TestLabelsRun(t *testing.T) {
 									"name":  "nginx",
 									"image": "nginx:1.7.9",
 								},
-=======
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "batch/v1",
-			"kind":       "Job",
-			"metadata": map[string]interface{}{
-				"name": "job2",
-			},
-			"spec": map[string]interface{}{
-				"selector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
-						"old-label": "old-value",
-					},
-				},
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "nginx",
-								"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 		resid.NewResId(cronjob, "cronjob1"): rf.FromMap(
 			map[string]interface{}{
@@ -264,33 +161,12 @@ func TestLabelsRun(t *testing.T) {
 											"name":  "nginx",
 											"image": "nginx:1.7.9",
 										},
-=======
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "batch/v1beta1",
-			"kind":       "CronJob",
-			"metadata": map[string]interface{}{
-				"name": "cronjob1",
-			},
-			"spec": map[string]interface{}{
-				"schedule": "* 23 * * *",
-				"jobTemplate": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"template": map[string]interface{}{
-							"spec": map[string]interface{}{
-								"containers": []interface{}{
-									map[string]interface{}{
-										"name":  "nginx",
-										"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 									},
 								},
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 		resid.NewResId(cronjob, "cronjob2"): rf.FromMap(
 			map[string]interface{}{
@@ -315,38 +191,12 @@ func TestLabelsRun(t *testing.T) {
 											"name":  "nginx",
 											"image": "nginx:1.7.9",
 										},
-=======
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "batch/v1beta1",
-			"kind":       "CronJob",
-			"metadata": map[string]interface{}{
-				"name": "cronjob2",
-			},
-			"spec": map[string]interface{}{
-				"schedule": "* 23 * * *",
-				"jobTemplate": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"selector": map[string]interface{}{
-							"matchLabels": map[string]interface{}{
-								"old-label": "old-value",
-							},
-						},
-						"template": map[string]interface{}{
-							"spec": map[string]interface{}{
-								"containers": []interface{}{
-									map[string]interface{}{
-										"name":  "nginx",
-										"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 									},
 								},
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 	}
 	expected := resmap.ResMap{
@@ -370,56 +220,17 @@ func TestLabelsRun(t *testing.T) {
 				"metadata": map[string]interface{}{
 					"name": "deploy1",
 					"labels": map[string]interface{}{
-=======
-			},
-		}).ResMap()
-
-	expected := resmaptest_test.NewRmBuilder(t, rf).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name": "cm1",
-				"labels": map[string]interface{}{
-					"label-key1": "label-value1",
-					"label-key2": "label-value2",
-				},
-			},
-		}).
-		Add(map[string]interface{}{
-			"group":      "apps",
-			"apiVersion": "v1",
-			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "deploy1",
-				"labels": map[string]interface{}{
-					"label-key1": "label-value1",
-					"label-key2": "label-value2",
-				},
-			},
-			"spec": map[string]interface{}{
-				"selector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 						"label-key1": "label-value1",
 						"label-key2": "label-value2",
 					},
 				},
-<<<<<<< HEAD
 				"spec": map[string]interface{}{
 					"selector": map[string]interface{}{
 						"matchLabels": map[string]interface{}{
-=======
-				"template": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
-							"old-label":  "old-value",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 							"label-key1": "label-value1",
 							"label-key2": "label-value2",
 						},
 					},
-<<<<<<< HEAD
 					"template": map[string]interface{}{
 						"metadata": map[string]interface{}{
 							"labels": map[string]interface{}{
@@ -434,18 +245,10 @@ func TestLabelsRun(t *testing.T) {
 									"name":  "nginx",
 									"image": "nginx:1.7.9",
 								},
-=======
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "nginx",
-								"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 		resid.NewResId(service, "svc1"): rf.FromMap(
 			map[string]interface{}{
@@ -496,61 +299,10 @@ func TestLabelsRun(t *testing.T) {
 									"name":  "nginx",
 									"image": "nginx:1.7.9",
 								},
-=======
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Service",
-			"metadata": map[string]interface{}{
-				"name": "svc1",
-				"labels": map[string]interface{}{
-					"label-key1": "label-value1",
-					"label-key2": "label-value2",
-				},
-			},
-			"spec": map[string]interface{}{
-				"ports": []interface{}{
-					map[string]interface{}{
-						"name": "port1",
-						"port": "12345",
-					},
-				},
-				"selector": map[string]interface{}{
-					"label-key1": "label-value1",
-					"label-key2": "label-value2",
-				},
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "batch/v1",
-			"kind":       "Job",
-			"metadata": map[string]interface{}{
-				"name": "job1",
-				"labels": map[string]interface{}{
-					"label-key1": "label-value1",
-					"label-key2": "label-value2",
-				},
-			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
-							"label-key1": "label-value1",
-							"label-key2": "label-value2",
-						},
-					},
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "nginx",
-								"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 		resid.NewResId(job, "job2"): rf.FromMap(
 			map[string]interface{}{
@@ -584,45 +336,10 @@ func TestLabelsRun(t *testing.T) {
 									"name":  "nginx",
 									"image": "nginx:1.7.9",
 								},
-=======
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "batch/v1",
-			"kind":       "Job",
-			"metadata": map[string]interface{}{
-				"name": "job2",
-				"labels": map[string]interface{}{
-					"label-key1": "label-value1",
-					"label-key2": "label-value2",
-				},
-			},
-			"spec": map[string]interface{}{
-				"selector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
-						"label-key1": "label-value1",
-						"label-key2": "label-value2",
-						"old-label":  "old-value",
-					},
-				},
-				"template": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
-							"label-key1": "label-value1",
-							"label-key2": "label-value2",
-						},
-					},
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "nginx",
-								"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 		resid.NewResId(cronjob, "cronjob1"): rf.FromMap(
 			map[string]interface{}{
@@ -658,49 +375,12 @@ func TestLabelsRun(t *testing.T) {
 											"name":  "nginx",
 											"image": "nginx:1.7.9",
 										},
-=======
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "batch/v1beta1",
-			"kind":       "CronJob",
-			"metadata": map[string]interface{}{
-				"name": "cronjob1",
-				"labels": map[string]interface{}{
-					"label-key1": "label-value1",
-					"label-key2": "label-value2",
-				},
-			},
-			"spec": map[string]interface{}{
-				"schedule": "* 23 * * *",
-				"jobTemplate": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
-							"label-key1": "label-value1",
-							"label-key2": "label-value2",
-						},
-					},
-					"spec": map[string]interface{}{
-						"template": map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"labels": map[string]interface{}{
-									"label-key1": "label-value1",
-									"label-key2": "label-value2",
-								},
-							},
-							"spec": map[string]interface{}{
-								"containers": []interface{}{
-									map[string]interface{}{
-										"name":  "nginx",
-										"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 									},
 								},
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 		resid.NewResId(cronjob, "cronjob2"): rf.FromMap(
 			map[string]interface{}{
@@ -718,52 +398,18 @@ func TestLabelsRun(t *testing.T) {
 					"jobTemplate": map[string]interface{}{
 						"metadata": map[string]interface{}{
 							"labels": map[string]interface{}{
-=======
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "batch/v1beta1",
-			"kind":       "CronJob",
-			"metadata": map[string]interface{}{
-				"name": "cronjob2",
-				"labels": map[string]interface{}{
-					"label-key1": "label-value1",
-					"label-key2": "label-value2",
-				},
-			},
-			"spec": map[string]interface{}{
-				"schedule": "* 23 * * *",
-				"jobTemplate": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
-							"label-key1": "label-value1",
-							"label-key2": "label-value2",
-						},
-					},
-					"spec": map[string]interface{}{
-						"selector": map[string]interface{}{
-							"matchLabels": map[string]interface{}{
-								"old-label":  "old-value",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 								"label-key1": "label-value1",
 								"label-key2": "label-value2",
 							},
 						},
-<<<<<<< HEAD
 						"spec": map[string]interface{}{
 							"selector": map[string]interface{}{
 								"matchLabels": map[string]interface{}{
 									"old-label":  "old-value",
-=======
-						"template": map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"labels": map[string]interface{}{
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 									"label-key1": "label-value1",
 									"label-key2": "label-value2",
 								},
 							},
-<<<<<<< HEAD
 							"template": map[string]interface{}{
 								"metadata": map[string]interface{}{
 									"labels": map[string]interface{}{
@@ -777,27 +423,14 @@ func TestLabelsRun(t *testing.T) {
 											"name":  "nginx",
 											"image": "nginx:1.7.9",
 										},
-=======
-							"spec": map[string]interface{}{
-								"containers": []interface{}{
-									map[string]interface{}{
-										"name":  "nginx",
-										"image": "nginx:1.7.9",
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 									},
 								},
 							},
 						},
 					},
 				},
-<<<<<<< HEAD
 			}),
 	}
-=======
-			},
-		}).ResMap()
-
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	lt, err := NewLabelsMapTransformer(
 		map[string]string{"label-key1": "label-value1", "label-key2": "label-value2"},
 		defaultTransformerConfig.CommonLabels)
@@ -808,18 +441,13 @@ func TestLabelsRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-<<<<<<< HEAD
 	if !reflect.DeepEqual(m, expected) {
 		err = expected.ErrorIfNotEqual(m)
-=======
-	if err = expected.ErrorIfNotEqualLists(m); err != nil {
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		t.Fatalf("actual doesn't match expected: %v", err)
 	}
 }
 
 func TestAnnotationsRun(t *testing.T) {
-<<<<<<< HEAD
 	m := resmap.ResMap{
 		resid.NewResId(cmap, "cm1"): rf.FromMap(
 			map[string]interface{}{
@@ -940,120 +568,6 @@ func TestAnnotationsRun(t *testing.T) {
 				},
 			}),
 	}
-=======
-	m := resmaptest_test.NewRmBuilder(t, rf).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name": "cm1",
-			},
-		}).
-		Add(map[string]interface{}{
-			"group":      "apps",
-			"apiVersion": "v1",
-			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "deploy1",
-			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
-							"old-label": "old-value",
-						},
-					},
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "nginx",
-								"image": "nginx:1.7.9",
-							},
-						},
-					},
-				},
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Service",
-			"metadata": map[string]interface{}{
-				"name": "svc1",
-			},
-			"spec": map[string]interface{}{
-				"ports": []interface{}{
-					map[string]interface{}{
-						"name": "port1",
-						"port": "12345",
-					},
-				},
-			},
-		}).ResMap()
-
-	expected := resmaptest_test.NewRmBuilder(t, rf).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name": "cm1",
-				"annotations": map[string]interface{}{
-					"anno-key1": "anno-value1",
-					"anno-key2": "anno-value2",
-				},
-			},
-		}).
-		Add(map[string]interface{}{
-			"group":      "apps",
-			"apiVersion": "v1",
-			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "deploy1",
-				"annotations": map[string]interface{}{
-					"anno-key1": "anno-value1",
-					"anno-key2": "anno-value2",
-				},
-			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"annotations": map[string]interface{}{
-							"anno-key1": "anno-value1",
-							"anno-key2": "anno-value2",
-						},
-						"labels": map[string]interface{}{
-							"old-label": "old-value",
-						},
-					},
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "nginx",
-								"image": "nginx:1.7.9",
-							},
-						},
-					},
-				},
-			},
-		}).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Service",
-			"metadata": map[string]interface{}{
-				"name": "svc1",
-				"annotations": map[string]interface{}{
-					"anno-key1": "anno-value1",
-					"anno-key2": "anno-value2",
-				},
-			},
-			"spec": map[string]interface{}{
-				"ports": []interface{}{
-					map[string]interface{}{
-						"name": "port1",
-						"port": "12345",
-					},
-				},
-			},
-		}).ResMap()
 	at, err := NewAnnotationsMapTransformer(
 		map[string]string{"anno-key1": "anno-value1", "anno-key2": "anno-value2"},
 		defaultTransformerConfig.CommonAnnotations)
@@ -1064,52 +578,8 @@ func TestAnnotationsRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err = expected.ErrorIfNotEqualLists(m); err != nil {
-		t.Fatalf("actual doesn't match expected: %v", err)
-	}
-}
-
-func TestAnnotationsRunWithNullValue(t *testing.T) {
-	m := resmaptest_test.NewRmBuilder(t, rf).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name":        "cm1",
-				"annotations": nil,
-			},
-		}).ResMap()
-
-	expected := resmaptest_test.NewRmBuilder(t, rf).
-		Add(map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name": "cm1",
-				"annotations": map[string]interface{}{
-					"anno-key1": "anno-value1",
-					"anno-key2": "anno-value2",
-				},
-			},
-		}).ResMap()
-
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
-	at, err := NewAnnotationsMapTransformer(
-		map[string]string{"anno-key1": "anno-value1", "anno-key2": "anno-value2"},
-		defaultTransformerConfig.CommonAnnotations)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	err = at.Transform(m)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-<<<<<<< HEAD
 	if !reflect.DeepEqual(m, expected) {
 		err = expected.ErrorIfNotEqual(m)
-=======
-	if err = expected.ErrorIfNotEqualLists(m); err != nil {
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 		t.Fatalf("actual doesn't match expected: %v", err)
 	}
 }

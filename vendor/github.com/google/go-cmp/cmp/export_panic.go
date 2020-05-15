@@ -8,15 +8,8 @@ package cmp
 
 import "reflect"
 
-<<<<<<< HEAD
 const supportAllowUnexported = false
 
 func retrieveUnexportedField(reflect.Value, reflect.StructField) reflect.Value {
 	panic("retrieveUnexportedField is not implemented")
-=======
-const supportExporters = false
-
-func retrieveUnexportedField(reflect.Value, reflect.StructField) reflect.Value {
-	panic("no support for forcibly accessing unexported fields")
->>>>>>> Start of generating Secrets.
 }

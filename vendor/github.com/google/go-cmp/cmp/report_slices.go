@@ -90,11 +90,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 			}
 			if r == '\n' {
 				if maxLineLen < i-lastLineIdx {
-<<<<<<< HEAD
 					lastLineIdx = i - lastLineIdx
-=======
-					maxLineLen = i - lastLineIdx
->>>>>>> Start of generating Secrets.
 				}
 				lastLineIdx = i + 1
 				numLines++
@@ -326,11 +322,7 @@ func coalesceInterveningIdentical(groups []diffStats, windowSize int) []diffStat
 			hadX, hadY := prev.NumRemoved > 0, prev.NumInserted > 0
 			hasX, hasY := next.NumRemoved > 0, next.NumInserted > 0
 			if ((hadX || hasX) && (hadY || hasY)) && curr.NumIdentical <= windowSize {
-<<<<<<< HEAD
 				*prev = (*prev).Append(*curr).Append(*next)
-=======
-				*prev = prev.Append(*curr).Append(*next)
->>>>>>> Start of generating Secrets.
 				groups = groups[:len(groups)-1] // Truncate off equal group
 				continue
 			}

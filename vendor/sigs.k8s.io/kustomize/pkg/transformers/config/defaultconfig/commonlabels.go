@@ -110,11 +110,7 @@ commonLabels:
   group: apps
   kind: StatefulSet
 
-<<<<<<< HEAD
 - path: spec/volumeClaimTemplates/metadata/labels
-=======
-- path: spec/volumeClaimTemplates[]/metadata/labels
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   create: true
   group: apps
   kind: StatefulSet

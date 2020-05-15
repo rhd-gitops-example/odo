@@ -16,7 +16,6 @@ limitations under the License.
 
 package patch
 
-<<<<<<< HEAD
 // StrategicMerge represents a relative path to a
 // stategic merge patch with the format
 // https://github.com/kubernetes/community/blob/master/contributors/devel/strategic-merge-patch.md
@@ -26,51 +25,16 @@ type StrategicMerge string
 func Append(patches []StrategicMerge, paths ...string) []StrategicMerge {
 	for _, p := range paths {
 		patches = append(patches, StrategicMerge(p))
-=======
-import "sigs.k8s.io/kustomize/v3/pkg/types"
-
-// Append appends a slice of patch paths to a PatchStrategicMerge slice
-func Append(patches []types.PatchStrategicMerge, paths ...string) []types.PatchStrategicMerge {
-	for _, p := range paths {
-		patches = append(patches, types.PatchStrategicMerge(p))
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 	}
 	return patches
 }
 
-<<<<<<< HEAD
 // Exist determines if a patch path exists in a slice of StrategicMerge
 func Exist(patches []StrategicMerge, path string) bool {
 	for _, p := range patches {
 		if p == StrategicMerge(path) {
-=======
-// Exist determines if a patch path exists in a slice of PatchStrategicMerge
-func Exist(patches []types.PatchStrategicMerge, path string) bool {
-	for _, p := range patches {
-		if p == types.PatchStrategicMerge(path) {
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 			return true
 		}
 	}
 	return false
 }
-<<<<<<< HEAD
-=======
-
-// Delete deletes patches from a PatchStrategicMerge slice
-func Delete(patches []types.PatchStrategicMerge, paths ...string) []types.PatchStrategicMerge {
-	// Convert paths into PatchStrategicMerge slice
-	convertedPath := make([]types.PatchStrategicMerge, len(paths))
-	for i, p := range paths {
-		convertedPath[i] = types.PatchStrategicMerge(p)
-	}
-
-	filteredPatches := make([]types.PatchStrategicMerge, 0, len(patches))
-	for _, containedPatch := range patches {
-		if !Exist(convertedPath, string(containedPatch)) {
-			filteredPatches = append(filteredPatches, containedPatch)
-		}
-	}
-	return filteredPatches
-}
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)

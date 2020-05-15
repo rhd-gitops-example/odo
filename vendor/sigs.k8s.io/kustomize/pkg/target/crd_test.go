@@ -18,19 +18,10 @@ package target_test
 
 import (
 	"testing"
-<<<<<<< HEAD
 )
 
 func writeBaseWithCrd(th *KustTestHarness) {
 	th.writeK("/app/base", `
-=======
-
-	"sigs.k8s.io/kustomize/v3/pkg/kusttest"
-)
-
-func writeBaseWithCrd(th *kusttest_test.KustTestHarness) {
-	th.WriteK("/app/base", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 crds:
@@ -43,11 +34,7 @@ resources:
 
 namePrefix: x-
 `)
-<<<<<<< HEAD
 	th.writeF("/app/base/bee.yaml", `
-=======
-	th.WriteF("/app/base/bee.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1beta1
 kind: Bee
 metadata:
@@ -55,11 +42,7 @@ metadata:
 spec:
   action: fly
 `)
-<<<<<<< HEAD
 	th.writeF("/app/base/mykind.yaml", `
-=======
-	th.WriteF("/app/base/mykind.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: jingfang.example.com/v1beta1
 kind: MyKind
 metadata:
@@ -70,11 +53,7 @@ spec:
   beeRef:
     name: bee
 `)
-<<<<<<< HEAD
 	th.writeF("/app/base/secret.yaml", `
-=======
-	th.WriteF("/app/base/secret.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 kind: Secret
 metadata:
@@ -82,11 +61,7 @@ metadata:
 data:
   PATH: yellowBrickRoad
 `)
-<<<<<<< HEAD
 	th.writeF("/app/base/mycrd.json", `
-=======
-	th.WriteF("/app/base/mycrd.json", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 {
   "github.com/example/pkg/apis/jingfang/v1beta1.Bee": {
     "Schema": {
@@ -261,7 +236,6 @@ data:
 }
 
 func TestCrdBase(t *testing.T) {
-<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/base")
 	writeBaseWithCrd(th)
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
@@ -269,15 +243,6 @@ func TestCrdBase(t *testing.T) {
 		t.Fatalf("Err: %v", err)
 	}
 	th.assertActualEqualsExpected(m, `
-=======
-	th := kusttest_test.NewKustTestHarness(t, "/app/base")
-	writeBaseWithCrd(th)
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	th.AssertActualEqualsExpected(m, `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 data:
   PATH: yellowBrickRoad
@@ -305,7 +270,6 @@ spec:
 }
 
 func TestCrdWithOverlay(t *testing.T) {
-<<<<<<< HEAD
 	th := NewKustTestHarness(t, "/app/overlay")
 	writeBaseWithCrd(th)
 	th.writeK("/app/overlay", `
@@ -313,24 +277,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namePrefix: prod-
 bases:
-=======
-	th := kusttest_test.NewKustTestHarness(t, "/app/overlay")
-	writeBaseWithCrd(th)
-	th.WriteK("/app/overlay", `
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namePrefix: prod-
-resources:
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 - ../base
 patchesStrategicMerge:
 - bee.yaml
 `)
-<<<<<<< HEAD
 	th.writeF("/app/overlay/bee.yaml", `
-=======
-	th.WriteF("/app/overlay/bee.yaml", `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1beta1
 kind: Bee
 metadata:
@@ -338,21 +289,12 @@ metadata:
 spec:
   action: makehoney
 `)
-<<<<<<< HEAD
 	m, err := th.makeKustTarget().MakeCustomizedResMap()
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
 	// TODO(#669): Bee's name should be "prod-x-bee", not "prod-bee".
 	th.assertActualEqualsExpected(m, `
-=======
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-
-	th.AssertActualEqualsExpected(m, `
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 apiVersion: v1
 data:
   PATH: yellowBrickRoad
@@ -366,86 +308,15 @@ metadata:
   name: prod-x-mykind
 spec:
   beeRef:
-<<<<<<< HEAD
     name: prod-bee
-=======
-    name: prod-x-bee
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
   secretRef:
     name: prod-x-crdsecret
 ---
 apiVersion: v1beta1
 kind: Bee
 metadata:
-<<<<<<< HEAD
   name: prod-bee
-=======
-  name: prod-x-bee
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 spec:
   action: makehoney
 `)
 }
-<<<<<<< HEAD
-=======
-
-func TestCrdWithContainers(t *testing.T) {
-	th := kusttest_test.NewKustTestHarness(t, "/app/crd/containers")
-	th.WriteK("/app/crd/containers", `
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - crd.yaml
-images:
-  - name: test/test
-    newName: registry.gitlab.com/test
-    newTag: latest
-`)
-	th.WriteF("/app/crd/containers/crd.yaml", `
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: crontabs.stable.example.com
-spec:
-  group: stable.example.com
-  scope: Namespaced
-  names:
-    plural: crontabs
-    singular: crontab
-    kind: CronTab
-    shortNames:
-    - ct
-  validation:
-    openAPIV3Schema:
-      properties:
-        spec:
-          containers:
-            description: Containers allows injecting additional containers
-  `)
-	m, err := th.MakeKustTarget().MakeCustomizedResMap()
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	th.AssertActualEqualsExpected(m, `
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: crontabs.stable.example.com
-spec:
-  group: stable.example.com
-  names:
-    kind: CronTab
-    plural: crontabs
-    shortNames:
-    - ct
-    singular: crontab
-  scope: Namespaced
-  validation:
-    openAPIV3Schema:
-      properties:
-        spec:
-          containers:
-            description: Containers allows injecting additional containers
-`)
-}
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)

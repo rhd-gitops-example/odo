@@ -1,9 +1,4 @@
-<<<<<<< HEAD
 bases:
 - ./../base
 
-=======
-resources:
-- ../base
->>>>>>> Create "add application" odo  pipeline sub-comment (#51)
 namePrefix: prod-
