@@ -74,7 +74,7 @@ func TestBootstrapManifest(t *testing.T) {
 								},
 							},
 							Pipelines: &config.Pipelines{
-								Integration: &config.TemplateBinding{Bindings: []string{"tst-cicd-http-api-svc-binding", "github-pr-binding"}},
+								Integration: &config.TemplateBinding{Template: "app-ci-template", Bindings: []string{"tst-cicd-http-api-svc-binding", "github-pr-binding"}},
 							},
 						},
 					},

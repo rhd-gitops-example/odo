@@ -125,6 +125,7 @@ func TestGetPipelines(t *testing.T) {
 				Pipelines: &config.Pipelines{
 					Integration: &config.TemplateBinding{
 						Bindings: []string{"svc-ci-binding"},
+						Template: "env-ci-template",
 					},
 				},
 			},

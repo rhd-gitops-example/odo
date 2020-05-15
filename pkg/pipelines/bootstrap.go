@@ -124,6 +124,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	devEnv.Services[0].Pipelines = &config.Pipelines{
 		Integration: &config.TemplateBinding{
 			Bindings: append([]string{bindingName}, devEnv.Pipelines.Integration.Bindings[:]...),
+			Template: devEnv.Pipelines.Integration.Template,
 		},
 	}
 	bootstrapped[pipelinesFile] = m
