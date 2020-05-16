@@ -15,9 +15,21 @@ import (
 	"github.com/spf13/afero"
 )
 
-func AddService(gitRepoURL, envName, appName, serviceName, webhookSecret, manifest, imageRepo, internalRegistryHostname string, fs afero.Fs) error {
+// AddServoceParameters are parameters passed to AddSerice function
+type AddServoceParameters struct {
+	AppName                  string
+	EnvName                  string
+	GitRepoURL               string
+	ImageRepo                string
+	InternalRegistryHostname string
+	Manifest                 string
+	ServiceName              string
+	WebhookSecret            string
+}
 
-	m, err := config.ParseFile(fs, manifest)
+func AddService(p *AddServoceParameters, fs afero.Fs) error {
+
+	m, err := config.ParseFile(fs, p.Manifest)
 	if err != nil {
 		return fmt.Errorf("failed to parse manifest: %w", err)
 	}
@@ -26,9 +38,9 @@ func AddService(gitRepoURL, envName, appName, serviceName, webhookSecret, manife
 	if err != nil {
 		return err
 	}
-	outputPath := filepath.Dir(manifest)
+	outputPath := filepath.Dir(p.Manifest)
 
-	files, err := serviceResources(m, fs, gitRepoURL, envName, appName, serviceName, webhookSecret, manifest)
+	files, err := serviceResources(m, fs, p)
 	if err != nil {
 		return err
 	}
@@ -47,10 +59,10 @@ func AddService(gitRepoURL, envName, appName, serviceName, webhookSecret, manife
 	return nil
 }
 
-func serviceResources(m *config.Manifest, fs afero.Fs, gitRepoURL, envName, appName, serviceName, webhookSecret, manifest string) (res.Resources, error) {
+func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServoceParameters) (res.Resources, error) {
 	files := res.Resources{}
 
-	svc, err := createService(serviceName, gitRepoURL)
+	svc, err := createService(p.ServiceName, p.GitRepoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -59,16 +71,17 @@ func serviceResources(m *config.Manifest, fs afero.Fs, gitRepoURL, envName, appN
 	if err != nil {
 		return nil, err
 	}
-	if cicdEnv != nil && webhookSecret == "" && gitRepoURL != "" {
+	if cicdEnv != nil && p.WebhookSecret == "" && p.GitRepoURL != "" {
 		return nil, fmt.Errorf("The webhook secret is required")
 	}
 	// add the secret only if CI/CD env is present
 	if cicdEnv != nil {
 		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
-		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), webhookSecret, eventlisteners.WebhookSecretKey)
+		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), p.WebhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return nil, err
 		}
+
 		svc.Webhook = &config.Webhook{
 			Secret: &config.Secret{
 				Name:      secretName,
@@ -79,7 +92,7 @@ func serviceResources(m *config.Manifest, fs afero.Fs, gitRepoURL, envName, appN
 		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
 	}
 
-	err = m.AddService(envName, appName, svc)
+	err = m.AddService(p.EnvName, p.AppName, svc)
 	if err != nil {
 		return nil, err
 	}
@@ -88,10 +101,10 @@ func serviceResources(m *config.Manifest, fs afero.Fs, gitRepoURL, envName, appN
 		return nil, err
 	}
 
-	files[filepath.Base(manifest)] = m
-	outputPath := filepath.Dir(manifest)
+	files[filepath.Base(p.Manifest)] = m
+	outputPath := filepath.Dir(p.Manifest)
 	buildParams := &BuildParameters{
-		ManifestFilename: manifest,
+		ManifestFilename: p.Manifest,
 		OutputPath:       outputPath,
 		RepositoryURL:    m.GitOpsURL,
 	}

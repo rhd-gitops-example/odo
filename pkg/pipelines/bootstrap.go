@@ -15,9 +15,11 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/deployment"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
+	"github.com/openshift/odo/pkg/pipelines/imagerepo"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
+	"github.com/openshift/odo/pkg/pipelines/roles"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
@@ -70,7 +72,7 @@ func Bootstrap(o *BootstrapOptions, appFs afero.Fs) error {
 }
 
 func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, error) {
-	_, imageRepo, err := validateImageRepo(o.ImageRepo, o.InternalRegistryHostname)
+	isInternalRegistry, imageRepo, err := imagerepo.ValidateImageRepo(o.ImageRepo, o.InternalRegistryHostname)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +121,14 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	imageRepoBindingFilename := filepath.Join("06-bindings", bindingName+".yaml")
 	imageRepoBindingPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", imageRepoBindingFilename)
 	bootstrapped[imageRepoBindingPath] = triggers.CreateImageRepoBinding(cicdEnv.Name, bindingName, imageRepo)
+
+	if isInternalRegistry {
+		resources, err := imagerepo.CreateInternalRegistryResources(cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get resources for internal image repository: %w", err)
+		}
+		bootstrapped = res.Merge(resources, bootstrapped)
+	}
 
 	// This is specific to bootstrap, because there's only one service.
 	devEnv.Services[0].Pipelines = &config.Pipelines{

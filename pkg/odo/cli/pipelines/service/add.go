@@ -51,8 +51,17 @@ func (o *AddOptions) Validate() error {
 // Run runs the project bootstrap command.
 func (o *AddOptions) Run() error {
 
-	return pipelines.AddService(o.gitRepoURL, o.envName, o.appName, o.serviceName, o.webhookSecret, o.manifest,
-		o.imageRepo, o.internalRegistryHostname, ioutils.NewFilesystem())
+	return pipelines.AddService(&pipelines.AddServoceParameters{
+		AppName:                  o.appName,
+		EnvName:                  o.envName,
+		GitRepoURL:               o.gitRepoURL,
+		ImageRepo:                o.imageRepo,
+		InternalRegistryHostname: o.internalRegistryHostname,
+		Manifest:                 o.manifest,
+		ServiceName:              o.serviceName,
+		WebhookSecret:            o.webhookSecret,
+	}, ioutils.NewFilesystem())
+
 }
 
 func newCmdAdd(name, fullName string) *cobra.Command {
