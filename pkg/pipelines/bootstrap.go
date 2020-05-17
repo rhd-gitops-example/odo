@@ -21,7 +21,6 @@ import (
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/roles"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
-	"github.com/openshift/odo/pkg/pipelines/triggers"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
 )
 
@@ -117,10 +116,8 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	secretsPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", secretFilename)
 	bootstrapped[secretsPath] = hookSecret
 
-	bindingName := fmt.Sprintf("%s-%s-binding", devEnv.Name, repoToServiceName(repoName))
-	imageRepoBindingFilename := filepath.Join("06-bindings", bindingName+".yaml")
-	imageRepoBindingPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", imageRepoBindingFilename)
-	bootstrapped[imageRepoBindingPath] = triggers.CreateImageRepoBinding(cicdEnv.Name, bindingName, imageRepo)
+	bindingName, imageRepoBindingFilename, svcImageBinding := createSvcImageBinding(cicdEnv, devEnv.Name, repoToServiceName(repoName), imageRepo)
+	bootstrapped = res.Merge(svcImageBinding, bootstrapped)
 
 	if isInternalRegistry {
 		resources, err := imagerepo.CreateInternalRegistryResources(cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)

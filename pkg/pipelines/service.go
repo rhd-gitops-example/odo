@@ -7,8 +7,11 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/environments"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
+	"github.com/openshift/odo/pkg/pipelines/imagerepo"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
+	"github.com/openshift/odo/pkg/pipelines/roles"
+	"github.com/openshift/odo/pkg/pipelines/triggers"
 
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
@@ -90,6 +93,26 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServoceParameters) 
 		}
 		secretPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines")
 		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
+
+		if p.ImageRepo != "" {
+			resources, bindingName, err := createImageRepoResources(cicdEnv, p)
+			if err != nil {
+				return nil, err
+			}
+
+			env := m.GetEnvironment(p.EnvName)
+			if env == nil {
+				return nil, fmt.Errorf("environment %s does not exist.", p.EnvName)
+			}
+
+			files = res.Merge(resources, files)
+			svc.Pipelines = &config.Pipelines{
+				Integration: &config.TemplateBinding{
+					Bindings: append([]string{bindingName}, env.Pipelines.Integration.Bindings[:]...),
+				},
+			}
+		}
+
 	}
 
 	err = m.AddService(p.EnvName, p.AppName, svc)
@@ -118,6 +141,28 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServoceParameters) 
 
 }
 
+func createImageRepoResources(cicdEnv *config.Environment, p *AddServoceParameters) (res.Resources, string, error) {
+	isInternalRegistry, imageRepo, err := imagerepo.ValidateImageRepo(p.ImageRepo, p.InternalRegistryHostname)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resources := res.Resources{}
+
+	bindingName, _, svcImageBinding := createSvcImageBinding(cicdEnv, p.EnvName, p.ServiceName, imageRepo)
+	resources = res.Merge(svcImageBinding, resources)
+
+	if isInternalRegistry {
+		regRes, err := imagerepo.CreateInternalRegistryResources(cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to get resources for internal image repository: %w", err)
+		}
+		resources = res.Merge(regRes, resources)
+	}
+
+	return resources, bindingName, nil
+}
+
 func createService(serviceName, url string) (*config.Service, error) {
 	if url == "" {
 		return &config.Service{
@@ -139,4 +184,23 @@ func updateKustomization(fs afero.Fs, base string) error {
 	files[Kustomize] = &res.Kustomization{Resources: environments.ExtractFilenames(list)}
 	_, err = yaml.WriteResources(fs, base, files)
 	return err
+}
+
+func makeSvcImageBindingName(envName, svcName string) string {
+	return fmt.Sprintf("%s-%s-binding", envName, svcName)
+}
+
+func makeSvcImageBindingFilename(bindingName string) string {
+	return filepath.Join("06-bindings", bindingName+".yaml")
+}
+
+func makeImageBindingPath(cicdEnv *config.Environment, imageRepoBindingFilename string) string {
+	return filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", imageRepoBindingFilename)
+}
+
+func createSvcImageBinding(cicdEnv *config.Environment, envName, svcName, imageRepo string) (string, string, res.Resources) {
+	name := makeSvcImageBindingName(envName, svcName)
+	filename := makeSvcImageBindingFilename(name)
+	resourceFilePath := makeImageBindingPath(cicdEnv, filename)
+	return name, filename, res.Resources{resourceFilePath: triggers.CreateImageRepoBinding(cicdEnv.Name, name, imageRepo)}
 }

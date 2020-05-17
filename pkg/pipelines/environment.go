@@ -32,13 +32,18 @@ func AddEnv(o *EnvParameters, appFs afero.Fs) error {
 		return fmt.Errorf("environment %s already exists", o.EnvName)
 	}
 	files := res.Resources{}
-	m.Environments = append(m.Environments, &config.Environment{Name: o.EnvName})
+	newEnv := &config.Environment{
+		Name:      o.EnvName,
+		Pipelines: defaultPipelines,
+	}
+	m.Environments = append(m.Environments, newEnv)
 	files[pipelinesFile] = m
 	outputPath := filepath.Dir(o.ManifestFilename)
 	buildParams := &BuildParameters{
 		ManifestFilename: o.ManifestFilename,
 		OutputPath:       outputPath,
 	}
+
 	built, err := buildResources(appFs, buildParams, m)
 	if err != nil {
 		return fmt.Errorf("failed to build resources: %w", err)

@@ -86,7 +86,14 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 		},
 	}
 
-	got, err := serviceResources(m, fakeFs, "http://github.com/org/test", "test-dev", "test-app", "test", "123", pipelinesFile)
+	got, err := serviceResources(m, fakeFs, &AddServoceParameters{
+		AppName:       "test-app",
+		EnvName:       "test-dev",
+		GitRepoURL:    "http://github.com/org/test",
+		Manifest:      pipelinesFile,
+		WebhookSecret: "123",
+		ServiceName:   "test",
+	})
 	assertNoError(t, err)
 	if diff := cmp.Diff(got, want, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
 		_, ok := want[k]
@@ -136,7 +143,14 @@ func TestServiceResourcesWithoutCICD(t *testing.T) {
 		},
 	}
 
-	got, err := serviceResources(m, fakeFs, "http://github.com/org/test", "test-dev", "test-app", "test", "123", pipelinesFile)
+	got, err := serviceResources(m, fakeFs, &AddServoceParameters{
+		AppName:       "test-app",
+		EnvName:       "test-dev",
+		GitRepoURL:    "http://github.com/org/test",
+		Manifest:      pipelinesFile,
+		WebhookSecret: "123",
+		ServiceName:   "test",
+	})
 	assertNoError(t, err)
 	if diff := cmp.Diff(got, want, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
 		_, ok := want[k]
@@ -190,7 +204,14 @@ func TestAddServiceWithoutApp(t *testing.T) {
 		},
 	}
 
-	got, err := serviceResources(m, fakeFs, "http://github.com/org/test", "test-dev", "new-app", "test", "123", pipelinesFile)
+	got, err := serviceResources(m, fakeFs, &AddServoceParameters{
+		AppName:       "new-app",
+		EnvName:       "test-dev",
+		GitRepoURL:    "http://github.com/org/test",
+		Manifest:      pipelinesFile,
+		WebhookSecret: "123",
+		ServiceName:   "test",
+	})
 	assertNoError(t, err)
 	for w := range want {
 		if diff := cmp.Diff(got[w], want[w]); diff != "" {
@@ -233,7 +254,14 @@ func TestAddService(t *testing.T) {
 		"environments/argocd/config/test-dev-test-app-app.yaml",
 		"environments/argocd/config/test-dev-new-app-app.yaml",
 	}
-	err = AddService("http://github.com/org/test", "test-dev", "new-app", "test", "123", manifestPath, "", "", fakeFs)
+	err = AddService(&AddServoceParameters{
+		AppName:       "new-app",
+		EnvName:       "test-dev",
+		GitRepoURL:    "http://github.com/org/test",
+		Manifest:      manifestPath,
+		WebhookSecret: "123",
+		ServiceName:   "test",
+	}, fakeFs)
 	assertNoError(t, err)
 	for _, path := range wantedPaths {
 		t.Run(fmt.Sprintf("checking path %s already exists", path), func(rt *testing.T) {
@@ -300,7 +328,14 @@ func TestServiceWithArgoCD(t *testing.T) {
 	argo, err := argocd.Build("argocd", "http://github.com/org/test", m)
 	assertNoError(t, err)
 	want = res.Merge(argo, want)
-	got, err := serviceResources(m, fakeFs, "http://github.com/org/test", "test-dev", "test-app", "test", "123", pipelinesFile)
+	got, err := serviceResources(m, fakeFs, &AddServoceParameters{
+		AppName:       "test-app",
+		EnvName:       "test-dev",
+		GitRepoURL:    "http://github.com/org/test",
+		Manifest:      pipelinesFile,
+		WebhookSecret: "123",
+		ServiceName:   "test",
+	})
 	assertNoError(t, err)
 	if diff := cmp.Diff(got, want, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
 		_, ok := want[k]
