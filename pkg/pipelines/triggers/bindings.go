@@ -51,13 +51,14 @@ func CreatePushBinding(ns string) triggersv1.TriggerBinding {
 }
 
 // CreateImageRepoBinding returns a TriggerBinding with the imageRepo.
-func CreateImageRepoBinding(ns, bindingName, imageRepo string) triggersv1.TriggerBinding {
+func CreateImageRepoBinding(ns, bindingName, imageRepo, tlsVerify string) triggersv1.TriggerBinding {
 	return triggersv1.TriggerBinding{
 		TypeMeta:   triggerBindingTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, bindingName)),
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []pipelinev1.Param{
 				createBindingParam("imageRepo", imageRepo),
+				createBindingParam("tlsVerify", tlsVerify),
 			},
 		},
 	}

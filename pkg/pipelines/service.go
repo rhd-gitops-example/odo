@@ -3,6 +3,7 @@ package pipelines
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/environments"
@@ -149,7 +150,7 @@ func createImageRepoResources(cicdEnv *config.Environment, p *AddServoceParamete
 
 	resources := res.Resources{}
 
-	bindingName, _, svcImageBinding := createSvcImageBinding(cicdEnv, p.EnvName, p.ServiceName, imageRepo)
+	bindingName, _, svcImageBinding := createSvcImageBinding(cicdEnv, p.EnvName, p.ServiceName, imageRepo, !isInternalRegistry)
 	resources = res.Merge(svcImageBinding, resources)
 
 	if isInternalRegistry {
@@ -198,9 +199,9 @@ func makeImageBindingPath(cicdEnv *config.Environment, imageRepoBindingFilename 
 	return filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", imageRepoBindingFilename)
 }
 
-func createSvcImageBinding(cicdEnv *config.Environment, envName, svcName, imageRepo string) (string, string, res.Resources) {
+func createSvcImageBinding(cicdEnv *config.Environment, envName, svcName, imageRepo string, isTLSVerify bool) (string, string, res.Resources) {
 	name := makeSvcImageBindingName(envName, svcName)
 	filename := makeSvcImageBindingFilename(name)
 	resourceFilePath := makeImageBindingPath(cicdEnv, filename)
-	return name, filename, res.Resources{resourceFilePath: triggers.CreateImageRepoBinding(cicdEnv.Name, name, imageRepo)}
+	return name, filename, res.Resources{resourceFilePath: triggers.CreateImageRepoBinding(cicdEnv.Name, name, imageRepo, strconv.FormatBool(isTLSVerify))}
 }

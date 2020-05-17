@@ -47,6 +47,7 @@ func CreateDevCIBuildPRTemplate(ns, saName string) triggersv1.TriggerTemplate {
 				createTemplateParamSpec("gitrepositoryurl", "The git repository URL."),
 				createTemplateParamSpec("fullname", "The GitHub repository for this PullRequest."),
 				createTemplateParamSpec("imageRepo", "The repository to push built images to."),
+				createTemplateParamSpec("tlsVerify", "Enable image repostiory TLS certification verification."),
 			},
 			ResourceTemplates: []triggersv1.TriggerResourceTemplate{
 				{
