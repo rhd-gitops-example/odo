@@ -5,7 +5,37 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/config"
+	"github.com/openshift/odo/pkg/pipelines/meta"
+	res "github.com/openshift/odo/pkg/pipelines/resources"
+	"github.com/openshift/odo/pkg/pipelines/roles"
+	v1rbac "k8s.io/api/rbac/v1"
 )
+
+func TestCreateInternalRegistryRoleBinding(t *testing.T) {
+
+	cicd := &config.Environment{
+		Name: "test-cicd",
+	}
+
+	sa := roles.CreateServiceAccount(meta.NamespacedName("test-cicd", "pipeline"))
+	got := createInternalRegistryRoleBinding(cicd, "new-proj", sa)
+
+	want := res.Resources{"environments/test-cicd/base/pipelines/02-rolebindings/internal-registry-new-proj-binding.yaml": &v1rbac.RoleBinding{
+		TypeMeta:   meta.TypeMeta("RoleBinding", "rbac.authorization.k8s.io/v1"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("new-proj", "internal-registry-new-proj-binding")),
+		Subjects:   []v1rbac.Subject{{Kind: sa.Kind, Name: sa.Name, Namespace: sa.Namespace}},
+		RoleRef: v1rbac.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "edit",
+		},
+	}}
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("resources do not match:\n%s", diff)
+	}
+}
 
 func TestValidateImageRepo(t *testing.T) {
 

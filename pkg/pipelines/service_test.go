@@ -13,12 +13,16 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/spf13/afero"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha2"
+	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
 func TestServiceResourcesWithCICD(t *testing.T) {
@@ -387,4 +391,42 @@ func buildManifest(withCICD, withArgoCD bool) *config.Manifest {
 		})
 	}
 	return cfg
+}
+
+func TestCreateSvcImageBinding(t *testing.T) {
+	cicdEnv := &config.Environment{
+		Name: "cicd",
+	}
+	bindingName, bindingFilename, resources := createSvcImageBinding(cicdEnv, "new-env", "new-svc", "quay.io/user/app", false)
+
+	if diff := cmp.Diff(bindingName, "new-env-new-svc-binding"); diff != "" {
+		t.Errorf("bindingName failed: %v", diff)
+	}
+
+	if diff := cmp.Diff(bindingFilename, "06-bindings/new-env-new-svc-binding.yaml"); diff != "" {
+		t.Errorf("bindingFilename failed: %v", diff)
+	}
+
+	triggerBinding := triggersv1.TriggerBinding{
+		TypeMeta:   v1.TypeMeta{Kind: "TriggerBinding", APIVersion: "tekton.dev/v1alpha1"},
+		ObjectMeta: v1.ObjectMeta{Name: "new-env-new-svc-binding", Namespace: "cicd"},
+		Spec: triggersv1.TriggerBindingSpec{
+			Params: []pipelinev1.Param{
+				{
+					Name:  "imageRepo",
+					Value: v1alpha2.ArrayOrString{Type: "string", StringVal: "quay.io/user/app"},
+				},
+				{
+					Name:  "tlsVerify",
+					Value: v1alpha2.ArrayOrString{Type: "string", StringVal: "false"},
+				},
+			},
+		},
+	}
+
+	wantResources := res.Resources{"environments/cicd/base/pipelines/06-bindings/new-env-new-svc-binding.yaml": triggerBinding}
+	if diff := cmp.Diff(resources, wantResources); diff != "" {
+		t.Errorf("resources failed: %v", diff)
+	}
+
 }

@@ -80,9 +80,12 @@ func CreateInternalRegistryResources(cicdEnv *config.Environment, sa *corev1.Ser
 		resources[namespacePath] = namespaces.Create(namespace)
 	}
 
-	roleBindingName := fmt.Sprintf("internal-registry-%s-binding", namespace)
-	roleBindingPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", "02-rolebindings", fmt.Sprintf("%s.yaml", roleBindingName))
-	resources[roleBindingPath] = roles.CreateRoleBinding(meta.NamespacedName(namespace, roleBindingName), sa, "ClusterRole", "edit")
-
+	resources = res.Merge(createInternalRegistryRoleBinding(cicdEnv, namespace, sa), resources)
 	return resources, nil
+}
+
+func createInternalRegistryRoleBinding(cicdEnv *config.Environment, ns string, sa *corev1.ServiceAccount) res.Resources {
+	roleBindingName := fmt.Sprintf("internal-registry-%s-binding", ns)
+	roleBindingPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", "02-rolebindings", fmt.Sprintf("%s.yaml", roleBindingName))
+	return res.Resources{roleBindingPath: roles.CreateRoleBinding(meta.NamespacedName(ns, roleBindingName), sa, "ClusterRole", "edit")}
 }

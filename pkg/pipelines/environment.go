@@ -43,7 +43,6 @@ func AddEnv(o *EnvParameters, appFs afero.Fs) error {
 		ManifestFilename: o.ManifestFilename,
 		OutputPath:       outputPath,
 	}
-
 	built, err := buildResources(appFs, buildParams, m)
 	if err != nil {
 		return fmt.Errorf("failed to build resources: %w", err)
