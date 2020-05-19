@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
@@ -74,14 +73,10 @@ func (io *InitParameters) Validate() error {
 
 // Run runs the project bootstrap command.
 func (io *InitParameters) Run() error {
-	gitOpsRepo, err := repository.New(io.gitOpsRepoURL)
-	if err != nil {
-		return err
-	}
 	options := pipelines.InitParameters{
 		DockerConfigJSONFilename: io.dockercfgjson,
 		GitOpsWebhookSecret:      io.gitOpsWebhookSecret,
-		GitOpsRepo:               gitOpsRepo,
+		GitOpsRepoURL:            io.gitOpsRepoURL,
 		OutputPath:               io.output,
 		Prefix:                   io.prefix,
 		ImageRepo:                io.imageRepo,

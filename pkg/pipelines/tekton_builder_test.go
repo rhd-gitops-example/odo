@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
@@ -182,7 +182,7 @@ func fakeTiggers(t *testing.T, m *config.Manifest, gitOpsRepo string) []v1alpha1
 	assertNoError(t, err)
 	svc := testService()
 	pipelines := getPipelines(devEnv, svc)
-	repo, err := repository.New(svc.SourceURL)
+	repo, err := scm.FakeRepository(svc.SourceURL)
 	assertNoError(t, err)
 	devCITrigger, err := repo.CreateCITrigger(fmt.Sprintf("app-ci-build-from-pr-%s", svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
 	assertNoError(t, err)

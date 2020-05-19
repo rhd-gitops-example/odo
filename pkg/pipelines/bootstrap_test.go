@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/deployment"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
@@ -34,15 +33,12 @@ func TestBootstrapManifest(t *testing.T) {
 		}
 		return &key.PublicKey, nil
 	}
-	gitOpsRepo, err := repository.New(testGitOpsRepo)
-	assertNoError(t, err)
-	svcRepo, err := repository.New(testSvcRepo)
-	assertNoError(t, err)
+
 	params := &BootstrapOptions{
 		Prefix:              "tst-",
-		GitOpsRepo:          gitOpsRepo,
+		GitOpsRepoURL:       testGitOpsRepo,
 		GitOpsWebhookSecret: "123",
-		AppRepo:             svcRepo,
+		AppRepoURL:          testSvcRepo,
 		ImageRepo:           "image/repo",
 		AppWebhookSecret:    "456",
 	}

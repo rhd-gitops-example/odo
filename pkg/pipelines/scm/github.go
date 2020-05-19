@@ -1,10 +1,8 @@
-package github
+package scm
 
 import (
 	"net/url"
 
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/utility"
-	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
@@ -15,7 +13,16 @@ var (
 	triggerBindingTypeMeta = meta.TypeMeta("TriggerBinding", "tekton.dev/v1alpha1")
 )
 
+// Filters for interceptors
 const (
+	GithubCIDryRunFilters = "(header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize') && body.pull_request.head.repo.full_name == '%s'"
+
+	GithubCDDeployFilters = "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == '%s') && body.ref.startsWith('refs/heads/master')"
+
+	GitOpsWebhookSecret = "gitops-webhook-secret"
+
+	WebhookSecretKey = "webhook-secret-key"
+
 	githubPRBindingName   = "github-pr-binding"
 	githubPushBindingName = "github-push-binding"
 )
@@ -25,7 +32,7 @@ type GithubRepository struct {
 	URL *url.URL
 }
 
-func NewRepository(rawURL string) (*GithubRepository, error) {
+func NewGithubRepository(rawURL string) (*GithubRepository, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
@@ -71,20 +78,20 @@ func (repo *GithubRepository) GetURL() string {
 
 // CreateCITrigger creates a CI eventlistener trigger for Github
 func (repo *GithubRepository) CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
-	repoName, err := utility.GetRepoName(repo.GetURL())
+	repoName, err := GetRepoName(repo.GetURL())
 	if err != nil {
 		return v1alpha1.EventListenerTrigger{}, err
 	}
-	return eventlisteners.CreateListenerTrigger(repo, name, repo.GetCIFilters(), repoName, secretName, secretNs, template, bindings), nil
+	return createListenerTrigger(repo, name, repo.GetCIFilters(), repoName, secretName, secretNs, template, bindings), nil
 }
 
 // CreateCDTrigger creates a CD eventlistener trigger for Github
 func (repo *GithubRepository) CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
-	repoName, err := utility.GetRepoName(repo.GetURL())
+	repoName, err := GetRepoName(repo.GetURL())
 	if err != nil {
 		return v1alpha1.EventListenerTrigger{}, err
 	}
-	return eventlisteners.CreateListenerTrigger(repo, name, repo.GetCDFilters(), repoName, secretName, secretNs, template, bindings), nil
+	return createListenerTrigger(repo, name, repo.GetCDFilters(), repoName, secretName, secretNs, template, bindings), nil
 }
 
 // CreateInterceptor returns a Github event interceptor
@@ -93,7 +100,7 @@ func (repo *GithubRepository) CreateInterceptor(secretName, secretNs string) *tr
 		GitHub: &triggersv1.GitHubInterceptor{
 			SecretRef: &triggersv1.SecretRef{
 				SecretName: secretName,
-				SecretKey:  eventlisteners.WebhookSecretKey,
+				SecretKey:  WebhookSecretKey,
 				Namespace:  secretNs,
 			},
 		},
@@ -103,21 +110,11 @@ func (repo *GithubRepository) CreateInterceptor(secretName, secretNs string) *tr
 // GetCIFilters returns the CEL interceptor filters
 // for a Github CI event
 func (repo *GithubRepository) GetCIFilters() string {
-	return eventlisteners.StageCIDryRunFilters
+	return GithubCIDryRunFilters
 }
 
 // GetCDFilters returns the CEL event interceptor filters
 // for a Github CD event
 func (repo *GithubRepository) GetCDFilters() string {
-	return eventlisteners.StageCDDeployFilters
-}
-
-func createBindingParam(name string, value string) pipelinev1.Param {
-	return pipelinev1.Param{
-		Name: name,
-		Value: pipelinev1.ArrayOrString{
-			StringVal: value,
-			Type:      pipelinev1.ParamTypeString,
-		},
-	}
+	return GithubCDDeployFilters
 }

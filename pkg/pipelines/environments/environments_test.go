@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/spf13/afero"
 )
 
@@ -21,7 +21,7 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fakeRepo, err := repository.New("https://github.com/myproject/myservice.git")
+	fakeRepo, err := scm.FakeRepository("https://github.com/myproject/myservice.git")
 	if err != nil {
 		t.Fatal(err)
 	}

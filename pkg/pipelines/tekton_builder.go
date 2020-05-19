@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
@@ -52,7 +52,7 @@ func (tk *tektonBuilder) Service(env *config.Environment, svc *config.Service) e
 	if svc.SourceURL == "" {
 		return nil
 	}
-	repo, err := repository.New(svc.SourceURL)
+	repo, err := scm.NewRepository(svc.SourceURL)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func getEventListenerPath(cicdPath string) string {
 
 func createTriggersForCICD(gitOpsRepo string, env *config.Environment) ([]v1alpha1.EventListenerTrigger, error) {
 	triggers := []v1alpha1.EventListenerTrigger{}
-	repo, err := repository.New(gitOpsRepo)
+	repo, err := scm.NewRepository(gitOpsRepo)
 	if err != nil {
 		return []v1alpha1.EventListenerTrigger{}, err
 	}

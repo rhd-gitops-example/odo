@@ -1,6 +1,7 @@
-package github
+package scm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -10,7 +11,8 @@ import (
 )
 
 func TestCreatePRBindingForGithub(t *testing.T) {
-	repo := fakeGithubRepository(t, "http://github.com/org/test")
+	repo, err := FakeRepository("http://github.com/org/test")
+	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
 		TypeMeta: triggerBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
@@ -60,7 +62,8 @@ func TestCreatePRBindingForGithub(t *testing.T) {
 }
 
 func TestCreatePushBindingForGithub(t *testing.T) {
-	repo := fakeGithubRepository(t, "http://github.com/org/test")
+	repo, err := FakeRepository("http://github.com/org/test")
+	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
 		TypeMeta: triggerBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
@@ -102,10 +105,64 @@ func TestCreatePushBindingForGithub(t *testing.T) {
 	}
 }
 
-func fakeGithubRepository(t *testing.T, rawURL string) *GithubRepository {
-	repo, err := NewRepository("http://github.com/org/test")
+func TestCreateCITriggerForGithub(t *testing.T) {
+	repo, err := FakeRepository("http://github.com/org/test")
+	assertNoError(t, err)
+	want := triggersv1.EventListenerTrigger{
+		Name: "test",
+		Bindings: []*triggersv1.EventListenerBinding{
+			&triggersv1.EventListenerBinding{Name: "test-binding"},
+		},
+		Template: triggersv1.EventListenerTemplate{Name: "test-template"},
+		Interceptors: []*triggersv1.EventInterceptor{
+			&triggersv1.EventInterceptor{
+				CEL: &triggersv1.CELInterceptor{
+					Filter: fmt.Sprintf(GithubCIDryRunFilters, "org/test"),
+				},
+			},
+			&triggersv1.EventInterceptor{
+				GitHub: &triggersv1.GitHubInterceptor{
+					SecretRef: &triggersv1.SecretRef{SecretKey: "webhook-secret-key", SecretName: "secret", Namespace: "ns"},
+				},
+			},
+		},
+	}
+	got, err := repo.CreateCITrigger("test", "secret", "ns", "test-template", []string{"test-binding"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return repo
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("CreateCITrigger() failed:\n%s", diff)
+	}
+}
+
+func TestCreateCDTriggersForGithub(t *testing.T) {
+	repo, err := FakeRepository("http://github.com/org/test")
+	assertNoError(t, err)
+	want := triggersv1.EventListenerTrigger{
+		Name: "test",
+		Bindings: []*triggersv1.EventListenerBinding{
+			&triggersv1.EventListenerBinding{Name: "test-binding"},
+		},
+		Template: triggersv1.EventListenerTemplate{Name: "test-template"},
+		Interceptors: []*triggersv1.EventInterceptor{
+			&triggersv1.EventInterceptor{
+				CEL: &triggersv1.CELInterceptor{
+					Filter: fmt.Sprintf(GithubCDDeployFilters, "org/test"),
+				},
+			},
+			&triggersv1.EventInterceptor{
+				GitHub: &triggersv1.GitHubInterceptor{
+					SecretRef: &triggersv1.SecretRef{SecretKey: "webhook-secret-key", SecretName: "secret", Namespace: "ns"},
+				},
+			},
+		},
+	}
+	got, err := repo.CreateCDTrigger("test", "secret", "ns", "test-template", []string{"test-binding"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("CreateCDTrigger() failed:\n%s", diff)
+	}
 }
