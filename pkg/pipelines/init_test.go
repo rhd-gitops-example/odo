@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
@@ -47,7 +47,7 @@ func TestInitialFiles(t *testing.T) {
 		return &key.PublicKey, nil
 	}
 	fakeFs := ioutils.NewMapFilesystem()
-	repo, err := scm.NewRepository(gitOpsURL)
+	repo, err := repository.New(gitOpsURL)
 	assertNoError(t, err)
 	got, err := createInitialFiles(fakeFs, repo, prefix, gitOpsURL, gitOpsWebhook, "")
 	if err != nil {

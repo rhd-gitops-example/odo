@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
@@ -76,11 +76,11 @@ func (io *BootstrapParameters) Validate() error {
 
 // Run runs the project bootstrap command.
 func (io *BootstrapParameters) Run() error {
-	gitOpsRep, err := scm.NewRepository(io.gitOpsRepoURL)
+	gitOpsRep, err := repository.New(io.gitOpsRepoURL)
 	if err != nil {
 		return err
 	}
-	svcRepo, err := scm.NewRepository(io.appRepoURL)
+	svcRepo, err := repository.New(io.appRepoURL)
 	if err != nil {
 		return err
 	}

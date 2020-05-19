@@ -3,6 +3,7 @@ package eventlisteners
 import (
 	"fmt"
 
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm"
 	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +27,7 @@ var (
 )
 
 // Generate will create the required eventlisteners.
-func Generate(githubRepo, ns, saName, secretName string) triggersv1.EventListener {
+func Generate(repo scm.Repository, githubRepo, ns, saName, secretName string) triggersv1.EventListener {
 	return triggersv1.EventListener{
 		TypeMeta:   eventListenerTypeMeta,
 		ObjectMeta: createListenerObjectMeta("cicd-event-listener", ns),
@@ -34,6 +35,7 @@ func Generate(githubRepo, ns, saName, secretName string) triggersv1.EventListene
 			ServiceAccountName: saName,
 			Triggers: []triggersv1.EventListenerTrigger{
 				CreateListenerTrigger(
+					repo,
 					"ci-dryrun-from-pr",
 					StageCIDryRunFilters,
 					githubRepo,
@@ -43,6 +45,7 @@ func Generate(githubRepo, ns, saName, secretName string) triggersv1.EventListene
 					[]string{"github-pr-binding"},
 				),
 				CreateListenerTrigger(
+					repo,
 					"cd-deploy-from-push",
 					StageCDDeployFilters,
 					githubRepo,
@@ -90,12 +93,12 @@ func createGitHubInterceptor(secretName, ns string) *triggersv1.EventInterceptor
 	}
 }
 
-func CreateListenerTrigger(name, filter, repoName, secretName, secretNS, template string, bindings []string) triggersv1.EventListenerTrigger {
+func CreateListenerTrigger(repo scm.Repository, name, filter, repoName, secretName, secretNS, template string, bindings []string) triggersv1.EventListenerTrigger {
 	return triggersv1.EventListenerTrigger{
 		Name: name,
 		Interceptors: []*triggersv1.EventInterceptor{
 			createEventInterceptor(filter, repoName),
-			createGitHubInterceptor(secretName, secretNS),
+			repo.CreateInterceptor(secretName, secretNS),
 		},
 		Bindings: createBindings(bindings),
 		Template: createListenerTemplate(template),

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
@@ -67,7 +67,7 @@ func (b *envBuilder) Service(env *config.Environment, svc *config.Service) error
 	}
 	// Add trigger bindings only if source url exists
 	if b.cicdEnv != nil && svc.SourceURL != "" {
-		repo, err := scm.NewRepository(svc.SourceURL)
+		repo, err := repository.New(svc.SourceURL)
 		if err != nil {
 			return err
 		}

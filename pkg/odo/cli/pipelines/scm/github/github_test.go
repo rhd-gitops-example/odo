@@ -1,4 +1,4 @@
-package scm
+package github
 
 import (
 	"testing"
@@ -103,7 +103,7 @@ func TestCreatePushBindingForGithub(t *testing.T) {
 }
 
 func fakeGithubRepository(t *testing.T, rawURL string) *GithubRepository {
-	repo, err := NewGithubRepository("http://github.com/org/test")
+	repo, err := NewRepository("http://github.com/org/test")
 	if err != nil {
 		t.Fatal(err)
 	}

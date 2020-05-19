@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -76,7 +77,7 @@ func TestGenerateEventListener(t *testing.T) {
 		},
 	}
 
-	eventListener := Generate("sample", "testing", "pipeline", "test")
+	eventListener := Generate(repository.New("http://github.com/org/test"), "sample", "testing", "pipeline", "test")
 	if diff := cmp.Diff(validEventListener, eventListener); diff != "" {
 		t.Fatalf("Generate() failed:\n%s", diff)
 	}
@@ -140,7 +141,7 @@ func TestCreateListenerTrigger(t *testing.T) {
 			Name: "sampleTemplateName",
 		},
 	}
-	listenerTrigger := CreateListenerTrigger("sampleName", "sampleFilter %s", "sample", "test", "", "sampleTemplateName", []string{"sampleBindingName"})
+	listenerTrigger := CreateListenerTrigger(repository.New("http://github.com/org/test"), "sampleName", "sampleFilter %s", "sample", "test", "", "sampleTemplateName", []string{"sampleBindingName"})
 	if diff := cmp.Diff(validListenerTrigger, listenerTrigger); diff != "" {
 		t.Fatalf("createListenerTrigger() failed:\n%s", diff)
 	}

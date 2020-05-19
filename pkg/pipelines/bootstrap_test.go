@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/deployment"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
@@ -34,9 +34,9 @@ func TestBootstrapManifest(t *testing.T) {
 		}
 		return &key.PublicKey, nil
 	}
-	gitOpsRepo, err := scm.NewRepository(testGitOpsRepo)
+	gitOpsRepo, err := repository.New(testGitOpsRepo)
 	assertNoError(t, err)
-	svcRepo, err := scm.NewRepository(testSvcRepo)
+	svcRepo, err := repository.New(testSvcRepo)
 	assertNoError(t, err)
 	params := &BootstrapOptions{
 		Prefix:              "tst-",

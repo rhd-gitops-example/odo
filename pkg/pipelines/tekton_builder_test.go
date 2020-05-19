@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/scm/repository"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
@@ -179,13 +180,16 @@ func fakeTiggers(t *testing.T, m *config.Manifest, gitOpsRepo string) []v1alpha1
 	devEnv := m.GetEnvironment("test-dev")
 	cicdEnv, err := m.GetCICDEnvironment()
 	assertNoError(t, err)
-	devCITrigger, err := createCITrigger(gitOpsRepo, devEnv, testService())
+	svc := testService()
+	pipelines := getPipelines(devEnv, svc)
+	repo, err := repository.New(svc.SourceURL)
 	assertNoError(t, err)
-	ciTrigger, err := createCITrigger(gitOpsRepo, cicdEnv, nil)
+	devCITrigger, err := repo.CreateCITrigger(fmt.Sprintf("app-ci-build-from-pr-%s", svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
 	assertNoError(t, err)
-	cdTrigger, err := createCDTrigger(gitOpsRepo, cicdEnv, nil)
+	triggers = append(triggers, devCITrigger)
+	cicdTriggers, err := createTriggersForCICD(gitOpsRepo, cicdEnv)
 	assertNoError(t, err)
-	triggers = append(triggers, devCITrigger, ciTrigger, cdTrigger)
+	triggers = append(triggers, cicdTriggers...)
 	return triggers
 }
 
