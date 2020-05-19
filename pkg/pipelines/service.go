@@ -19,8 +19,8 @@ import (
 	"github.com/spf13/afero"
 )
 
-// AddServoceParameters are parameters passed to AddSerice function
-type AddServoceParameters struct {
+// AddServiceParameters are parameters passed to AddSerice function
+type AddServiceParameters struct {
 	AppName                  string
 	EnvName                  string
 	GitRepoURL               string
@@ -31,7 +31,7 @@ type AddServoceParameters struct {
 	WebhookSecret            string
 }
 
-func AddService(p *AddServoceParameters, fs afero.Fs) error {
+func AddService(p *AddServiceParameters, fs afero.Fs) error {
 
 	m, err := config.ParseFile(fs, p.Manifest)
 	if err != nil {
@@ -63,7 +63,7 @@ func AddService(p *AddServoceParameters, fs afero.Fs) error {
 	return nil
 }
 
-func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServoceParameters) (res.Resources, error) {
+func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServiceParameters) (res.Resources, error) {
 	files := res.Resources{}
 
 	svc, err := createService(p.ServiceName, p.GitRepoURL)
@@ -141,7 +141,7 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServoceParameters) 
 
 }
 
-func createImageRepoResources(m *config.Manifest, cicdEnv *config.Environment, p *AddServoceParameters) (res.Resources, string, error) {
+func createImageRepoResources(m *config.Manifest, cicdEnv *config.Environment, p *AddServiceParameters) (res.Resources, string, error) {
 	isInternalRegistry, imageRepo, err := imagerepo.ValidateImageRepo(p.ImageRepo, p.InternalRegistryHostname)
 	if err != nil {
 		return nil, "", err

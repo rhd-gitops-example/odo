@@ -51,7 +51,7 @@ func (o *AddOptions) Validate() error {
 // Run runs the project bootstrap command.
 func (o *AddOptions) Run() error {
 
-	return pipelines.AddService(&pipelines.AddServoceParameters{
+	return pipelines.AddService(&pipelines.AddServiceParameters{
 		AppName:                  o.appName,
 		EnvName:                  o.envName,
 		GitRepoURL:               o.gitRepoURL,

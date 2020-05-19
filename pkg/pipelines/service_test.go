@@ -90,7 +90,7 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 		},
 	}
 
-	got, err := serviceResources(m, fakeFs, &AddServoceParameters{
+	got, err := serviceResources(m, fakeFs, &AddServiceParameters{
 		AppName:       "test-app",
 		EnvName:       "test-dev",
 		GitRepoURL:    "http://github.com/org/test",
@@ -147,7 +147,7 @@ func TestServiceResourcesWithoutCICD(t *testing.T) {
 		},
 	}
 
-	got, err := serviceResources(m, fakeFs, &AddServoceParameters{
+	got, err := serviceResources(m, fakeFs, &AddServiceParameters{
 		AppName:       "test-app",
 		EnvName:       "test-dev",
 		GitRepoURL:    "http://github.com/org/test",
@@ -208,7 +208,7 @@ func TestAddServiceWithoutApp(t *testing.T) {
 		},
 	}
 
-	got, err := serviceResources(m, fakeFs, &AddServoceParameters{
+	got, err := serviceResources(m, fakeFs, &AddServiceParameters{
 		AppName:       "new-app",
 		EnvName:       "test-dev",
 		GitRepoURL:    "http://github.com/org/test",
@@ -258,7 +258,7 @@ func TestAddService(t *testing.T) {
 		"environments/argocd/config/test-dev-test-app-app.yaml",
 		"environments/argocd/config/test-dev-new-app-app.yaml",
 	}
-	err = AddService(&AddServoceParameters{
+	err = AddService(&AddServiceParameters{
 		AppName:       "new-app",
 		EnvName:       "test-dev",
 		GitRepoURL:    "http://github.com/org/test",
@@ -332,7 +332,7 @@ func TestServiceWithArgoCD(t *testing.T) {
 	argo, err := argocd.Build("argocd", "http://github.com/org/test", m)
 	assertNoError(t, err)
 	want = res.Merge(argo, want)
-	got, err := serviceResources(m, fakeFs, &AddServoceParameters{
+	got, err := serviceResources(m, fakeFs, &AddServiceParameters{
 		AppName:       "test-app",
 		EnvName:       "test-dev",
 		GitRepoURL:    "http://github.com/org/test",
