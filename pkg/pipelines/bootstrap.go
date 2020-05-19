@@ -120,7 +120,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	bootstrapped = res.Merge(svcImageBinding, bootstrapped)
 
 	if isInternalRegistry {
-		resources, err := imagerepo.CreateInternalRegistryResources(cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
+		resources, err := imagerepo.CreateInternalRegistryResources(nil, cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get resources for internal image repository: %w", err)
 		}

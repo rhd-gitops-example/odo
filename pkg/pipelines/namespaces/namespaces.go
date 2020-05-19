@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/odo/pkg/pipelines/clientconfig"
+	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,9 +73,21 @@ func Exists(clientSet kubernetes.Interface, name string) (bool, error) {
 	return true, nil
 }
 
-func addPrefix(prefix, name string) string {
-	if prefix != "" {
-		return prefix + name
+// ExistsInManifestOrCluster returns true if the namespace exists in either in the manfiest or cluster
+// This function looks in the manifest first.  If manifest is nil, it will only check in the Cluster
+func ExistsInManifestOrCluster(m *config.Manifest, name string) (bool, error) {
+	if m != nil {
+		for _, env := range m.Environments {
+			if env.Name == name {
+				return true, nil
+			}
+		}
 	}
-	return name
+
+	clientSet, err := GetClientSet()
+	if err != nil {
+		return false, err
+	}
+
+	return Exists(clientSet, name)
 }

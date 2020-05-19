@@ -96,7 +96,7 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServoceParameters) 
 		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
 
 		if p.ImageRepo != "" {
-			resources, bindingName, err := createImageRepoResources(cicdEnv, p)
+			resources, bindingName, err := createImageRepoResources(m, cicdEnv, p)
 			if err != nil {
 				return nil, err
 			}
@@ -142,7 +142,7 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServoceParameters) 
 
 }
 
-func createImageRepoResources(cicdEnv *config.Environment, p *AddServoceParameters) (res.Resources, string, error) {
+func createImageRepoResources(m *config.Manifest, cicdEnv *config.Environment, p *AddServoceParameters) (res.Resources, string, error) {
 	isInternalRegistry, imageRepo, err := imagerepo.ValidateImageRepo(p.ImageRepo, p.InternalRegistryHostname)
 	if err != nil {
 		return nil, "", err
@@ -154,7 +154,7 @@ func createImageRepoResources(cicdEnv *config.Environment, p *AddServoceParamete
 	resources = res.Merge(svcImageBinding, resources)
 
 	if isInternalRegistry {
-		regRes, err := imagerepo.CreateInternalRegistryResources(cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
+		regRes, err := imagerepo.CreateInternalRegistryResources(m, cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to get resources for internal image repository: %w", err)
 		}

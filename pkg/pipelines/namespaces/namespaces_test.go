@@ -1,9 +1,11 @@
 package namespaces
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -78,4 +80,51 @@ func TestExists(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExistsInManifestOrCluster(t *testing.T) {
+	tests := []struct {
+		namespace string
+		m         *config.Manifest
+		want      bool
+	}{
+		{
+			namespace: "bar",
+			m: &config.Manifest{
+				Environments: []*config.Environment{
+					{
+						Name: "foo",
+					},
+					{
+						Name: "bar",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			namespace: "foo",
+			m: &config.Manifest{
+				Environments: []*config.Environment{
+					{
+						Name: "foo",
+					},
+					{
+						Name: "bar",
+					},
+				},
+			},
+			want: true,
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("test_%d", i), func(t *testing.T) {
+			got, _ := ExistsInManifestOrCluster(test.m, test.namespace)
+			if diff := cmp.Diff(got, test.want); diff != "" {
+				t.Fatalf("Exists() failed:\n%v", diff)
+			}
+		})
+	}
+
 }

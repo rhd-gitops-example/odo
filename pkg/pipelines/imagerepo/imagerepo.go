@@ -60,19 +60,16 @@ func imageRepoValidationErrors(imageRepo string) error {
 	return fmt.Errorf("failed to parse image repo:%s, expected image repository in the form <registry>/<username>/<repository> or <project>/<app> for internal registry", imageRepo)
 }
 
-func CreateInternalRegistryResources(cicdEnv *config.Environment, sa *corev1.ServiceAccount, imageRepo string) (res.Resources, error) {
+func CreateInternalRegistryResources(m *config.Manifest, cicdEnv *config.Environment, sa *corev1.ServiceAccount, imageRepo string) (res.Resources, error) {
 
 	// Provide access to service account for using internal registry
 	namespace := strings.Split(imageRepo, "/")[1]
 
-	clientSet, err := namespaces.GetClientSet()
+	namespaceExists, err := namespaces.ExistsInManifestOrCluster(m, namespace)
 	if err != nil {
 		return nil, err
 	}
-	namespaceExists, err := namespaces.Exists(clientSet, namespace)
-	if err != nil {
-		return nil, err
-	}
+
 	resources := res.Resources{}
 
 	if !namespaceExists {
