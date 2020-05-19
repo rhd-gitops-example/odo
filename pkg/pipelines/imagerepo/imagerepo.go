@@ -27,12 +27,7 @@ func ValidateImageRepo(imageRepo, registryURL string) (bool, string, error) {
 	}
 
 	for _, v := range components {
-		// check for empty components
-		if strings.TrimSpace(v) == "" {
-			return false, "", imageRepoValidationErrors(imageRepo)
-		}
-		// check for white spaces
-		if len(v) > len(strings.TrimSpace(v)) {
+		if isBlank(v) {
 			return false, "", imageRepoValidationErrors(imageRepo)
 		}
 	}
@@ -54,6 +49,10 @@ func ValidateImageRepo(imageRepo, registryURL string) (bool, string, error) {
 
 	// > 3 components.  invalid repo
 	return false, "", imageRepoValidationErrors(imageRepo)
+}
+
+func isBlank(s string) bool {
+	return strings.TrimSpace(s) == "" || len(s) > len(strings.TrimSpace(s))
 }
 
 func imageRepoValidationErrors(imageRepo string) error {
