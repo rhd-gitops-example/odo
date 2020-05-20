@@ -86,24 +86,25 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServiceParameters) 
 			return nil, err
 		}
 
+		env := m.GetEnvironment(p.EnvName)
+		if env == nil {
+			return nil, fmt.Errorf("environment %s does not exist.", p.EnvName)
+		}
+
 		svc.Webhook = &config.Webhook{
 			Secret: &config.Secret{
 				Name:      secretName,
 				Namespace: cicdEnv.Name,
 			},
 		}
-		secretPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines")
-		files[filepath.Join(secretPath, "03-secrets", secretName+".yaml")] = hookSecret
+		secretFilename := filepath.Join("03-secrets", secretName+".yaml")
+		secretsPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", secretFilename)
+		files[secretsPath] = hookSecret
 
 		if p.ImageRepo != "" {
-			resources, bindingName, err := createImageRepoResources(m, cicdEnv, p)
+			_, resources, bindingName, err := createImageRepoResources(m, cicdEnv, env, p)
 			if err != nil {
 				return nil, err
-			}
-
-			env := m.GetEnvironment(p.EnvName)
-			if env == nil {
-				return nil, fmt.Errorf("environment %s does not exist.", p.EnvName)
 			}
 
 			files = res.Merge(resources, files)
@@ -113,7 +114,6 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServiceParameters) 
 				},
 			}
 		}
-
 	}
 
 	err = m.AddService(p.EnvName, p.AppName, svc)
@@ -135,32 +135,32 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServiceParameters) 
 	if err != nil {
 		return nil, err
 	}
-	files = res.Merge(built, files)
-
-	return files, nil
-
+	return res.Merge(built, files), nil
 }
 
-func createImageRepoResources(m *config.Manifest, cicdEnv *config.Environment, p *AddServiceParameters) (res.Resources, string, error) {
+func createImageRepoResources(m *config.Manifest, cicdEnv, env *config.Environment, p *AddServiceParameters) ([]string, res.Resources, string, error) {
 	isInternalRegistry, imageRepo, err := imagerepo.ValidateImageRepo(p.ImageRepo, p.InternalRegistryHostname)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 
 	resources := res.Resources{}
+	filenames := []string{}
 
-	bindingName, _, svcImageBinding := createSvcImageBinding(cicdEnv, p.EnvName, p.ServiceName, imageRepo, !isInternalRegistry)
+	bindingName, bindingFilename, svcImageBinding := createSvcImageBinding(cicdEnv, env, p.ServiceName, imageRepo, !isInternalRegistry)
 	resources = res.Merge(svcImageBinding, resources)
+	filenames = append(filenames, bindingFilename)
 
 	if isInternalRegistry {
-		regRes, err := imagerepo.CreateInternalRegistryResources(m, cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
+		files, regRes, err := imagerepo.CreateInternalRegistryResources(cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to get resources for internal image repository: %w", err)
+			return nil, nil, "", fmt.Errorf("failed to get resources for internal image repository: %w", err)
 		}
 		resources = res.Merge(regRes, resources)
+		filenames = append(filenames, files...)
 	}
 
-	return resources, bindingName, nil
+	return filenames, resources, bindingName, nil
 }
 
 func createService(serviceName, url string) (*config.Service, error) {
@@ -194,12 +194,12 @@ func makeSvcImageBindingFilename(bindingName string) string {
 	return filepath.Join("06-bindings", bindingName+".yaml")
 }
 
-func makeImageBindingPath(cicdEnv *config.Environment, imageRepoBindingFilename string) string {
-	return filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", imageRepoBindingFilename)
+func makeImageBindingPath(env *config.Environment, imageRepoBindingFilename string) string {
+	return filepath.Join(config.PathForEnvironment(env), "base", "pipelines", imageRepoBindingFilename)
 }
 
-func createSvcImageBinding(cicdEnv *config.Environment, envName, svcName, imageRepo string, isTLSVerify bool) (string, string, res.Resources) {
-	name := makeSvcImageBindingName(envName, svcName)
+func createSvcImageBinding(cicdEnv, env *config.Environment, svcName, imageRepo string, isTLSVerify bool) (string, string, res.Resources) {
+	name := makeSvcImageBindingName(env.Name, svcName)
 	filename := makeSvcImageBindingFilename(name)
 	resourceFilePath := makeImageBindingPath(cicdEnv, filename)
 	return name, filename, res.Resources{resourceFilePath: triggers.CreateImageRepoBinding(cicdEnv.Name, name, imageRepo, strconv.FormatBool(isTLSVerify))}

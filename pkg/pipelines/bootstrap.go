@@ -85,7 +85,8 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	}
 
 	ns := namespaces.NamesWithPrefix(o.Prefix)
-	secretName := secrets.MakeServiceWebhookSecretName(repoToServiceName(repoName))
+	serviceName := repoToServiceName(repoName)
+	secretName := secrets.MakeServiceWebhookSecretName(serviceName)
 	envs, err := bootstrapEnvironments(o.Prefix, o.AppRepoURL, secretName, ns)
 	if err != nil {
 		return nil, err
@@ -115,15 +116,21 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	secretsPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", secretFilename)
 	bootstrapped[secretsPath] = hookSecret
 
-	bindingName, imageRepoBindingFilename, svcImageBinding := createSvcImageBinding(cicdEnv, devEnv.Name, repoToServiceName(repoName), imageRepo, !isInternalRegistry)
+	bindingName, imageRepoBindingFilename, svcImageBinding := createSvcImageBinding(cicdEnv, devEnv, serviceName, imageRepo, !isInternalRegistry)
 	bootstrapped = res.Merge(svcImageBinding, bootstrapped)
 
+	kustomizePath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", "kustomization.yaml")
+	k, ok := bootstrapped[kustomizePath].(res.Kustomization)
+	if !ok {
+		return nil, fmt.Errorf("no kustomization for the %s environment found", kustomizePath)
+	}
 	if isInternalRegistry {
-		resources, err := imagerepo.CreateInternalRegistryResources(nil, cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
+		filenames, resources, err := imagerepo.CreateInternalRegistryResources(devEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get resources for internal image repository: %w", err)
 		}
 		bootstrapped = res.Merge(resources, bootstrapped)
+		k.Resources = append(k.Resources, filenames...)
 	}
 
 	// This is specific to bootstrap, because there's only one service.
@@ -133,11 +140,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 		},
 	}
 	bootstrapped[pipelinesFile] = m
-	kustomizePath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", "kustomization.yaml")
-	k, ok := bootstrapped[kustomizePath].(res.Kustomization)
-	if !ok {
-		return nil, fmt.Errorf("no kustomization for the %s environment found", kustomizePath)
-	}
+
 	k.Resources = append(k.Resources, secretFilename, imageRepoBindingFilename)
 	sort.Strings(k.Resources)
 	bootstrapped[kustomizePath] = k

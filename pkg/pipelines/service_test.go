@@ -397,7 +397,10 @@ func TestCreateSvcImageBinding(t *testing.T) {
 	cicdEnv := &config.Environment{
 		Name: "cicd",
 	}
-	bindingName, bindingFilename, resources := createSvcImageBinding(cicdEnv, "new-env", "new-svc", "quay.io/user/app", false)
+	env := &config.Environment{
+		Name: "new-env",
+	}
+	bindingName, bindingFilename, resources := createSvcImageBinding(cicdEnv, env, "new-svc", "quay.io/user/app", false)
 
 	if diff := cmp.Diff(bindingName, "new-env-new-svc-binding"); diff != "" {
 		t.Errorf("bindingName failed: %v", diff)
