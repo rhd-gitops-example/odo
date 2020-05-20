@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
@@ -51,7 +52,7 @@ func (o *AddOptions) Validate() error {
 // Run runs the project bootstrap command.
 func (o *AddOptions) Run() error {
 
-	return pipelines.AddService(&pipelines.AddServiceParameters{
+	err := pipelines.AddService(&pipelines.AddServiceParameters{
 		AppName:                  o.appName,
 		EnvName:                  o.envName,
 		GitRepoURL:               o.gitRepoURL,
@@ -61,6 +62,11 @@ func (o *AddOptions) Run() error {
 		ServiceName:              o.serviceName,
 		WebhookSecret:            o.webhookSecret,
 	}, ioutils.NewFilesystem())
+
+	if err == nil {
+		log.Successf(fmt.Sprintf("Service %s has been created sucessfully at environment %s.", o.serviceName, o.envName))
+	}
+	return err
 
 }
 
