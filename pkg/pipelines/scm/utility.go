@@ -1,7 +1,6 @@
 package scm
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,7 +10,7 @@ import (
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
-func GetDriverName(rawURL string) (string, error) {
+func getDriverName(rawURL string) (string, error) {
 
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -21,14 +20,10 @@ func GetDriverName(rawURL string) (string, error) {
 		return strings.ToLower(s), nil
 	}
 
-	if s := strings.TrimSuffix(u.Host, ".org"); s != u.Host {
-		return strings.ToLower(s), nil
-	}
-
-	return "", errors.New("unknown Git server: " + u.Host)
+	return "", invalidRepoTypeError(rawURL)
 }
 
-func GetRepoName(rawURL string) (string, error) {
+func getRepoName(rawURL string) (string, error) {
 
 	var components []string
 
@@ -43,19 +38,21 @@ func GetRepoName(rawURL string) (string, error) {
 		}
 	}
 
-	if len(components) != 2 {
-		return "", errors.New("failed to get Git repo: " + u.Path)
+	if len(components) < 2 {
+		return "", invalidRepoNameError(rawURL)
 	}
 
 	components[1] = strings.TrimSuffix(components[1], ".git")
 
-	for _, s := range components {
-		if strings.Index(s, ".") != -1 {
-			return "", errors.New("failed to get Git repo: " + u.Path)
-		}
-	}
-
 	return components[0] + "/" + components[1], nil
+}
+
+func invalidRepoTypeError(repoURL string) error {
+	return fmt.Errorf("unable to determine type of Git host from: %s", repoURL)
+}
+
+func invalidRepoNameError(repoURL string) error {
+	return fmt.Errorf("unable to determine repo name from: %s", repoURL)
 }
 
 func createListenerTrigger(repo Repository, name, filter, repoName, secretName, secretNS, template string, bindings []string) triggersv1.EventListenerTrigger {

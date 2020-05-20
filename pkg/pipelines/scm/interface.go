@@ -5,6 +5,8 @@ import (
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
+// Repository interface exposes generic functions that will be
+// implemented by repositories (Github,Gitlab,Bitbucket,etc)
 type Repository interface {
 	CreatePRBinding(namespace string) (triggersv1.TriggerBinding, string)
 	CreatePushBinding(namespace string) (triggersv1.TriggerBinding, string)
@@ -14,8 +16,5 @@ type Repository interface {
 	CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error)
 	CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error)
 
-	GetCIFilters() string
-	GetCDFilters() string
-
-	GetURL() string
+	URL() string
 }

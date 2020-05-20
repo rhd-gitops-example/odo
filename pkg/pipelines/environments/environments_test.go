@@ -21,7 +21,7 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fakeRepo, err := scm.FakeRepository("https://github.com/myproject/myservice.git")
+	fakeRepo, err := scm.NewRepository("https://github.com/myproject/myservice.git")
 	if err != nil {
 		t.Fatal(err)
 	}

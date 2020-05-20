@@ -1,6 +1,7 @@
 package scm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -41,7 +42,7 @@ func TestCreateListenerTrigger(t *testing.T) {
 				GitHub: &triggersv1.GitHubInterceptor{
 					SecretRef: &triggersv1.SecretRef{
 						SecretName: "test",
-						SecretKey:  WebhookSecretKey,
+						SecretKey:  webhookSecretKey,
 					},
 				},
 			},
@@ -56,9 +57,7 @@ func TestCreateListenerTrigger(t *testing.T) {
 		},
 	}
 	repo, err := NewRepository("http://github.com/org/test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assertNoError(t, err)
 	listenerTrigger := createListenerTrigger(repo, "sampleName", "sampleFilter %s", "sample", "test", "", "sampleTemplateName", []string{"sampleBindingName"})
 	if diff := cmp.Diff(validListenerTrigger, listenerTrigger); diff != "" {
 		t.Fatalf("createListenerTrigger() failed:\n%s", diff)
@@ -74,5 +73,128 @@ func TestCreateEventInterceptor(t *testing.T) {
 	eventInterceptor := createEventInterceptor("sampleFilter %s", "sample")
 	if diff := cmp.Diff(validEventInterceptor, *eventInterceptor); diff != "" {
 		t.Fatalf("createEventInterceptor() failed:\n%s", diff)
+	}
+}
+
+func TestGetDriverName(t *testing.T) {
+
+	tests := []struct {
+		url          string
+		driver       string
+		driverErrMsg string
+	}{
+		{
+			"http://github.com/",
+			"github",
+			"",
+		},
+		{
+			"http://github.com/foo/bar",
+			"github",
+			"",
+		},
+		{
+			"https://githuB.com/foo/bar.git",
+			"github",
+			"",
+		},
+		{
+			"http://gitlab.com/foo/bar.git2",
+			"gitlab",
+			"",
+		},
+		{
+			"http://gitlab/foo/bar/",
+			"",
+			"unable to determine type of Git host from: http://gitlab/foo/bar/",
+		},
+		{
+			"https://gitlab.a.b/foo/bar/bar",
+			"",
+			"unable to determine type of Git host from: https://gitlab.a.b/foo/bar/bar",
+		},
+		{
+			"https://gitlab.org2/f.b/bar.git",
+			"",
+			"unable to determine type of Git host from: https://gitlab.org2/f.b/bar.git",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
+			gotDriver, err := getDriverName(tt.url)
+			if err != nil {
+				if diff := cmp.Diff(tt.driverErrMsg, err.Error()); diff != "" {
+					rt.Errorf("driver errMsg mismatch: \n%s", diff)
+				}
+			}
+			if diff := cmp.Diff(tt.driver, gotDriver); diff != "" {
+				rt.Errorf("driver mismatch: \n%s", diff)
+			}
+		})
+	}
+}
+
+func TestGetRepoName(t *testing.T) {
+	tests := []struct {
+		url        string
+		repoName   string
+		repoErrMsg string
+	}{
+		{
+			"http://github.org",
+			"",
+			"unable to determine repo name from: http://github.org",
+		},
+		{
+			"http://github.com/",
+			"",
+			"unable to determine repo name from: http://github.com/",
+		},
+		{
+			"http://gitlab.com/org",
+			"",
+			"unable to determine repo name from: http://gitlab.com/org",
+		},
+		{
+			"http://github.com/foo/bar",
+			"foo/bar",
+			"",
+		},
+		{
+			"https://githuB.com/foo/bar.git",
+			"foo/bar",
+			"",
+		},
+		{
+			"http://gitlab.com/foo/a.b.c.git",
+			"foo/a.b.c",
+			"",
+		},
+		{
+			"http://gitlab/foo/bar/",
+			"foo/bar",
+			"",
+		},
+		{
+			"https://gitlab.a.b/foo/bar/bar",
+			"foo/bar",
+			"",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
+			repoName, err := getRepoName(tt.url)
+			if err != nil {
+				if diff := cmp.Diff(tt.repoErrMsg, err.Error()); diff != "" {
+					rt.Errorf("repo name errMsg mismatch: \n%s", diff)
+				}
+			}
+			if diff := cmp.Diff(tt.repoName, repoName); diff != "" {
+				rt.Errorf("repo name mismatch: got\n%s", diff)
+			}
+
+		})
 	}
 }

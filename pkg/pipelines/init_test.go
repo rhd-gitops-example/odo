@@ -19,13 +19,16 @@ import (
 var testCICDEnv = &config.Environment{Name: "tst-cicd", IsCICD: true}
 
 func TestCreateManifest(t *testing.T) {
+	repoURL := "https://github.com/foo/bar.git"
+	repo, err := scm.NewRepository(repoURL)
+	assertNoError(t, err)
 	want := &config.Manifest{
-		GitOpsURL: "https://github.com/foo/bar.git",
+		GitOpsURL: repoURL,
 		Environments: []*config.Environment{
 			testCICDEnv,
 		},
 	}
-	got := createManifest("https://github.com/foo/bar.git", testCICDEnv)
+	got := createManifest(repo, testCICDEnv)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("pipelines didn't match: %s\n", diff)
 	}
@@ -47,7 +50,7 @@ func TestInitialFiles(t *testing.T) {
 		return &key.PublicKey, nil
 	}
 	fakeFs := ioutils.NewMapFilesystem()
-	repo, err := scm.FakeRepository(gitOpsURL)
+	repo, err := scm.NewRepository(gitOpsURL)
 	assertNoError(t, err)
 	got, err := createInitialFiles(fakeFs, repo, prefix, gitOpsWebhook, "")
 	if err != nil {
@@ -55,7 +58,7 @@ func TestInitialFiles(t *testing.T) {
 	}
 
 	want := res.Resources{
-		pipelinesFile: createManifest(gitOpsURL, testCICDEnv),
+		pipelinesFile: createManifest(repo, testCICDEnv),
 	}
 	resources, err := createCICDResources(fakeFs, repo, testCICDEnv, gitOpsWebhook, "")
 	if err != nil {

@@ -150,7 +150,7 @@ func CreateDockerSecret(fs afero.Fs, dockerConfigJSONFilename, ns string) (*ssv1
 
 func createInitialFiles(fs afero.Fs, repo scm.Repository, prefix, gitOpsWebhookSecret, dockerConfigPath string) (res.Resources, error) {
 	cicdEnv := &config.Environment{Name: prefix + "cicd", IsCICD: true}
-	pipelines := createManifest(repo.GetURL(), cicdEnv)
+	pipelines := createManifest(repo, cicdEnv)
 	initialFiles := res.Resources{
 		pipelinesFile: pipelines,
 	}
@@ -218,9 +218,9 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, cicdEnv *config.Envir
 	return outputs, nil
 }
 
-func createManifest(gitOpsURL string, envs ...*config.Environment) *config.Manifest {
+func createManifest(gitOpsRepo scm.Repository, envs ...*config.Environment) *config.Manifest {
 	return &config.Manifest{
-		GitOpsURL:    gitOpsURL,
+		GitOpsURL:    gitOpsRepo.URL(),
 		Environments: envs,
 	}
 }

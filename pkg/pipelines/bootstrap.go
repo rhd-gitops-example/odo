@@ -82,7 +82,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	if err != nil {
 		return nil, err
 	}
-	repoName, err := repoFromURL(appRepo.GetURL())
+	repoName, err := repoFromURL(appRepo.URL())
 	if err != nil {
 		return nil, fmt.Errorf("invalid app repo URL: %w", err)
 	}
@@ -94,11 +94,11 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 
 	ns := namespaces.NamesWithPrefix(o.Prefix)
 	secretName := secrets.MakeServiceWebhookSecretName(repoToServiceName(repoName))
-	envs, err := bootstrapEnvironments(o.Prefix, appRepo.GetURL(), secretName, ns)
+	envs, err := bootstrapEnvironments(o.Prefix, appRepo.URL(), secretName, ns)
 	if err != nil {
 		return nil, err
 	}
-	m := createManifest(gitOpsRepo.GetURL(), envs...)
+	m := createManifest(gitOpsRepo, envs...)
 
 	devEnv := m.GetEnvironment(ns["dev"])
 	if devEnv == nil {

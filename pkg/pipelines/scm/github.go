@@ -15,13 +15,11 @@ var (
 
 // Filters for interceptors
 const (
-	GithubCIDryRunFilters = "(header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize') && body.pull_request.head.repo.full_name == '%s'"
+	githubCIDryRunFilters = "(header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize') && body.pull_request.head.repo.full_name == '%s'"
 
-	GithubCDDeployFilters = "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == '%s') && body.ref.startsWith('refs/heads/master')"
+	githubCDDeployFilters = "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == '%s') && body.ref.startsWith('refs/heads/master')"
 
-	GitOpsWebhookSecret = "gitops-webhook-secret"
-
-	WebhookSecretKey = "webhook-secret-key"
+	webhookSecretKey = "webhook-secret-key"
 
 	githubPRBindingName   = "github-pr-binding"
 	githubPushBindingName = "github-push-binding"
@@ -29,15 +27,16 @@ const (
 
 // GithubRepository represents a service on a Github repo
 type GithubRepository struct {
-	URL *url.URL
+	url *url.URL
 }
 
+// NewGithubRepository returns an instance of GithubRepository
 func NewGithubRepository(rawURL string) (*GithubRepository, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
 	}
-	return &GithubRepository{URL: parsedURL}, nil
+	return &GithubRepository{url: parsedURL}, nil
 }
 
 // CreatePRBinding returns a TriggerBinding for Github PullRequest hooks.
@@ -71,27 +70,27 @@ func (repo *GithubRepository) CreatePushBinding(ns string) (triggersv1.TriggerBi
 	}, githubPushBindingName
 }
 
-// GetURL returns the URL of the Github repository
-func (repo *GithubRepository) GetURL() string {
-	return repo.URL.String()
+// URL returns the URL of the Github repository
+func (repo *GithubRepository) URL() string {
+	return repo.url.String()
 }
 
 // CreateCITrigger creates a CI eventlistener trigger for Github
 func (repo *GithubRepository) CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
-	repoName, err := GetRepoName(repo.GetURL())
+	repoName, err := getRepoName(repo.URL())
 	if err != nil {
 		return v1alpha1.EventListenerTrigger{}, err
 	}
-	return createListenerTrigger(repo, name, repo.GetCIFilters(), repoName, secretName, secretNs, template, bindings), nil
+	return createListenerTrigger(repo, name, githubCIDryRunFilters, repoName, secretName, secretNs, template, bindings), nil
 }
 
 // CreateCDTrigger creates a CD eventlistener trigger for Github
 func (repo *GithubRepository) CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
-	repoName, err := GetRepoName(repo.GetURL())
+	repoName, err := getRepoName(repo.URL())
 	if err != nil {
 		return v1alpha1.EventListenerTrigger{}, err
 	}
-	return createListenerTrigger(repo, name, repo.GetCDFilters(), repoName, secretName, secretNs, template, bindings), nil
+	return createListenerTrigger(repo, name, githubCDDeployFilters, repoName, secretName, secretNs, template, bindings), nil
 }
 
 // CreateInterceptor returns a Github event interceptor
@@ -100,21 +99,9 @@ func (repo *GithubRepository) CreateInterceptor(secretName, secretNs string) *tr
 		GitHub: &triggersv1.GitHubInterceptor{
 			SecretRef: &triggersv1.SecretRef{
 				SecretName: secretName,
-				SecretKey:  WebhookSecretKey,
+				SecretKey:  webhookSecretKey,
 				Namespace:  secretNs,
 			},
 		},
 	}
-}
-
-// GetCIFilters returns the CEL interceptor filters
-// for a Github CI event
-func (repo *GithubRepository) GetCIFilters() string {
-	return GithubCIDryRunFilters
-}
-
-// GetCDFilters returns the CEL event interceptor filters
-// for a Github CD event
-func (repo *GithubRepository) GetCDFilters() string {
-	return GithubCDDeployFilters
 }

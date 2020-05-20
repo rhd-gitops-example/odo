@@ -12,8 +12,21 @@ func TestNewRepository(t *testing.T) {
 	assertNoError(t, err)
 	want, err := NewGithubRepository(githubURL)
 	assertNoError(t, err)
-	if diff := cmp.Diff(got, want); diff != "" {
+	if diff := cmp.Diff(got, want, cmp.AllowUnexported(GithubRepository{})); diff != "" {
 		t.Fatalf("NewRepository() failed:\n%s", diff)
+	}
+}
+
+func TestNewRepositoryForInvalidRepoType(t *testing.T) {
+	githubURL := "http://test.com/org/test"
+	repoType := "test"
+	_, gotErr := NewRepository(githubURL)
+	if gotErr == nil {
+		t.Fatalf("NewRepository() returned an invalid repository of type: %s", repoType)
+	}
+	wantErr := invalidRepoTypeError(githubURL)
+	if diff := cmp.Diff(wantErr.Error(), gotErr.Error()); diff != "" {
+		t.Fatalf("Errors don't match: got %v want %v", gotErr, wantErr)
 	}
 }
 

@@ -10,8 +10,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var _ Repository = (*GithubRepository)(nil)
+
 func TestCreatePRBindingForGithub(t *testing.T) {
-	repo, err := FakeRepository("http://github.com/org/test")
+	repo, err := NewGithubRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
 		TypeMeta: triggerBindingTypeMeta,
@@ -62,7 +64,7 @@ func TestCreatePRBindingForGithub(t *testing.T) {
 }
 
 func TestCreatePushBindingForGithub(t *testing.T) {
-	repo, err := FakeRepository("http://github.com/org/test")
+	repo, err := NewGithubRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
 		TypeMeta: triggerBindingTypeMeta,
@@ -106,7 +108,7 @@ func TestCreatePushBindingForGithub(t *testing.T) {
 }
 
 func TestCreateCITriggerForGithub(t *testing.T) {
-	repo, err := FakeRepository("http://github.com/org/test")
+	repo, err := NewGithubRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.EventListenerTrigger{
 		Name: "test",
@@ -117,7 +119,7 @@ func TestCreateCITriggerForGithub(t *testing.T) {
 		Interceptors: []*triggersv1.EventInterceptor{
 			&triggersv1.EventInterceptor{
 				CEL: &triggersv1.CELInterceptor{
-					Filter: fmt.Sprintf(GithubCIDryRunFilters, "org/test"),
+					Filter: fmt.Sprintf(githubCIDryRunFilters, "org/test"),
 				},
 			},
 			&triggersv1.EventInterceptor{
@@ -128,16 +130,14 @@ func TestCreateCITriggerForGithub(t *testing.T) {
 		},
 	}
 	got, err := repo.CreateCITrigger("test", "secret", "ns", "test-template", []string{"test-binding"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	assertNoError(t, err)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("CreateCITrigger() failed:\n%s", diff)
 	}
 }
 
 func TestCreateCDTriggersForGithub(t *testing.T) {
-	repo, err := FakeRepository("http://github.com/org/test")
+	repo, err := NewGithubRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.EventListenerTrigger{
 		Name: "test",
@@ -148,7 +148,7 @@ func TestCreateCDTriggersForGithub(t *testing.T) {
 		Interceptors: []*triggersv1.EventInterceptor{
 			&triggersv1.EventInterceptor{
 				CEL: &triggersv1.CELInterceptor{
-					Filter: fmt.Sprintf(GithubCDDeployFilters, "org/test"),
+					Filter: fmt.Sprintf(githubCDDeployFilters, "org/test"),
 				},
 			},
 			&triggersv1.EventInterceptor{
@@ -159,9 +159,7 @@ func TestCreateCDTriggersForGithub(t *testing.T) {
 		},
 	}
 	got, err := repo.CreateCDTrigger("test", "secret", "ns", "test-template", []string{"test-binding"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	assertNoError(t, err)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("CreateCDTrigger() failed:\n%s", diff)
 	}
