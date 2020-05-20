@@ -32,7 +32,6 @@ func BuildResources(o *BuildParameters, appFs afero.Fs) error {
 		return err
 	}
 	_, err = yaml.WriteResources(appFs, o.OutputPath, resources)
-
 	return err
 }
 
@@ -55,6 +54,5 @@ func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Re
 		return nil, err
 	}
 	resources = res.Merge(argoApps, resources)
-
 	return resources, nil
 }

@@ -58,7 +58,7 @@ func (io *BuildParameters) Run() error {
 	}
 	err := pipelines.BuildResources(&options, ioutils.NewFilesystem())
 	if err == nil {
-		log.Successf("Build successful!!")
+		log.Successf("Built successfully.")
 	}
 	return err
 }

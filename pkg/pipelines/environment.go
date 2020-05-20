@@ -45,6 +45,5 @@ func AddEnv(o *EnvParameters, appFs afero.Fs) error {
 	}
 	files = res.Merge(built, files)
 	_, err = yaml.WriteResources(appFs, outputPath, files)
-
 	return err
 }

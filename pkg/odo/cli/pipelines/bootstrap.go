@@ -70,7 +70,7 @@ func (io *BootstrapParameters) Validate() error {
 func (io *BootstrapParameters) Run() error {
 	err := pipelines.Bootstrap(io.BootstrapOptions, ioutils.NewFilesystem())
 	if err == nil {
-		log.Successf("Bootstrapped the Gitops repo sucessfully!")
+		log.Successf("Bootstrapped GitOps sucessfully.")
 	}
 	return err
 }

@@ -8,6 +8,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/spf13/afero"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/deployment"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
@@ -17,9 +21,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
-	"github.com/spf13/afero"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const pipelinesFile = "pipelines.yaml"
@@ -64,7 +65,6 @@ func Bootstrap(o *BootstrapOptions, appFs afero.Fs) error {
 	}
 	bootstrapped = res.Merge(built, bootstrapped)
 	_, err = yaml.WriteResources(appFs, o.OutputPath, bootstrapped)
-
 	return err
 }
 

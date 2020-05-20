@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/triggers"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
 	"github.com/spf13/afero"
+
 	v1rbac "k8s.io/api/rbac/v1"
 
 	ssv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealed-secrets/v1alpha1"
@@ -113,7 +114,6 @@ func Init(o *InitParameters, fs afero.Fs) error {
 		return err
 	}
 	_, err = yaml.WriteResources(fs, o.OutputPath, outputs)
-
 	return err
 }
 

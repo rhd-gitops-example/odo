@@ -52,7 +52,7 @@ func (o *AddOptions) Run() error {
 
 	err := pipelines.AddService(o.gitRepoURL, o.envName, o.appName, o.serviceName, o.webhookSecret, o.manifest, ioutils.NewFilesystem())
 	if err == nil {
-		log.Successf(fmt.Sprintf("Service %s created sucessfully at environment %s", o.serviceName, o.envName))
+		log.Successf(fmt.Sprintf("Service %s has been created sucessfully at environment %s.", o.serviceName, o.envName))
 	}
 	return err
 }

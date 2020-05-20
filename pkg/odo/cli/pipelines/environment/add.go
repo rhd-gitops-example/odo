@@ -62,7 +62,7 @@ func (eo *AddEnvParameters) Run() error {
 	}
 	err := pipelines.AddEnv(&options, ioutils.NewFilesystem())
 	if err == nil {
-		log.Successf(fmt.Sprintf("Environment %s created sucessfully", eo.envName))
+		log.Successf(fmt.Sprintf("Environment %s has been created sucessfully.", eo.envName))
 	}
 	return err
 }

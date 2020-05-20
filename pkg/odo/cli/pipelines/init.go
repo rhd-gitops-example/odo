@@ -85,7 +85,7 @@ func (io *InitParameters) Run() error {
 	}
 	err := pipelines.Init(&options, ioutils.NewFilesystem())
 	if err == nil {
-		log.Successf(fmt.Sprintf("Intialised a Gitops repo sucessfully"))
+		log.Successf(fmt.Sprintf("Intialized GitOps sucessfully."))
 	}
 	return err
 }
