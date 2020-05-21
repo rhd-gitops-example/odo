@@ -78,17 +78,22 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServiceParameters) 
 	if cicdEnv != nil && p.WebhookSecret == "" && p.GitRepoURL != "" {
 		return nil, fmt.Errorf("The webhook secret is required")
 	}
+
+	env := m.GetEnvironment(p.EnvName)
+	if env == nil {
+		return nil, fmt.Errorf("environment %s does not exist.", p.EnvName)
+	}
+
+	if env.IsSpecial() {
+		return nil, fmt.Errorf("service cannot be added to a special environment %s", p.EnvName)
+	}
+
 	// add the secret only if CI/CD env is present
 	if cicdEnv != nil {
 		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
 		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), p.WebhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return nil, err
-		}
-
-		env := m.GetEnvironment(p.EnvName)
-		if env == nil {
-			return nil, fmt.Errorf("environment %s does not exist.", p.EnvName)
 		}
 
 		svc.Webhook = &config.Webhook{
