@@ -63,10 +63,11 @@ func (o *AddOptions) Run() error {
 		WebhookSecret:            o.webhookSecret,
 	}, ioutils.NewFilesystem())
 
-	if err == nil {
-		log.Successf(fmt.Sprintf("Service %s has been created sucessfully at environment %s.", o.serviceName, o.envName))
+	if err != nil {
+		return err
 	}
-	return err
+	log.Successf("Service %s has been created sucessfully at environment %s.", o.serviceName, o.envName)
+	return nil
 
 }
 
