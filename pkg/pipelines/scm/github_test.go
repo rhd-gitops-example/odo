@@ -129,8 +129,7 @@ func TestCreateCITriggerForGithub(t *testing.T) {
 			},
 		},
 	}
-	got, err := repo.CreateCITrigger("test", "secret", "ns", "test-template", []string{"test-binding"})
-	assertNoError(t, err)
+	got := repo.CreateCITrigger("test", "secret", "ns", "test-template", []string{"test-binding"})
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("CreateCITrigger() failed:\n%s", diff)
 	}
@@ -158,18 +157,17 @@ func TestCreateCDTriggersForGithub(t *testing.T) {
 			},
 		},
 	}
-	got, err := repo.CreateCDTrigger("test", "secret", "ns", "test-template", []string{"test-binding"})
-	assertNoError(t, err)
+	got := repo.CreateCDTrigger("test", "secret", "ns", "test-template", []string{"test-binding"})
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("CreateCDTrigger() failed:\n%s", diff)
 	}
 }
 
-func TestRepoPathForGithub(t *testing.T) {
+func TestNewGitHubRepository(t *testing.T) {
 	tests := []struct {
-		url        string
-		repoName   string
-		repoErrMsg string
+		url      string
+		repoPath string
+		errMsg   string
 	}{
 		{
 			"http://github.org",
@@ -201,17 +199,16 @@ func TestRepoPathForGithub(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
 			repo, err := NewGitHubRepository(tt.url)
-			assertNoError(rt, err)
-			repoName, err := repo.Path()
 			if err != nil {
-				if diff := cmp.Diff(tt.repoErrMsg, err.Error()); diff != "" {
-					rt.Errorf("repo path errMsg mismatch: \n%s", diff)
+				if diff := cmp.Diff(tt.errMsg, err.Error()); diff != "" {
+					rt.Fatalf("repo path errMsg mismatch: \n%s", diff)
 				}
 			}
-			if diff := cmp.Diff(tt.repoName, repoName); diff != "" {
-				rt.Errorf("repo path mismatch: got\n%s", diff)
+			if repo != nil {
+				if diff := cmp.Diff(tt.repoPath, repo.path); diff != "" {
+					rt.Fatalf("repo path mismatch: got\n%s", diff)
+				}
 			}
-
 		})
 	}
 }

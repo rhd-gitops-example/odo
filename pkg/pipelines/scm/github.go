@@ -28,7 +28,8 @@ const (
 
 // GitHubRepository represents a service on a GitHub repo
 type GitHubRepository struct {
-	url *url.URL
+	url  *url.URL
+	path string // GitHub repo path eg: (org/name)
 }
 
 // NewGitHubRepository returns an instance of GitHubRepository
@@ -37,7 +38,17 @@ func NewGitHubRepository(rawURL string) (*GitHubRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &GitHubRepository{url: parsedURL}, nil
+	var components []string
+	for _, s := range strings.Split(parsedURL.Path, "/") {
+		if s != "" {
+			components = append(components, s)
+		}
+	}
+	if len(components) < 2 {
+		return nil, invalidRepoPathError(rawURL)
+	}
+	path := components[0] + "/" + strings.TrimSuffix(components[1], ".git")
+	return &GitHubRepository{url: parsedURL, path: path}, nil
 }
 
 // CreatePRBinding returns a TriggerBinding for GitHub PullRequest hooks.
@@ -77,21 +88,29 @@ func (repo *GitHubRepository) URL() string {
 }
 
 // CreateCITrigger creates a CI eventlistener trigger for GitHub
-func (repo *GitHubRepository) CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
-	repoName, err := repo.Path()
-	if err != nil {
-		return v1alpha1.EventListenerTrigger{}, err
+func (repo *GitHubRepository) CreateCITrigger(name, secretName, secretNS, template string, bindings []string) v1alpha1.EventListenerTrigger {
+	return triggersv1.EventListenerTrigger{
+		Name: name,
+		Interceptors: []*triggersv1.EventInterceptor{
+			createEventInterceptor(githubCIDryRunFilters, repo.path),
+			repo.CreateInterceptor(secretName, secretNS),
+		},
+		Bindings: createBindings(bindings),
+		Template: createListenerTemplate(template),
 	}
-	return createListenerTrigger(repo, name, githubCIDryRunFilters, repoName, secretName, secretNs, template, bindings), nil
 }
 
 // CreateCDTrigger creates a CD eventlistener trigger for GitHub
-func (repo *GitHubRepository) CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
-	repoName, err := repo.Path()
-	if err != nil {
-		return v1alpha1.EventListenerTrigger{}, err
+func (repo *GitHubRepository) CreateCDTrigger(name, secretName, secretNS, template string, bindings []string) v1alpha1.EventListenerTrigger {
+	return triggersv1.EventListenerTrigger{
+		Name: name,
+		Interceptors: []*triggersv1.EventInterceptor{
+			createEventInterceptor(githubCDDeployFilters, repo.path),
+			repo.CreateInterceptor(secretName, secretNS),
+		},
+		Bindings: createBindings(bindings),
+		Template: createListenerTemplate(template),
 	}
-	return createListenerTrigger(repo, name, githubCDDeployFilters, repoName, secretName, secretNs, template, bindings), nil
 }
 
 // CreateInterceptor returns a GitHub event interceptor
@@ -105,18 +124,4 @@ func (repo *GitHubRepository) CreateInterceptor(secretName, secretNs string) *tr
 			},
 		},
 	}
-}
-
-// Path extracts the GitHub URL path
-func (repo *GitHubRepository) Path() (string, error) {
-	var components []string
-	for _, s := range strings.Split(repo.url.Path, "/") {
-		if s != "" {
-			components = append(components, s)
-		}
-	}
-	if len(components) < 2 {
-		return "", invalidRepoPathError(repo.URL())
-	}
-	return components[0] + "/" + strings.TrimSuffix(components[1], ".git"), nil
 }

@@ -80,10 +80,7 @@ func TestGenerateEventListener(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	eventListener, err := Generate(repo, "testing", "pipeline", "test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	eventListener := Generate(repo, "testing", "pipeline", "test")
 	if diff := cmp.Diff(validEventListener, eventListener); diff != "" {
 		t.Fatalf("Generate() failed:\n%s", diff)
 	}

@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
@@ -57,10 +57,7 @@ func (tk *tektonBuilder) Service(env *config.Environment, svc *config.Service) e
 		return err
 	}
 	pipelines := getPipelines(env, svc)
-	ciTrigger, err := repo.CreateCITrigger(triggerName(svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
-	if err != nil {
-		return err
-	}
+	ciTrigger := repo.CreateCITrigger(triggerName(svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
 	tk.triggers = append(tk.triggers, ciTrigger)
 	return nil
 }
@@ -89,15 +86,9 @@ func createTriggersForCICD(gitOpsRepo string, env *config.Environment) ([]v1alph
 		return []v1alpha1.EventListenerTrigger{}, err
 	}
 	_, prBindingName := repo.CreatePRBinding(env.Name)
-	ciTrigger, err := repo.CreateCITrigger("ci-dryrun-from-pr", eventlisteners.GitOpsWebhookSecret, env.Name, "ci-dry-run-from-pr-template", []string{prBindingName})
-	if err != nil {
-		return []v1alpha1.EventListenerTrigger{}, err
-	}
+	ciTrigger := repo.CreateCITrigger("ci-dryrun-from-pr", eventlisteners.GitOpsWebhookSecret, env.Name, "ci-dry-run-from-pr-template", []string{prBindingName})
 	_, pushBindingName := repo.CreatePushBinding(env.Name)
-	cdTrigger, err := repo.CreateCDTrigger("cd-deploy-from-push", eventlisteners.GitOpsWebhookSecret, env.Name, "cd-deploy-from-push-template", []string{pushBindingName})
-	if err != nil {
-		return []v1alpha1.EventListenerTrigger{}, err
-	}
+	cdTrigger := repo.CreateCDTrigger("cd-deploy-from-push", eventlisteners.GitOpsWebhookSecret, env.Name, "cd-deploy-from-push-template", []string{pushBindingName})
 	triggers = append(triggers, ciTrigger, cdTrigger)
 	return triggers, nil
 }

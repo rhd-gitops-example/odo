@@ -10,11 +10,8 @@ import (
 type Repository interface {
 	CreatePRBinding(namespace string) (triggersv1.TriggerBinding, string)
 	CreatePushBinding(namespace string) (triggersv1.TriggerBinding, string)
-
 	CreateInterceptor(secretName, secretNs string) *triggersv1.EventInterceptor
-
-	CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error)
-	CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error)
-	Path() (string, error)
+	CreateCITrigger(name, secretName, secretNs, template string, bindings []string) v1alpha1.EventListenerTrigger
+	CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) v1alpha1.EventListenerTrigger
 	URL() string
 }

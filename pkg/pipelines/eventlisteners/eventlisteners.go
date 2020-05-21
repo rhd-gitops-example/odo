@@ -21,27 +21,19 @@ var (
 )
 
 // Generate will create the required eventlisteners.
-func Generate(repo scm.Repository, ns, saName, secretName string) (triggersv1.EventListener, error) {
-	ciTrigger, err := repo.CreateCITrigger("ci-dryrun-from-pr", secretName, ns, "ci-dryrun-from-pr-template",
-		[]string{"github-pr-binding"})
-	if err != nil {
-		return triggersv1.EventListener{}, nil
-	}
-	cdTrigger, err := repo.CreateCDTrigger("cd-deploy-from-push", secretName, ns, "cd-deploy-from-push-template", []string{"github-push-binding"})
-	if err != nil {
-		return triggersv1.EventListener{}, nil
-	}
+func Generate(repo scm.Repository, ns, saName, secretName string) triggersv1.EventListener {
 	return triggersv1.EventListener{
 		TypeMeta:   eventListenerTypeMeta,
 		ObjectMeta: createListenerObjectMeta("cicd-event-listener", ns),
 		Spec: triggersv1.EventListenerSpec{
 			ServiceAccountName: saName,
 			Triggers: []triggersv1.EventListenerTrigger{
-				ciTrigger,
-				cdTrigger,
+				repo.CreateCITrigger("ci-dryrun-from-pr", secretName, ns, "ci-dryrun-from-pr-template",
+					[]string{"github-pr-binding"}),
+				repo.CreateCDTrigger("cd-deploy-from-push", secretName, ns, "cd-deploy-from-push-template", []string{"github-push-binding"}),
 			},
 		},
-	}, nil
+	}
 }
 
 func CreateELFromTriggers(cicdNS, saName string, triggers []triggersv1.EventListenerTrigger) *triggersv1.EventListener {

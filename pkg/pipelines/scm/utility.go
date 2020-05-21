@@ -29,18 +29,6 @@ func invalidRepoPathError(repoURL string) error {
 	return fmt.Errorf("unable to determine repo path from: %s", repoURL)
 }
 
-func createListenerTrigger(repo Repository, name, filter, repoName, secretName, secretNS, template string, bindings []string) triggersv1.EventListenerTrigger {
-	return triggersv1.EventListenerTrigger{
-		Name: name,
-		Interceptors: []*triggersv1.EventInterceptor{
-			createEventInterceptor(filter, repoName),
-			repo.CreateInterceptor(secretName, secretNS),
-		},
-		Bindings: createBindings(bindings),
-		Template: createListenerTemplate(template),
-	}
-}
-
 func createEventInterceptor(filter string, repoName string) *triggersv1.EventInterceptor {
 	return &triggersv1.EventInterceptor{
 		CEL: &triggersv1.CELInterceptor{
