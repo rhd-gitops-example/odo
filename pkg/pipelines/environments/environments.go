@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/roles"
-	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/spf13/afero"
 	v1 "k8s.io/api/rbac/v1"
 )
@@ -64,17 +63,6 @@ func (b *envBuilder) Service(env *config.Environment, svc *config.Service) error
 	envBindingPath := filepath.Join(envBasePath, fmt.Sprintf("%s-rolebinding.yaml", env.Name))
 	if _, ok := b.files[envBindingPath]; !ok {
 		b.files[envBindingPath] = createRoleBinding(env, envBasePath, b.cicdEnv.Name, b.saName)
-	}
-	// Add trigger bindings only if source url exists
-	if svc.SourceURL != "" {
-		repo, err := scm.NewRepository(svc.SourceURL)
-		if err != nil {
-			return err
-		}
-		prBinding, bindingName := repo.CreatePRBinding(b.cicdEnv.Name)
-		pipelinesPath := filepath.Join(envBasePath, "pipelines")
-		bindingPath := filepath.Join(pipelinesPath, "06-bindings", bindingName+".yaml")
-		b.files[bindingPath] = prBinding
 	}
 	return nil
 }

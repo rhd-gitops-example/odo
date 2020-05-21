@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
-	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/spf13/afero"
 )
 
@@ -21,28 +20,22 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fakeRepo, err := scm.NewRepository("https://github.com/myproject/myservice.git")
-	if err != nil {
-		t.Fatal(err)
-	}
-	prBinding, _ := fakeRepo.CreatePRBinding("cicd")
 	want := res.Resources{
 		"environments/test-dev/apps/my-app-1/base/kustomization.yaml": &res.Kustomization{Bases: []string{
 			"../../../services/service-http",
 			"../../../services/service-metrics"}},
-		"environments/test-dev/apps/my-app-1/kustomization.yaml":                      &res.Kustomization{Bases: []string{"overlays"}},
-		"environments/test-dev/apps/my-app-1/overlays/kustomization.yaml":             &res.Kustomization{Bases: []string{"../base"}},
-		"environments/test-dev/env/base/pipelines/06-bindings/github-pr-binding.yaml": prBinding,
-		"environments/test-dev/env/base/test-dev-environment.yaml":                    namespaces.Create("test-dev"),
-		"environments/test-dev/env/base/test-dev-rolebinding.yaml":                    createRoleBinding(m.Environments[0], "environments/test-dev/env/base", "cicd", "pipelines"),
-		"environments/test-dev/env/base/kustomization.yaml":                           &res.Kustomization{Resources: []string{"test-dev-environment.yaml", "test-dev-rolebinding.yaml"}},
-		"environments/test-dev/env/overlays/kustomization.yaml":                       &res.Kustomization{Bases: []string{"../base"}},
-		"environments/test-dev/services/service-http/kustomization.yaml":              &res.Kustomization{Bases: []string{"overlays"}},
-		"environments/test-dev/services/service-http/base/kustomization.yaml":         &res.Kustomization{Bases: []string{"./config"}},
-		"environments/test-dev/services/service-http/overlays/kustomization.yaml":     &res.Kustomization{Bases: []string{"../base"}},
-		"environments/test-dev/services/service-metrics/kustomization.yaml":           &res.Kustomization{Bases: []string{"overlays"}},
-		"environments/test-dev/services/service-metrics/base/kustomization.yaml":      &res.Kustomization{Bases: []string{"./config"}},
-		"environments/test-dev/services/service-metrics/overlays/kustomization.yaml":  &res.Kustomization{Bases: []string{"../base"}},
+		"environments/test-dev/apps/my-app-1/kustomization.yaml":                     &res.Kustomization{Bases: []string{"overlays"}},
+		"environments/test-dev/apps/my-app-1/overlays/kustomization.yaml":            &res.Kustomization{Bases: []string{"../base"}},
+		"environments/test-dev/env/base/test-dev-environment.yaml":                   namespaces.Create("test-dev"),
+		"environments/test-dev/env/base/test-dev-rolebinding.yaml":                   createRoleBinding(m.Environments[0], "environments/test-dev/env/base", "cicd", "pipelines"),
+		"environments/test-dev/env/base/kustomization.yaml":                          &res.Kustomization{Resources: []string{"test-dev-environment.yaml", "test-dev-rolebinding.yaml"}},
+		"environments/test-dev/env/overlays/kustomization.yaml":                      &res.Kustomization{Bases: []string{"../base"}},
+		"environments/test-dev/services/service-http/kustomization.yaml":             &res.Kustomization{Bases: []string{"overlays"}},
+		"environments/test-dev/services/service-http/base/kustomization.yaml":        &res.Kustomization{Bases: []string{"./config"}},
+		"environments/test-dev/services/service-http/overlays/kustomization.yaml":    &res.Kustomization{Bases: []string{"../base"}},
+		"environments/test-dev/services/service-metrics/kustomization.yaml":          &res.Kustomization{Bases: []string{"overlays"}},
+		"environments/test-dev/services/service-metrics/base/kustomization.yaml":     &res.Kustomization{Bases: []string{"./config"}},
+		"environments/test-dev/services/service-metrics/overlays/kustomization.yaml": &res.Kustomization{Bases: []string{"../base"}},
 	}
 
 	if diff := cmp.Diff(want, files); diff != "" {
