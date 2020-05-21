@@ -64,7 +64,7 @@ func (eo *AddEnvParameters) Run() error {
 	if err != nil {
 		return nil
 	}
-	log.Successf("Environment %s has been created sucessfully.", eo.envName))
+	log.Successf("Environment %s has been created sucessfully.", eo.envName)
 	return nil
 }
 
