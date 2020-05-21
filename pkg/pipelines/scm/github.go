@@ -25,22 +25,22 @@ const (
 	githubPushBindingName = "github-push-binding"
 )
 
-// GithubRepository represents a service on a Github repo
-type GithubRepository struct {
+// GitHubRepository represents a service on a GitHub repo
+type GitHubRepository struct {
 	url *url.URL
 }
 
-// NewGithubRepository returns an instance of GithubRepository
-func NewGithubRepository(rawURL string) (*GithubRepository, error) {
+// NewGitHubRepository returns an instance of GitHubRepository
+func NewGitHubRepository(rawURL string) (*GitHubRepository, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
 	}
-	return &GithubRepository{url: parsedURL}, nil
+	return &GitHubRepository{url: parsedURL}, nil
 }
 
-// CreatePRBinding returns a TriggerBinding for Github PullRequest hooks.
-func (repo *GithubRepository) CreatePRBinding(ns string) (triggersv1.TriggerBinding, string) {
+// CreatePRBinding returns a TriggerBinding for GitHub PullRequest hooks.
+func (repo *GitHubRepository) CreatePRBinding(ns string) (triggersv1.TriggerBinding, string) {
 	return triggersv1.TriggerBinding{
 		TypeMeta:   triggerBindingTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, githubPRBindingName)),
@@ -55,8 +55,8 @@ func (repo *GithubRepository) CreatePRBinding(ns string) (triggersv1.TriggerBind
 	}, githubPRBindingName
 }
 
-// CreatePushBinding returns a TriggerBinding for Github Push hooks.
-func (repo *GithubRepository) CreatePushBinding(ns string) (triggersv1.TriggerBinding, string) {
+// CreatePushBinding returns a TriggerBinding for GitHub Push hooks.
+func (repo *GitHubRepository) CreatePushBinding(ns string) (triggersv1.TriggerBinding, string) {
 	return triggersv1.TriggerBinding{
 		TypeMeta:   triggerBindingTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, githubPushBindingName)),
@@ -70,13 +70,13 @@ func (repo *GithubRepository) CreatePushBinding(ns string) (triggersv1.TriggerBi
 	}, githubPushBindingName
 }
 
-// URL returns the URL of the Github repository
-func (repo *GithubRepository) URL() string {
+// URL returns the URL of the GitHub repository
+func (repo *GitHubRepository) URL() string {
 	return repo.url.String()
 }
 
-// CreateCITrigger creates a CI eventlistener trigger for Github
-func (repo *GithubRepository) CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
+// CreateCITrigger creates a CI eventlistener trigger for GitHub
+func (repo *GitHubRepository) CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
 	repoName, err := getRepoName(repo.URL())
 	if err != nil {
 		return v1alpha1.EventListenerTrigger{}, err
@@ -84,8 +84,8 @@ func (repo *GithubRepository) CreateCITrigger(name, secretName, secretNs, templa
 	return createListenerTrigger(repo, name, githubCIDryRunFilters, repoName, secretName, secretNs, template, bindings), nil
 }
 
-// CreateCDTrigger creates a CD eventlistener trigger for Github
-func (repo *GithubRepository) CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
+// CreateCDTrigger creates a CD eventlistener trigger for GitHub
+func (repo *GitHubRepository) CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
 	repoName, err := getRepoName(repo.URL())
 	if err != nil {
 		return v1alpha1.EventListenerTrigger{}, err
@@ -93,8 +93,8 @@ func (repo *GithubRepository) CreateCDTrigger(name, secretName, secretNs, templa
 	return createListenerTrigger(repo, name, githubCDDeployFilters, repoName, secretName, secretNs, template, bindings), nil
 }
 
-// CreateInterceptor returns a Github event interceptor
-func (repo *GithubRepository) CreateInterceptor(secretName, secretNs string) *triggersv1.EventInterceptor {
+// CreateInterceptor returns a GitHub event interceptor
+func (repo *GitHubRepository) CreateInterceptor(secretName, secretNs string) *triggersv1.EventInterceptor {
 	return &triggersv1.EventInterceptor{
 		GitHub: &triggersv1.GitHubInterceptor{
 			SecretRef: &triggersv1.SecretRef{

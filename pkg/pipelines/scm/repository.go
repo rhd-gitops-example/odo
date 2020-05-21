@@ -9,7 +9,7 @@ func NewRepository(rawURL string) (Repository, error) {
 	}
 	switch repoType {
 	case "github":
-		return NewGithubRepository(rawURL)
+		return NewGitHubRepository(rawURL)
 	}
 	return nil, invalidRepoTypeError(rawURL)
 }

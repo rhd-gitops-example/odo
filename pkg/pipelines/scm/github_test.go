@@ -10,10 +10,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ Repository = (*GithubRepository)(nil)
+var _ Repository = (*GitHubRepository)(nil)
 
 func TestCreatePRBindingForGithub(t *testing.T) {
-	repo, err := NewGithubRepository("http://github.com/org/test")
+	repo, err := NewGitHubRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
 		TypeMeta: triggerBindingTypeMeta,
@@ -64,7 +64,7 @@ func TestCreatePRBindingForGithub(t *testing.T) {
 }
 
 func TestCreatePushBindingForGithub(t *testing.T) {
-	repo, err := NewGithubRepository("http://github.com/org/test")
+	repo, err := NewGitHubRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
 		TypeMeta: triggerBindingTypeMeta,
@@ -108,7 +108,7 @@ func TestCreatePushBindingForGithub(t *testing.T) {
 }
 
 func TestCreateCITriggerForGithub(t *testing.T) {
-	repo, err := NewGithubRepository("http://github.com/org/test")
+	repo, err := NewGitHubRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.EventListenerTrigger{
 		Name: "test",
@@ -137,7 +137,7 @@ func TestCreateCITriggerForGithub(t *testing.T) {
 }
 
 func TestCreateCDTriggersForGithub(t *testing.T) {
-	repo, err := NewGithubRepository("http://github.com/org/test")
+	repo, err := NewGitHubRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.EventListenerTrigger{
 		Name: "test",

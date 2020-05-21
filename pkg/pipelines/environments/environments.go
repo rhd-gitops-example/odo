@@ -7,12 +7,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/roles"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/spf13/afero"
 	v1 "k8s.io/api/rbac/v1"
 )
@@ -66,7 +66,7 @@ func (b *envBuilder) Service(env *config.Environment, svc *config.Service) error
 		b.files[envBindingPath] = createRoleBinding(env, envBasePath, b.cicdEnv.Name, b.saName)
 	}
 	// Add trigger bindings only if source url exists
-	if b.cicdEnv != nil && svc.SourceURL != "" {
+	if svc.SourceURL != "" {
 		repo, err := scm.NewRepository(svc.SourceURL)
 		if err != nil {
 			return err
