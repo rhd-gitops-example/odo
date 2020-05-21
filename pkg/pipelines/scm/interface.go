@@ -15,6 +15,6 @@ type Repository interface {
 
 	CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error)
 	CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error)
-
+	Path() (string, error)
 	URL() string
 }

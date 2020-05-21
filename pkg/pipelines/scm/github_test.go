@@ -164,3 +164,54 @@ func TestCreateCDTriggersForGithub(t *testing.T) {
 		t.Fatalf("CreateCDTrigger() failed:\n%s", diff)
 	}
 }
+
+func TestRepoPathForGithub(t *testing.T) {
+	tests := []struct {
+		url        string
+		repoName   string
+		repoErrMsg string
+	}{
+		{
+			"http://github.org",
+			"",
+			"unable to determine repo path from: http://github.org",
+		},
+		{
+			"http://github.com/",
+			"",
+			"unable to determine repo path from: http://github.com/",
+		},
+		{
+			"http://github.com/foo/bar",
+			"foo/bar",
+			"",
+		},
+		{
+			"https://githuB.com/foo/bar.git",
+			"foo/bar",
+			"",
+		},
+		{
+			"https://githuB.com/foo/bar/test.git",
+			"foo/bar",
+			"",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
+			repo, err := NewGitHubRepository(tt.url)
+			assertNoError(rt, err)
+			repoName, err := repo.Path()
+			if err != nil {
+				if diff := cmp.Diff(tt.repoErrMsg, err.Error()); diff != "" {
+					rt.Errorf("repo path errMsg mismatch: \n%s", diff)
+				}
+			}
+			if diff := cmp.Diff(tt.repoName, repoName); diff != "" {
+				rt.Errorf("repo path mismatch: got\n%s", diff)
+			}
+
+		})
+	}
+}

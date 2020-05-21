@@ -2,6 +2,7 @@ package scm
 
 import (
 	"net/url"
+	"strings"
 
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
@@ -77,7 +78,7 @@ func (repo *GitHubRepository) URL() string {
 
 // CreateCITrigger creates a CI eventlistener trigger for GitHub
 func (repo *GitHubRepository) CreateCITrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
-	repoName, err := getRepoName(repo.URL())
+	repoName, err := repo.Path()
 	if err != nil {
 		return v1alpha1.EventListenerTrigger{}, err
 	}
@@ -86,7 +87,7 @@ func (repo *GitHubRepository) CreateCITrigger(name, secretName, secretNs, templa
 
 // CreateCDTrigger creates a CD eventlistener trigger for GitHub
 func (repo *GitHubRepository) CreateCDTrigger(name, secretName, secretNs, template string, bindings []string) (v1alpha1.EventListenerTrigger, error) {
-	repoName, err := getRepoName(repo.URL())
+	repoName, err := repo.Path()
 	if err != nil {
 		return v1alpha1.EventListenerTrigger{}, err
 	}
@@ -104,4 +105,18 @@ func (repo *GitHubRepository) CreateInterceptor(secretName, secretNs string) *tr
 			},
 		},
 	}
+}
+
+// Path extracts the GitHub URL path
+func (repo *GitHubRepository) Path() (string, error) {
+	var components []string
+	for _, s := range strings.Split(repo.url.Path, "/") {
+		if s != "" {
+			components = append(components, s)
+		}
+	}
+	if len(components) < 2 {
+		return "", invalidRepoPathError(repo.URL())
+	}
+	return components[0] + "/" + strings.TrimSuffix(components[1], ".git"), nil
 }

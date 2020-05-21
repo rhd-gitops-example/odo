@@ -21,29 +21,12 @@ func getDriverName(rawURL string) (string, error) {
 	return "", invalidRepoTypeError(rawURL)
 }
 
-func getRepoName(rawURL string) (string, error) {
-	var components []string
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "", err
-	}
-	for _, s := range strings.Split(u.Path, "/") {
-		if s != "" {
-			components = append(components, s)
-		}
-	}
-	if len(components) < 2 {
-		return "", invalidRepoNameError(rawURL)
-	}
-	return components[0] + "/" + strings.TrimSuffix(components[1], ".git"), nil
-}
-
 func invalidRepoTypeError(repoURL string) error {
 	return fmt.Errorf("unable to determine type of Git host from: %s", repoURL)
 }
 
-func invalidRepoNameError(repoURL string) error {
-	return fmt.Errorf("unable to determine repo name from: %s", repoURL)
+func invalidRepoPathError(repoURL string) error {
+	return fmt.Errorf("unable to determine repo path from: %s", repoURL)
 }
 
 func createListenerTrigger(repo Repository, name, filter, repoName, secretName, secretNS, template string, bindings []string) triggersv1.EventListenerTrigger {
