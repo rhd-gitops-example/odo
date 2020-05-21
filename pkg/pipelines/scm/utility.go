@@ -11,7 +11,6 @@ import (
 )
 
 func getDriverName(rawURL string) (string, error) {
-
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
@@ -19,32 +18,24 @@ func getDriverName(rawURL string) (string, error) {
 	if s := strings.TrimSuffix(u.Host, ".com"); s != u.Host {
 		return strings.ToLower(s), nil
 	}
-
 	return "", invalidRepoTypeError(rawURL)
 }
 
 func getRepoName(rawURL string) (string, error) {
-
 	var components []string
-
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
 	}
-
 	for _, s := range strings.Split(u.Path, "/") {
 		if s != "" {
 			components = append(components, s)
 		}
 	}
-
 	if len(components) < 2 {
 		return "", invalidRepoNameError(rawURL)
 	}
-
-	components[1] = strings.TrimSuffix(components[1], ".git")
-
-	return components[0] + "/" + components[1], nil
+	return components[0] + "/" + strings.TrimSuffix(components[1], ".git"), nil
 }
 
 func invalidRepoTypeError(repoURL string) error {
