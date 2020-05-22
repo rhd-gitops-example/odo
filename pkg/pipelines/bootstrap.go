@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/roles"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
 )
@@ -74,12 +75,20 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	if err != nil {
 		return nil, err
 	}
-	repoName, err := repoFromURL(o.AppRepoURL)
+	gitOpsRepo, err := scm.NewRepository(o.GitOpsRepoURL)
+	if err != nil {
+		return nil, err
+	}
+	appRepo, err := scm.NewRepository(o.AppRepoURL)
+	if err != nil {
+		return nil, err
+	}
+	repoName, err := repoFromURL(appRepo.URL())
 	if err != nil {
 		return nil, fmt.Errorf("invalid app repo URL: %w", err)
 	}
 
-	bootstrapped, err := createInitialFiles(appFs, o.Prefix, o.GitOpsRepoURL, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename)
+	bootstrapped, err := createInitialFiles(appFs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename)
 	if err != nil {
 		return nil, err
 	}
@@ -87,11 +96,11 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	ns := namespaces.NamesWithPrefix(o.Prefix)
 	serviceName := repoToServiceName(repoName)
 	secretName := secrets.MakeServiceWebhookSecretName(serviceName)
-	envs, err := bootstrapEnvironments(o.Prefix, o.AppRepoURL, secretName, ns)
+	envs, err := bootstrapEnvironments(o.Prefix, appRepo.URL(), secretName, ns)
 	if err != nil {
 		return nil, err
 	}
-	m := createManifest(o.GitOpsRepoURL, envs...)
+	m := createManifest(gitOpsRepo, envs...)
 
 	devEnv := m.GetEnvironment(ns["dev"])
 	if devEnv == nil {
