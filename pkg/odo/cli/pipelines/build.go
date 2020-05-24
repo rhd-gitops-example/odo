@@ -3,6 +3,7 @@ package pipelines
 import (
 	"fmt"
 
+	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
@@ -28,9 +29,8 @@ var (
 
 // BuildParameters encapsulates the parameters for the odo pipelines build command.
 type BuildParameters struct {
-	pipelines     string
-	output        string // path to add Gitops resources
-	gitopsRepoURL string
+	pipelines string
+	output    string // path to add Gitops resources
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -55,9 +55,13 @@ func (io *BuildParameters) Run() error {
 	options := pipelines.BuildParameters{
 		ManifestFilename: io.pipelines,
 		OutputPath:       io.output,
-		RepositoryURL:    io.gitopsRepoURL,
 	}
-	return pipelines.BuildResources(&options, ioutils.NewFilesystem())
+	err := pipelines.BuildResources(&options, ioutils.NewFilesystem())
+	if err != nil {
+		return err
+	}
+	log.Success("Built successfully.")
+	return nil
 }
 
 // NewCmdBuild creates the pipelines build command.
@@ -75,6 +79,5 @@ func NewCmdBuild(name, fullName string) *cobra.Command {
 
 	buildCmd.Flags().StringVar(&o.output, "output", ".", "folder path to add Gitops resources")
 	buildCmd.Flags().StringVar(&o.pipelines, "pipelines", "pipelines.yaml", "path to pipelines file")
-	buildCmd.Flags().StringVar(&o.gitopsRepoURL, "gitops-repo-url", "", "full URL for the repository where the pipelines and configuration are stored")
 	return buildCmd
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/pipelines/config"
@@ -18,6 +17,7 @@ import (
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/roles"
 	"github.com/openshift/odo/pkg/pipelines/routes"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/tasks"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
@@ -108,8 +108,12 @@ func Init(o *InitParameters, fs afero.Fs) error {
 	if exists {
 		return err
 	}
+	gitOpsRepo, err := scm.NewRepository(o.GitOpsRepoURL)
+	if err != nil {
+		return err
+	}
 
-	outputs, err := createInitialFiles(fs, o.Prefix, o.GitOpsRepoURL, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename)
+	outputs, err := createInitialFiles(fs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename)
 	if err != nil {
 		return err
 	}
@@ -142,17 +146,13 @@ func CreateDockerSecret(fs afero.Fs, dockerConfigJSONFilename, ns string) (*ssv1
 
 }
 
-func createInitialFiles(fs afero.Fs, prefix, gitOpsURL, gitOpsWebhookSecret, dockerConfigPath string) (res.Resources, error) {
+func createInitialFiles(fs afero.Fs, repo scm.Repository, prefix, gitOpsWebhookSecret, dockerConfigPath string) (res.Resources, error) {
 	cicdEnv := &config.Environment{Name: prefix + "cicd", IsCICD: true}
-	pipelines := createManifest(gitOpsURL, cicdEnv)
+	pipelines := createManifest(repo, cicdEnv)
 	initialFiles := res.Resources{
 		pipelinesFile: pipelines,
 	}
-	orgRepo, err := orgRepoFromURL(gitOpsURL)
-	if err != nil {
-		return nil, err
-	}
-	resources, err := createCICDResources(fs, cicdEnv, orgRepo, gitOpsWebhookSecret, dockerConfigPath)
+	resources, err := createCICDResources(fs, repo, cicdEnv, gitOpsWebhookSecret, dockerConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func createInitialFiles(fs afero.Fs, prefix, gitOpsURL, gitOpsWebhookSecret, doc
 }
 
 // createCICDResources creates resources assocated to pipelines.
-func createCICDResources(fs afero.Fs, cicdEnv *config.Environment, gitOpsRepo, gitOpsWebhookSecret, dockerConfigJSONPath string) (res.Resources, error) {
+func createCICDResources(fs afero.Fs, repo scm.Repository, cicdEnv *config.Environment, gitOpsWebhookSecret, dockerConfigJSONPath string) (res.Resources, error) {
 	cicdNamespace := cicdEnv.Name
 	// key: path of the resource
 	// value: YAML content of the resource
@@ -201,21 +201,20 @@ func createCICDResources(fs afero.Fs, cicdEnv *config.Environment, gitOpsRepo, g
 	outputs[appTaskPath] = tasks.CreateDeployUsingKubectlTask(cicdNamespace)
 	outputs[ciPipelinesPath] = pipelines.CreateCIPipeline(meta.NamespacedName(cicdNamespace, "ci-dryrun-from-pr-pipeline"), cicdNamespace)
 	outputs[cdPipelinesPath] = pipelines.CreateCDPipeline(meta.NamespacedName(cicdNamespace, "cd-deploy-from-push-pipeline"), cicdNamespace)
-	outputs[appCiPipelinesPath] = pipelines.CreateAppCIPipeline(meta.NamespacedName(cicdNamespace, "app-ci-pipeline"), false)
-	outputs[prBindingPath] = triggers.CreatePRBinding(cicdNamespace)
-	outputs[pushBindingPath] = triggers.CreatePushBinding(cicdNamespace)
+	outputs[appCiPipelinesPath] = pipelines.CreateAppCIPipeline(meta.NamespacedName(cicdNamespace, "app-ci-pipeline"))
+	outputs[prBindingPath], _ = repo.CreatePRBinding(cicdNamespace)
+	outputs[pushBindingPath], _ = repo.CreatePushBinding(cicdNamespace)
 	outputs[prTemplatePath] = triggers.CreateCIDryRunTemplate(cicdNamespace, saName)
 	outputs[pushTemplatePath] = triggers.CreateCDPushTemplate(cicdNamespace, saName)
 	outputs[appCIBuildPRTemplatePath] = triggers.CreateDevCIBuildPRTemplate(cicdNamespace, saName)
-	outputs[eventListenerPath] = eventlisteners.Generate(gitOpsRepo, cicdNamespace, saName, eventlisteners.GitOpsWebhookSecret)
-
+	outputs[eventListenerPath] = eventlisteners.Generate(repo, cicdNamespace, saName, eventlisteners.GitOpsWebhookSecret)
 	outputs[routePath] = routes.Generate(cicdNamespace)
 	return outputs, nil
 }
 
-func createManifest(gitOpsURL string, envs ...*config.Environment) *config.Manifest {
+func createManifest(gitOpsRepo scm.Repository, envs ...*config.Environment) *config.Manifest {
 	return &config.Manifest{
-		GitOpsURL:    gitOpsURL,
+		GitOpsURL:    gitOpsRepo.URL(),
 		Environments: envs,
 	}
 }
@@ -262,48 +261,4 @@ func getResourceFiles(res res.Resources) []string {
 	}
 	sort.Strings(files)
 	return files
-}
-
-// validateImageRepo validates the input image repo.  It determines if it is
-// for internal registry and prepend internal registry hostname if neccessary.
-func validateImageRepo(imageRepo, registryURL string) (bool, string, error) {
-	components := strings.Split(imageRepo, "/")
-
-	// repo url has minimum of 2 components
-	if len(components) < 2 {
-		return false, "", imageRepoValidationErrors(imageRepo)
-	}
-
-	for _, v := range components {
-		// check for empty components
-		if strings.TrimSpace(v) == "" {
-			return false, "", imageRepoValidationErrors(imageRepo)
-		}
-		// check for white spaces
-		if len(v) > len(strings.TrimSpace(v)) {
-			return false, "", imageRepoValidationErrors(imageRepo)
-		}
-	}
-
-	if len(components) == 2 {
-		if components[0] == "docker.io" || components[0] == "quay.io" {
-			// we recognize docker.io and quay.io.  It is missing one component
-			return false, "", imageRepoValidationErrors(imageRepo)
-		}
-		// We have format like <project>/<app> which is an internal registry.
-		// We prepend the internal registry hostname.
-		return true, registryURL + "/" + imageRepo, nil
-	}
-
-	// Check the first component to see if it is an internal registry
-	if len(components) == 3 {
-		return components[0] == registryURL, imageRepo, nil
-	}
-
-	// > 3 components.  invalid repo
-	return false, "", imageRepoValidationErrors(imageRepo)
-}
-
-func imageRepoValidationErrors(imageRepo string) error {
-	return fmt.Errorf("failed to parse image repo:%s, expected image repository in the form <registry>/<username>/<repository> or <project>/<app> for internal registry", imageRepo)
 }

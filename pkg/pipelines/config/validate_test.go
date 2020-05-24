@@ -22,6 +22,26 @@ func TestValidate(t *testing.T) {
 		wantErr  error
 	}{
 		{
+			"cicd environment cannot contain applications and services",
+			"testdata/cicd_env_cant_have_apps_svcs.yaml",
+			multierror.Join(
+				[]error{
+					invalidEnvironment("test-cicd", "A special environment cannot contain services.", []string{"environments.test-cicd.services.bus-svc"}),
+					invalidEnvironment("test-cicd", "A special environment cannot contain applications.", []string{"environments.test-cicd.apps.bus"}),
+				},
+			),
+		},
+		{
+			"argocd environment cannot contain applications and services",
+			"testdata/argocd_env_cant_have_apps_svcs.yaml",
+			multierror.Join(
+				[]error{
+					invalidEnvironment("test-argocd", "A special environment cannot contain services.", []string{"environments.test-argocd.services.bus-svc"}),
+					invalidEnvironment("test-argocd", "A special environment cannot contain applications.", []string{"environments.test-argocd.apps.bus"}),
+				},
+			),
+		},
+		{
 			"Invalid entity name error",
 			"testdata/name_error.yaml",
 			multierror.Join(
@@ -96,6 +116,11 @@ func TestValidate(t *testing.T) {
 					duplicateSourceError("https://github.com/testing/testing.git", []string{"environments.duplicate-source.services.app-1-service-http", "environments.duplicate-source.services.app-2-service-http"}),
 				},
 			),
+		},
+		{
+			"service with pipeline with no template",
+			"testdata/service_with_bindings_no_template.yaml",
+			nil,
 		},
 		{
 			"valid manifest file",

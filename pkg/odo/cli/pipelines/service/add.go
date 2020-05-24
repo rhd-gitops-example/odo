@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
@@ -25,12 +26,14 @@ var (
 
 // AddOptions encapsulates the parameters for service add command
 type AddOptions struct {
-	appName       string
-	envName       string
-	gitRepoURL    string
-	manifest      string
-	serviceName   string
-	webhookSecret string
+	appName                  string
+	envName                  string
+	gitRepoURL               string
+	imageRepo                string
+	internalRegistryHostname string
+	manifest                 string
+	serviceName              string
+	webhookSecret            string
 
 	// generic context options common to all commands
 	*genericclioptions.Context
@@ -49,7 +52,23 @@ func (o *AddOptions) Validate() error {
 // Run runs the project bootstrap command.
 func (o *AddOptions) Run() error {
 
-	return pipelines.AddService(o.gitRepoURL, o.envName, o.appName, o.serviceName, o.webhookSecret, o.manifest, ioutils.NewFilesystem())
+	err := pipelines.AddService(&pipelines.AddServiceParameters{
+		AppName:                  o.appName,
+		EnvName:                  o.envName,
+		GitRepoURL:               o.gitRepoURL,
+		ImageRepo:                o.imageRepo,
+		InternalRegistryHostname: o.internalRegistryHostname,
+		Manifest:                 o.manifest,
+		ServiceName:              o.serviceName,
+		WebhookSecret:            o.webhookSecret,
+	}, ioutils.NewFilesystem())
+
+	if err != nil {
+		return err
+	}
+	log.Successf("Created Service %s sucessfully at environment %s.", o.serviceName, o.envName)
+	return nil
+
 }
 
 func newCmdAdd(name, fullName string) *cobra.Command {
@@ -70,6 +89,8 @@ func newCmdAdd(name, fullName string) *cobra.Command {
 	cmd.Flags().StringVar(&o.appName, "app-name", "", "the name of the application where the service will be added")
 	cmd.Flags().StringVar(&o.serviceName, "service-name", "", "the name of the service to be added")
 	cmd.Flags().StringVar(&o.envName, "env-name", "", "the name of the environment where the service will be added")
+	cmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "used to push built images")
+	cmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
 	cmd.Flags().StringVar(&o.manifest, "manifest", "pipelines.yaml", "path to manifest file")
 
 	// required flags

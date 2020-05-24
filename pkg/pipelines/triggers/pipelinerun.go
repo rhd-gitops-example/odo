@@ -32,6 +32,7 @@ func createDevCIPipelineRun(saName string) pipelinev1.PipelineRun {
 			Params: []pipelinev1.Param{
 				createPipelineBindingParam("REPO", "$(params.fullname)"),
 				createPipelineBindingParam("COMMIT_SHA", "$(params.gitsha)"),
+				createPipelineBindingParam("TLSVERIFY", "$(params.tlsVerify)"),
 			},
 			Resources: createDevResource("$(params.gitref)"),
 		},

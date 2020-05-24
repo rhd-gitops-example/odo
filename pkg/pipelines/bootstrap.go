@@ -15,11 +15,13 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/deployment"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
+	"github.com/openshift/odo/pkg/pipelines/imagerepo"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
+	"github.com/openshift/odo/pkg/pipelines/roles"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
-	"github.com/openshift/odo/pkg/pipelines/triggers"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
 )
 
@@ -56,7 +58,6 @@ func Bootstrap(o *BootstrapOptions, appFs afero.Fs) error {
 	buildParams := &BuildParameters{
 		ManifestFilename: pipelinesFile,
 		OutputPath:       o.OutputPath,
-		RepositoryURL:    o.GitOpsRepoURL,
 	}
 
 	m := bootstrapped[pipelinesFile].(*config.Manifest)
@@ -70,27 +71,36 @@ func Bootstrap(o *BootstrapOptions, appFs afero.Fs) error {
 }
 
 func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, error) {
-	_, imageRepo, err := validateImageRepo(o.ImageRepo, o.InternalRegistryHostname)
+	isInternalRegistry, imageRepo, err := imagerepo.ValidateImageRepo(o.ImageRepo, o.InternalRegistryHostname)
 	if err != nil {
 		return nil, err
 	}
-	repoName, err := repoFromURL(o.AppRepoURL)
+	gitOpsRepo, err := scm.NewRepository(o.GitOpsRepoURL)
+	if err != nil {
+		return nil, err
+	}
+	appRepo, err := scm.NewRepository(o.AppRepoURL)
+	if err != nil {
+		return nil, err
+	}
+	repoName, err := repoFromURL(appRepo.URL())
 	if err != nil {
 		return nil, fmt.Errorf("invalid app repo URL: %w", err)
 	}
 
-	bootstrapped, err := createInitialFiles(appFs, o.Prefix, o.GitOpsRepoURL, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename)
+	bootstrapped, err := createInitialFiles(appFs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename)
 	if err != nil {
 		return nil, err
 	}
 
 	ns := namespaces.NamesWithPrefix(o.Prefix)
-	secretName := secrets.MakeServiceWebhookSecretName(repoToServiceName(repoName))
-	envs, err := bootstrapEnvironments(o.Prefix, o.AppRepoURL, secretName, ns)
+	serviceName := repoToServiceName(repoName)
+	secretName := secrets.MakeServiceWebhookSecretName(serviceName)
+	envs, err := bootstrapEnvironments(o.Prefix, appRepo.URL(), secretName, ns)
 	if err != nil {
 		return nil, err
 	}
-	m := createManifest(o.GitOpsRepoURL, envs...)
+	m := createManifest(gitOpsRepo, envs...)
 
 	devEnv := m.GetEnvironment(ns["dev"])
 	if devEnv == nil {
@@ -115,10 +125,22 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	secretsPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", secretFilename)
 	bootstrapped[secretsPath] = hookSecret
 
-	bindingName := fmt.Sprintf("%s-%s-binding", devEnv.Name, repoToServiceName(repoName))
-	imageRepoBindingFilename := filepath.Join("06-bindings", bindingName+".yaml")
-	imageRepoBindingPath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", imageRepoBindingFilename)
-	bootstrapped[imageRepoBindingPath] = triggers.CreateImageRepoBinding(cicdEnv.Name, bindingName, imageRepo)
+	bindingName, imageRepoBindingFilename, svcImageBinding := createSvcImageBinding(cicdEnv, devEnv, serviceName, imageRepo, !isInternalRegistry)
+	bootstrapped = res.Merge(svcImageBinding, bootstrapped)
+
+	kustomizePath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", "kustomization.yaml")
+	k, ok := bootstrapped[kustomizePath].(res.Kustomization)
+	if !ok {
+		return nil, fmt.Errorf("no kustomization for the %s environment found", kustomizePath)
+	}
+	if isInternalRegistry {
+		filenames, resources, err := imagerepo.CreateInternalRegistryResources(cicdEnv, roles.CreateServiceAccount(meta.NamespacedName(cicdEnv.Name, saName)), imageRepo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get resources for internal image repository: %w", err)
+		}
+		bootstrapped = res.Merge(resources, bootstrapped)
+		k.Resources = append(k.Resources, filenames...)
+	}
 
 	// This is specific to bootstrap, because there's only one service.
 	devEnv.Services[0].Pipelines = &config.Pipelines{
@@ -127,11 +149,6 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 		},
 	}
 	bootstrapped[pipelinesFile] = m
-	kustomizePath := filepath.Join(config.PathForEnvironment(cicdEnv), "base", "pipelines", "kustomization.yaml")
-	k, ok := bootstrapped[kustomizePath].(res.Kustomization)
-	if !ok {
-		return nil, fmt.Errorf("no kustomization for the %s environment found", kustomizePath)
-	}
 	k.Resources = append(k.Resources, secretFilename, imageRepoBindingFilename)
 	sort.Strings(k.Resources)
 	bootstrapped[kustomizePath] = k
