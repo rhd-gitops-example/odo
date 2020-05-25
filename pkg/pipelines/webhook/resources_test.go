@@ -43,7 +43,7 @@ func TestGetRouteHost(t *testing.T) {
 		}
 		return true, route, nil
 	})
-	resources := fakeNewResources(reouteClientset.Route(), nil)
+	resources := fakeNewResources(reouteClientset.RouteV1(), nil)
 
 	hasTLS, host, err := resources.getListenerAddress("tst-cicd", "gitops-webhook-event-listener-route")
 	if err != nil {
