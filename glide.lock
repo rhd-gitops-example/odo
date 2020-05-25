@@ -249,10 +249,6 @@ imports:
   - pbutil
 - name: github.com/mgutz/ansi
   version: 9520e82c474b0a04dd04f8a40959027271bab992
-- name: github.com/Microsoft/go-winio
-  version: 3fe6c526287328ec859e2c1258458b685198f204
-  subpackages:
-  - pkg/guid
 - name: github.com/mitchellh/go-homedir
   version: af06845cf3004701891bf4fdb884bfe4920b3727
 - name: github.com/mitchellh/go-wordwrap
