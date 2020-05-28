@@ -33,8 +33,7 @@ func AddEnv(o *EnvParameters, appFs afero.Fs) error {
 	}
 	files := res.Resources{}
 	newEnv := &config.Environment{
-		Name:      o.EnvName,
-		Pipelines: defaultPipelines,
+		Name: o.EnvName,
 	}
 	m.Environments = append(m.Environments, newEnv)
 	files[pipelinesFile] = m

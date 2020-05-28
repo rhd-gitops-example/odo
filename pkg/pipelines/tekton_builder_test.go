@@ -164,7 +164,9 @@ func TestGetPipelines(t *testing.T) {
 			if test.env.Pipelines != nil {
 				envPipelines = clonePipelines(test.env.Pipelines)
 			}
-			got := getPipelines(test.env, test.svc)
+			repo := &scm.GitHubRepository{}
+			cicdEnv := &config.Environment{Name: "test-cicd"}
+			got := getPipelines(cicdEnv, test.env, test.svc, repo)
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				rt.Errorf("getPipelines() failed:\n%v", diff)
 			}
@@ -181,9 +183,9 @@ func fakeTiggers(t *testing.T, m *config.Manifest, gitOpsRepo string) []v1alpha1
 	cicdEnv, err := m.GetCICDEnvironment()
 	assertNoError(t, err)
 	svc := testService()
-	pipelines := getPipelines(devEnv, svc)
 	repo, err := scm.NewRepository(svc.SourceURL)
 	assertNoError(t, err)
+	pipelines := getPipelines(cicdEnv, devEnv, svc, repo)
 	devCITrigger := repo.CreateCITrigger(fmt.Sprintf("app-ci-build-from-pr-%s", svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
 	triggers = append(triggers, devCITrigger)
 	cicdTriggers, err := createTriggersForCICD(gitOpsRepo, cicdEnv)

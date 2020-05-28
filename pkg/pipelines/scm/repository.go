@@ -15,3 +15,13 @@ func NewRepository(rawURL string) (Repository, error) {
 	}
 	return nil, invalidRepoTypeError(rawURL)
 }
+
+// GetAllBindings returns a list of supported binding types
+func GetAllBindings() []string {
+	return []string{
+		githubPRBindingName,
+		githubPushBindingName,
+		gitlabPRBindingName,
+		gitlabPushBindingName,
+	}
+}

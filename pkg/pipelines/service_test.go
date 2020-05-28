@@ -431,3 +431,47 @@ func TestCreateSvcImageBinding(t *testing.T) {
 	}
 
 }
+
+func TestInheritBindings(t *testing.T) {
+	envPipelines := &config.Pipelines{
+		Integration: &config.TemplateBinding{
+			Template: "env-template",
+			Bindings: []string{"binding-1", "binding-2", "github-pr-binding", "gitlab-pr-binding"},
+		},
+	}
+	cicdEnv := &config.Environment{Name: "test-cicd"}
+	tests := []struct {
+		desc string
+		env  *config.Environment
+		svc  *config.Service
+		want []string
+	}{
+		{
+			"override github bindings from environment",
+			&config.Environment{Name: "env", Pipelines: envPipelines},
+			&config.Service{Name: "svc", SourceURL: "http://gitlab.com/org/test"},
+			[]string{"binding-1", "binding-2", "gitlab-pr-binding"},
+		},
+		{
+			"override gitlab bindings from environment",
+			&config.Environment{Name: "env", Pipelines: envPipelines},
+			&config.Service{Name: "svc", SourceURL: "http://github.com/org/test"},
+			[]string{"binding-1", "binding-2", "github-pr-binding"},
+		},
+		{
+			"add bindings to a service with no source URL",
+			&config.Environment{Name: "env", Pipelines: envPipelines},
+			&config.Service{Name: "svc"},
+			[]string{},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.desc, func(rt *testing.T) {
+			got, err := inheritBindings(cicdEnv, test.env, test.svc)
+			assertNoError(rt, err)
+			if diff := cmp.Diff(got, test.want); diff != "" {
+				rt.Fatalf("inheritBindings failed: \n%s", diff)
+			}
+		})
+	}
+}

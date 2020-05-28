@@ -28,6 +28,7 @@ type patchStringValue struct {
 type tektonBuilder struct {
 	files      res.Resources
 	gitOpsRepo string
+	cicdEnv    *config.Environment
 	triggers   []v1alpha1.EventListenerTrigger
 }
 
@@ -43,7 +44,7 @@ func buildEventListenerResources(gitOpsRepo string, m *config.Manifest) (res.Res
 		return nil, nil
 	}
 	files := make(res.Resources)
-	tb := &tektonBuilder{files: files, gitOpsRepo: gitOpsRepo}
+	tb := &tektonBuilder{files: files, gitOpsRepo: gitOpsRepo, cicdEnv: cicd}
 	err = m.Walk(tb)
 	return tb.files, err
 }
@@ -56,7 +57,7 @@ func (tk *tektonBuilder) Service(env *config.Environment, svc *config.Service) e
 	if err != nil {
 		return err
 	}
-	pipelines := getPipelines(env, svc)
+	pipelines := getPipelines(tk.cicdEnv, env, svc, repo)
 	ciTrigger := repo.CreateCITrigger(triggerName(svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
 	tk.triggers = append(tk.triggers, ciTrigger)
 	return nil
@@ -93,8 +94,9 @@ func createTriggersForCICD(gitOpsRepo string, env *config.Environment) ([]v1alph
 	return triggers, nil
 }
 
-func getPipelines(env *config.Environment, svc *config.Service) *config.Pipelines {
-	pipelines := clonePipelines(defaultPipelines)
+func getPipelines(cicdEnv, env *config.Environment, svc *config.Service, repo scm.Repository) *config.Pipelines {
+	_, bindingName := repo.CreatePRBinding(cicdEnv.Name)
+	pipelines := createPipeline(appCITemplateName, []string{bindingName})
 	if env.Pipelines != nil {
 		pipelines = clonePipelines(env.Pipelines)
 	}
@@ -105,6 +107,8 @@ func getPipelines(env *config.Environment, svc *config.Service) *config.Pipeline
 		if svc.Pipelines.Integration.Template != "" {
 			pipelines.Integration.Template = svc.Pipelines.Integration.Template
 		}
+
+		return pipelines
 	}
 	return pipelines
 }

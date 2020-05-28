@@ -61,11 +61,11 @@ func TestCreatePushBindingForGitlab(t *testing.T) {
 			Params: []triggersv1.Param{
 				{
 					Name:  "gitref",
-					Value: "$(body.object_attributes.source_branch)",
+					Value: "$(body.ref)",
 				},
 				{
 					Name:  "gitsha",
-					Value: "$(body.object_attributes.last_commit.id)",
+					Value: "$(body.after)",
 				},
 				{
 					Name:  "gitrepositoryurl",

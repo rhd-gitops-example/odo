@@ -86,10 +86,6 @@ const (
 	appCiPipelinesPath       = "05-pipelines/app-ci-pipeline.yaml"
 	appCdPipelinesPath       = "05-pipelines/app-cd-pipeline.yaml"
 	cdPipelinesPath          = "05-pipelines/cd-deploy-from-push-pipeline.yaml"
-	githubPRBindingPath      = "06-bindings/github-pr-binding.yaml"
-	githubPushBindingPath    = "06-bindings/github-push-binding.yaml"
-	gitlabPRBindingPath      = "06-bindings/gitlab-pr-binding.yaml"
-	gitlabPushBindingPath    = "06-bindings/gitlab-push-binding.yaml"
 	prTemplatePath           = "07-templates/ci-dryrun-from-pr-template.yaml"
 	pushTemplatePath         = "07-templates/cd-deploy-from-push-template.yaml"
 	appCIBuildPRTemplatePath = "07-templates/app-ci-build-pr-template.yaml"
@@ -218,12 +214,16 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, cicdEnv *config.Envir
 func createTriggerBindings(outputs res.Resources, ns string) {
 	// add bindings for GitHub repo
 	githubRepo := scm.GitHubRepository{}
-	outputs[githubPRBindingPath], _ = githubRepo.CreatePRBinding(ns)
-	outputs[githubPushBindingPath], _ = githubRepo.CreatePushBinding(ns)
+	githubPRBinding, githubPRBindingName := githubRepo.CreatePRBinding(ns)
+	outputs[filepath.Join("06-bindings", githubPRBindingName+".yaml")] = githubPRBinding
+	githubPushBinding, githubPushBindingName := githubRepo.CreatePushBinding(ns)
+	outputs[filepath.Join("06-bindings", githubPushBindingName+".yaml")] = githubPushBinding
 	// add bindings for GitLab repo
 	gitlabRepo := scm.GitLabRepository{}
-	outputs[gitlabPRBindingPath], _ = gitlabRepo.CreatePRBinding(ns)
-	outputs[gitlabPushBindingPath], _ = gitlabRepo.CreatePushBinding(ns)
+	gitlabPRBinding, gitlabPRBindingName := gitlabRepo.CreatePRBinding(ns)
+	outputs[filepath.Join("06-bindings", gitlabPRBindingName+".yaml")] = gitlabPRBinding
+	gitlabPushBinding, gitlabPushBindingName := gitlabRepo.CreatePushBinding(ns)
+	outputs[filepath.Join("06-bindings", gitlabPushBindingName+".yaml")] = gitlabPushBinding
 }
 
 func createManifest(gitOpsRepo scm.Repository, envs ...*config.Environment) *config.Manifest {

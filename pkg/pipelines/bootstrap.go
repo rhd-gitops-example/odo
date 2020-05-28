@@ -25,8 +25,11 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/yaml"
 )
 
-const pipelinesFile = "pipelines.yaml"
-const bootstrapImage = "nginxinc/nginx-unprivileged:latest"
+const (
+	pipelinesFile     = "pipelines.yaml"
+	bootstrapImage    = "nginxinc/nginx-unprivileged:latest"
+	appCITemplateName = "app-ci-template"
+)
 
 var defaultPipelines = &config.Pipelines{
 	Integration: &config.TemplateBinding{
@@ -96,7 +99,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	ns := namespaces.NamesWithPrefix(o.Prefix)
 	serviceName := repoToServiceName(repoName)
 	secretName := secrets.MakeServiceWebhookSecretName(serviceName)
-	envs, err := bootstrapEnvironments(o.Prefix, appRepo.URL(), secretName, ns)
+	envs, err := bootstrapEnvironments(appRepo, o.Prefix, secretName, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +173,7 @@ func bootstrapServiceDeployment(dev *config.Environment) (res.Resources, error) 
 	return resources, nil
 }
 
-func bootstrapEnvironments(prefix, repoURL, secretName string, ns map[string]string) ([]*config.Environment, error) {
+func bootstrapEnvironments(repo scm.Repository, prefix, secretName string, ns map[string]string) ([]*config.Environment, error) {
 	envs := []*config.Environment{}
 	for k, v := range ns {
 		env := &config.Environment{Name: v}
@@ -178,23 +181,34 @@ func bootstrapEnvironments(prefix, repoURL, secretName string, ns map[string]str
 			env.IsCICD = true
 		}
 		if k == "dev" {
-			svc, err := serviceFromRepo(repoURL, secretName, ns["cicd"])
+			svc, err := serviceFromRepo(repo.URL(), secretName, ns["cicd"])
 			if err != nil {
 				return nil, err
 			}
-			app, err := applicationFromRepo(repoURL, svc.Name)
+			app, err := applicationFromRepo(repo.URL(), svc.Name)
 			if err != nil {
 				return nil, err
 			}
 			env.Apps = []*config.Application{app}
 			env.Services = []*config.Service{svc}
-			env.Pipelines = defaultPipelines
+			// add the binding specific to service repo
+			_, bindingName := repo.CreatePRBinding(ns[k])
+			env.Pipelines = createPipeline(appCITemplateName, []string{bindingName})
 		}
 		envs = append(envs, env)
 	}
 	envs = append(envs, &config.Environment{Name: prefix + "argocd", IsArgoCD: true})
 	sort.Sort(config.ByName(envs))
 	return envs, nil
+}
+
+func createPipeline(template string, bindings []string) *config.Pipelines {
+	return &config.Pipelines{
+		Integration: &config.TemplateBinding{
+			Template: template,
+			Bindings: bindings,
+		},
+	}
 }
 
 func serviceFromRepo(repoURL, secretName, secretNS string) (*config.Service, error) {
