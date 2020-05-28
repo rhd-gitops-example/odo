@@ -13,9 +13,9 @@ const (
 	gitlabPRBindingName   = "gitlab-pr-binding"
 	gitlabPushBindingName = "gitlab-push-binding"
 
-	gitlabCIDryRunFilters = "( header.match ( ‘X-Gitlab-Event’ , ‘Merge Request Hook’ ) && body.object_kind == ‘merge_request’ ) && body.object_attributes.state == ‘opened’ && body.project.path_with_namespace == %s  && body.project.default_branch == body.object_attributes.target_branch )"
+	gitlabCIDryRunFilters = "header.match('X-Gitlab-Event','Merge Request Hook') && body.object_kind == 'merge_request' && body.object_attributes.state == 'opened' && body.project.path_with_namespace == '%s'  && body.project.default_branch == body.object_attributes.target_branch"
 
-	gitlabCDDeployFilters = "( header.match ( ‘X-Gitlab-Event’ , ‘Push Hook’ ) && body.object_kind == ‘push’ && body.project.path_with_namespace == %s && body.ref.EndsWith (body.project.default_branch )"
+	gitlabCDDeployFilters = "header.match('X-Gitlab-Event','Push Hook') && body.object_kind == 'push' && body.project.path_with_namespace == '%s' && body.ref.endsWith(body.project.default_branch)"
 )
 
 // GitLabRepository represents a service on a GitLab repo
@@ -69,8 +69,8 @@ func (repo *GitLabRepository) CreatePushBinding(ns string) (triggersv1.TriggerBi
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, gitlabPushBindingName)),
 		Spec: triggersv1.TriggerBindingSpec{
 			Params: []triggersv1.Param{
-				createBindingParam("gitref", "$(body.object_attributes.source_branch)"),
-				createBindingParam("gitsha", "$(body.object_attributes.last_commit.id)"),
+				createBindingParam("gitref", "$(body.ref)"),
+				createBindingParam("gitsha", "$(body.after)"),
 				createBindingParam("gitrepositoryurl", "$(body.project.git_http_url)"),
 			},
 		},
