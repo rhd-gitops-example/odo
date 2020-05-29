@@ -175,20 +175,11 @@ func inheritBindings(cicdEnv, env *config.Environment, svc *config.Service) ([]s
 func extractBindings(bindings []string) []string {
 	var svcBindings []string
 	for i := range bindings {
-		if !isSCMBinding(bindings[i]) {
+		if !scm.IsRepositoryBinding(bindings[i]) {
 			svcBindings = append(svcBindings, bindings[i])
 		}
 	}
 	return svcBindings
-}
-
-func isSCMBinding(binding string) bool {
-	for _, b := range scm.GetAllBindings() {
-		if b == binding {
-			return true
-		}
-	}
-	return false
 }
 
 func createImageRepoResources(m *config.Manifest, cicdEnv, env *config.Environment, p *AddServiceParameters) ([]string, res.Resources, string, error) {

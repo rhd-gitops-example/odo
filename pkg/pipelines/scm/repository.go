@@ -20,13 +20,13 @@ func NewRepository(rawURL string) (Repository, error) {
 	return nil, invalidRepoTypeError(rawURL)
 }
 
-// GetAllBindings returns a list of supported binding types
-func GetAllBindings() []string {
-	return []string{
-		githubPRBindingName,
-		githubPushBindingName,
-		gitlabPRBindingName,
-		gitlabPushBindingName,
+// IsRepositoryBinding checks if a binding
+// is a supported binding type
+func IsRepositoryBinding(b string) bool {
+	for _, binding := range supportedTriggerBindings {
+		if binding == b {
+			return true
+		}
 	}
-	return supportedTriggerBindings
+	return false
 }

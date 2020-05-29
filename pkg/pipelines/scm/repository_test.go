@@ -30,6 +30,38 @@ func TestNewRepositoryForInvalidRepoType(t *testing.T) {
 	}
 }
 
+func TestIsRepositoryBinding(t *testing.T) {
+	tests := []struct {
+		desc string
+		name string
+		want bool
+	}{
+		{
+			"valid repository binding",
+			"github-pr-binding",
+			true,
+		},
+		{
+			"valid repository binding",
+			"gitlab-pr-binding",
+			true,
+		},
+		{
+			"invalid repository binding",
+			"test-binding",
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.desc, func(rt *testing.T) {
+			got := IsRepositoryBinding(test.name)
+			if test.want != got {
+				rt.Fatalf("IsRepositoryBinding failed: got %v want %v", got, test.want)
+			}
+		})
+	}
+}
+
 func assertNoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {

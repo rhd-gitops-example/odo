@@ -37,20 +37,17 @@ type GitHubRepository struct {
 
 // NewGitHubRepository returns an instance of GitHubRepository
 func NewGitHubRepository(rawURL string) (*GitHubRepository, error) {
-	parsedURL, err := url.Parse(rawURL)
+	parsedURL, path, err := processRawURL(rawURL, func(parsedURL *url.URL) (string, error) {
+		components, err := splitRepositoryPath(parsedURL)
+		if err != nil {
+			return "", err
+		}
+		path := components[0] + "/" + strings.TrimSuffix(components[1], ".git")
+		return path, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	var components []string
-	for _, s := range strings.Split(parsedURL.Path, "/") {
-		if s != "" {
-			components = append(components, s)
-		}
-	}
-	if len(components) < 2 {
-		return nil, invalidRepoPathError(rawURL)
-	}
-	path := components[0] + "/" + strings.TrimSuffix(components[1], ".git")
 	return &GitHubRepository{url: parsedURL, path: path}, nil
 }
 

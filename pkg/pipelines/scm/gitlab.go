@@ -31,18 +31,14 @@ type GitLabRepository struct {
 // NewGitLabRepository returns an instance of GitLabRepository
 // NewGitLabRepository returns an instance of GitLabRepository
 func NewGitLabRepository(rawURL string) (*GitLabRepository, error) {
-	parsedURL, path, err := processRawURL(rawURL, func(parsedURL *url.URL) (string, err) {
-		var components []string
-		for _, s := range strings.Split(parsedURL.Path, "/") {
-			if s != "" {
-				components = append(components, s)
-			}
-		}
-		if len(components) < 2 {
-			return nil, invalidRepoPathError(rawURL)
+	parsedURL, path, err := processRawURL(rawURL, func(parsedURL *url.URL) (string, error) {
+		components, err := splitRepositoryPath(parsedURL)
+		if err != nil {
+			return "", err
 		}
 		components[len(components)-1] = strings.TrimSuffix(components[len(components)-1], ".git")
 		path := strings.Join(components, "/")
+		return path, nil
 	})
 	if err != nil {
 		return nil, err

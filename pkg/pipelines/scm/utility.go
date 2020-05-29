@@ -61,3 +61,28 @@ func createBindingParam(name string, value string) triggersv1.Param {
 		Value: value,
 	}
 }
+
+func processRawURL(rawURL string, processPath func(*url.URL) (string, error)) (*url.URL, string, error) {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, "", err
+	}
+	path, err := processPath(parsedURL)
+	if err != nil {
+		return nil, "", err
+	}
+	return parsedURL, path, nil
+}
+
+func splitRepositoryPath(parsedURL *url.URL) ([]string, error) {
+	var components []string
+	for _, s := range strings.Split(parsedURL.Path, "/") {
+		if s != "" {
+			components = append(components, s)
+		}
+	}
+	if len(components) < 2 {
+		return nil, invalidRepoPathError(parsedURL.String())
+	}
+	return components, nil
+}
