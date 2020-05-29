@@ -8,8 +8,11 @@ import(
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 
 )
+type processPath struct {
+	parsedURL *url.URL
+}
 // NewGitLabRepository returns an instance of GitLabRepository
-type processRawURL(rawURL string, func processPath(parsedURL *url.URL) (string, err)){
+func processRawURL(rawURL string, processPath(parsedURL *url.URL) (string, err)){
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
@@ -19,3 +22,5 @@ type processRawURL(rawURL string, func processPath(parsedURL *url.URL) (string, 
 		return nil, err
 	}
 }
+
+
