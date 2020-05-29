@@ -81,8 +81,9 @@ func splitRepositoryPath(parsedURL *url.URL) ([]string, error) {
 			components = append(components, s)
 		}
 	}
-	if len(components) < 2 {
+	if len(components) < 1 {
 		return nil, invalidRepoPathError(parsedURL.String())
 	}
+	components[len(components)-1] = strings.TrimSuffix(components[len(components)-1], ".git")
 	return components, nil
 }

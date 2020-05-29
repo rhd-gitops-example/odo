@@ -49,7 +49,7 @@ func TestPRbindingForGitlab(t *testing.T) {
 }
 
 func TestCreatePushBindingForGitlab(t *testing.T) {
-	repo, err := NewGitLabRepository("https://gitlab.com/org/test")
+	repo, err := NewGitLabRepository("https://gitlab.com/org/fullname/subgroup/repository/subrepo/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
 		TypeMeta: triggerBindingTypeMeta,

@@ -33,7 +33,9 @@ func NewGitLabRepository(rawURL string) (*GitLabRepository, error) {
 		if err != nil {
 			return "", err
 		}
-		components[len(components)-1] = strings.TrimSuffix(components[len(components)-1], ".git")
+		if len(components) < 2 {
+			return "", invalidRepoPathError(parsedURL.String())
+		}
 		path := strings.Join(components, "/")
 		return path, nil
 	})

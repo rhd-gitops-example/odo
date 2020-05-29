@@ -24,10 +24,6 @@ const (
 	githubPushBindingName = "github-push-binding"
 )
 
-func init() {
-	supportedTriggerBindings = append(supportedTriggerBindings, githubPRBindingName, githubPushBindingName)
-}
-
 // GitHubRepository represents a service on a GitHub repo
 type GitHubRepository struct {
 	repository
@@ -40,7 +36,11 @@ func NewGitHubRepository(rawURL string) (*GitHubRepository, error) {
 		if err != nil {
 			return "", err
 		}
-		path := components[0] + "/" + strings.TrimSuffix(components[1], ".git")
+
+		if len(components) != 2 {
+			return "", invalidRepoPathError(parsedURL.String())
+		}
+		path := strings.Join(components, "/")
 		return path, nil
 	})
 	if err != nil {
