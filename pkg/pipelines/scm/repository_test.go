@@ -12,7 +12,7 @@ func TestNewRepository(t *testing.T) {
 	assertNoError(t, err)
 	want, err := NewGitHubRepository(githubURL)
 	assertNoError(t, err)
-	if diff := cmp.Diff(got, want, cmp.AllowUnexported(GitHubRepository{})); diff != "" {
+	if diff := cmp.Diff(got, want, cmp.AllowUnexported(GitHubRepository{}, repository{})); diff != "" {
 		t.Fatalf("NewRepository() failed:\n%s", diff)
 	}
 }

@@ -4,8 +4,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/openshift/odo/pkg/pipelines/meta"
-	"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
@@ -24,8 +22,7 @@ func init() {
 
 // GitLabRepository represents a service on a GitLab repo
 type GitLabRepository struct {
-	url  *url.URL
-	path string // GitLab repo path eg: (group/subgroup/../repo)
+	repository
 }
 
 // NewGitLabRepository returns an instance of GitLabRepository
@@ -43,70 +40,45 @@ func NewGitLabRepository(rawURL string) (*GitLabRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &GitLabRepository{url: parsedURL, path: path}, nil
+	return &GitLabRepository{repository{url: parsedURL, path: path}}, nil
 }
 
 // CreatePRBinding returns a TriggerBinding for GitLab merge request hooks
 func (repo *GitLabRepository) CreatePRBinding(ns string) (triggersv1.TriggerBinding, string) {
-	return triggersv1.TriggerBinding{
-		TypeMeta:   triggerBindingTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, gitlabPRBindingName)),
-		Spec: triggersv1.TriggerBindingSpec{
-			Params: []triggersv1.Param{
-				createBindingParam("gitref", "$(body.object_attributes.source_branch)"),
-				createBindingParam("gitsha", "$(body.object_attributes.last_commit.id)"),
-				createBindingParam("gitrepositoryurl", "$(body.project.git_http_url)"),
-				createBindingParam("fullname", "$(body.project.path_with_namespace)"),
-			},
-		},
-	}, gitlabPRBindingName
-
+	return repo.createBinding(ns, gitlabPRBindingName, []triggersv1.Param{
+		createBindingParam("gitref", "$(body.object_attributes.source_branch)"),
+		createBindingParam("gitsha", "$(body.object_attributes.last_commit.id)"),
+		createBindingParam("gitrepositoryurl", "$(body.project.git_http_url)"),
+		createBindingParam("fullname", "$(body.project.path_with_namespace)"),
+	}), gitlabPRBindingName
 }
 
 // CreatePushBinding returns a TriggerBinding for GitLab push hooks
 func (repo *GitLabRepository) CreatePushBinding(ns string) (triggersv1.TriggerBinding, string) {
-	return triggersv1.TriggerBinding{
-		TypeMeta:   triggerBindingTypeMeta,
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, gitlabPushBindingName)),
-		Spec: triggersv1.TriggerBindingSpec{
-			Params: []triggersv1.Param{
-				createBindingParam("gitref", "$(body.ref)"),
-				createBindingParam("gitsha", "$(body.after)"),
-				createBindingParam("gitrepositoryurl", "$(body.project.git_http_url)"),
-			},
-		},
-	}, gitlabPushBindingName
+	return repo.createBinding(ns, gitlabPushBindingName, []triggersv1.Param{
+		createBindingParam("gitref", "$(body.ref)"),
+		createBindingParam("gitsha", "$(body.after)"),
+		createBindingParam("gitrepositoryurl", "$(body.project.git_http_url)"),
+	}), gitlabPushBindingName
 }
 
 // URL returns the URL of the GitLab repository
 func (repo *GitLabRepository) URL() string {
-	return repo.url.String()
+	return repo.String()
 }
 
 // CreateCITrigger creates a CI eventlistener trigger for GitLab
-func (repo *GitLabRepository) CreateCITrigger(name, secretName, secretNS, template string, bindings []string) v1alpha1.EventListenerTrigger {
-	return triggersv1.EventListenerTrigger{
-		Name: name,
-		Interceptors: []*triggersv1.EventInterceptor{
-			createEventInterceptor(gitlabCIDryRunFilters, repo.path),
-			repo.CreateInterceptor(secretName, secretNS),
-		},
-		Bindings: createBindings(bindings),
-		Template: createListenerTemplate(template),
-	}
+func (repo *GitLabRepository) CreateCITrigger(name, secretName, secretNS, template string, bindings []string) triggersv1.EventListenerTrigger {
+	return repo.createTrigger(name, gitlabCIDryRunFilters,
+		template, bindings,
+		repo.CreateInterceptor(secretName, secretNS))
 }
 
 // CreateCDTrigger creates a CD eventlistener trigger for GitLab
-func (repo *GitLabRepository) CreateCDTrigger(name, secretName, secretNS, template string, bindings []string) v1alpha1.EventListenerTrigger {
-	return triggersv1.EventListenerTrigger{
-		Name: name,
-		Interceptors: []*triggersv1.EventInterceptor{
-			createEventInterceptor(gitlabCDDeployFilters, repo.path),
-			repo.CreateInterceptor(secretName, secretNS),
-		},
-		Bindings: createBindings(bindings),
-		Template: createListenerTemplate(template),
-	}
+func (repo *GitLabRepository) CreateCDTrigger(name, secretName, secretNS, template string, bindings []string) triggersv1.EventListenerTrigger {
+	return repo.createTrigger(name, gitlabCDDeployFilters,
+		template, bindings,
+		repo.CreateInterceptor(secretName, secretNS))
 }
 
 // CreateInterceptor returns a GitLab eventlistener
