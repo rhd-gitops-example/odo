@@ -25,6 +25,10 @@ const (
 	githubPushBindingName = "github-push-binding"
 )
 
+func init() {
+	supportedTriggerBindings = append(supportedTriggerBindings, githubPRBindingName, githubPushBindingName)
+}
+
 // GitHubRepository represents a service on a GitHub repo
 type GitHubRepository struct {
 	url  *url.URL

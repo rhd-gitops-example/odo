@@ -1,5 +1,9 @@
 package scm
 
+var (
+	supportedTriggerBindings []string
+)
+
 // NewRepository returns a suitable Repository instance
 // based on the driver name (github,gitlab,etc)
 func NewRepository(rawURL string) (Repository, error) {
@@ -24,4 +28,5 @@ func GetAllBindings() []string {
 		gitlabPRBindingName,
 		gitlabPushBindingName,
 	}
+	return supportedTriggerBindings
 }

@@ -18,6 +18,10 @@ const (
 	gitlabCDDeployFilters = "header.match('X-Gitlab-Event','Push Hook') && body.project.path_with_namespace == '%s' && body.ref.endsWith(body.project.default_branch)"
 )
 
+func init() {
+	supportedTriggerBindings = append(supportedTriggerBindings, gitlabPRBindingName, gitlabPushBindingName)
+}
+
 // GitLabRepository represents a service on a GitLab repo
 type GitLabRepository struct {
 	url  *url.URL

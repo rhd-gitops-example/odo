@@ -175,14 +175,14 @@ func inheritBindings(cicdEnv, env *config.Environment, svc *config.Service) ([]s
 func extractBindings(bindings []string) []string {
 	var svcBindings []string
 	for i := range bindings {
-		if !isSpecial(bindings[i]) {
+		if !isSCMBinding(bindings[i]) {
 			svcBindings = append(svcBindings, bindings[i])
 		}
 	}
 	return svcBindings
 }
 
-func isSpecial(binding string) bool {
+func isSCMBinding(binding string) bool {
 	for _, b := range scm.GetAllBindings() {
 		if b == binding {
 			return true
