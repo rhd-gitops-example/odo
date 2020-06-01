@@ -28,9 +28,8 @@ func (m *Manifest) Validate() error {
 		serviceURLs:  map[string][]string{},
 		manifest:     m,
 	}
-	m.Walk(vv)
-
-	vv.errs = append(vv.errs, vv.validateServiceURLs()...)
+	err := m.Walk(vv)
+	vv.errs = append(vv.errs, err)
 
 	if len(vv.errs) == 0 {
 		return nil
@@ -200,14 +199,6 @@ func yamlJoin(a string, b ...string) string {
 
 func list(errs ...error) []error {
 	return errs
-}
-
-func invalidEnvironment(name, details string, paths []string) *apis.FieldError {
-	return &apis.FieldError{
-		Message: fmt.Sprintf("invalid environment %q", name),
-		Details: details,
-		Paths:   paths,
-	}
 }
 
 func invalidNameError(name, details string, paths []string) *apis.FieldError {

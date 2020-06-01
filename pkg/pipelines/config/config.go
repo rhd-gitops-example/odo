@@ -91,13 +91,13 @@ func (m *Manifest) GetCICD() (*Cicd, error) {
 }
 
 // GetArgo returns the ArgoCD Environment if one exists.
-func (m *Manifest) GetArgo() (*Argo, error) {
+func (m *Manifest) GetArgoCDConfig() *Argo {
 	if m.Config != nil {
 		if m.Config.Argo != nil {
-			return m.Config.Argo, nil
+			return m.Config.Argo
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 // Environment is a slice of Apps, these are the named apps in the namespace.
