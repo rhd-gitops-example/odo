@@ -5,17 +5,16 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/triggers"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ Repository = (*GitHubRepository)(nil)
-
 func TestCreatePRBindingForGithub(t *testing.T) {
-	repo, err := NewGitHubRepository("http://github.com/org/test")
+	repo, err := NewRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
-		TypeMeta: triggerBindingTypeMeta,
+		TypeMeta: triggers.TriggerBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "github-pr-binding",
 			Namespace: "testns",
@@ -51,10 +50,10 @@ func TestCreatePRBindingForGithub(t *testing.T) {
 }
 
 func TestCreatePushBindingForGithub(t *testing.T) {
-	repo, err := NewGitHubRepository("http://github.com/org/test")
+	repo, err := NewRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
-		TypeMeta: triggerBindingTypeMeta,
+		TypeMeta: triggers.TriggerBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "github-push-binding",
 			Namespace: "testns",
@@ -86,7 +85,7 @@ func TestCreatePushBindingForGithub(t *testing.T) {
 }
 
 func TestCreateCITriggerForGithub(t *testing.T) {
-	repo, err := NewGitHubRepository("http://github.com/org/test")
+	repo, err := NewRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.EventListenerTrigger{
 		Name: "test",
@@ -114,7 +113,7 @@ func TestCreateCITriggerForGithub(t *testing.T) {
 }
 
 func TestCreateCDTriggersForGithub(t *testing.T) {
-	repo, err := NewGitHubRepository("http://github.com/org/test")
+	repo, err := NewRepository("http://github.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.EventListenerTrigger{
 		Name: "test",
@@ -150,12 +149,12 @@ func TestNewGitHubRepository(t *testing.T) {
 		{
 			"http://github.org",
 			"",
-			"unable to determine repo path from: http://github.org",
+			"unable to determine type of Git host from: http://github.org",
 		},
 		{
 			"http://github.com/",
 			"",
-			"unable to determine repo path from: http://github.com/",
+			"invalid repository URL http://github.com/: path is empty",
 		},
 		{
 			"http://github.com/foo/bar",
@@ -169,21 +168,21 @@ func TestNewGitHubRepository(t *testing.T) {
 		},
 		{
 			"https://githuB.com/foo/bar/test.git",
-			"foo/bar",
 			"",
+			"invalid repository path for github: /foo/bar/test.git",
 		},
 	}
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
-			repo, err := NewGitHubRepository(tt.url)
+			repo, err := NewRepository(tt.url)
 			if err != nil {
 				if diff := cmp.Diff(tt.errMsg, err.Error()); diff != "" {
 					rt.Fatalf("repo path errMsg mismatch: \n%s", diff)
 				}
 			}
 			if repo != nil {
-				if diff := cmp.Diff(tt.repoPath, repo.path); diff != "" {
+				if diff := cmp.Diff(tt.repoPath, repo.(*github).path); diff != "" {
 					rt.Fatalf("repo path mismatch: got\n%s", diff)
 				}
 			}

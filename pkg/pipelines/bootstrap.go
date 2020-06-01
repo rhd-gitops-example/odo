@@ -31,13 +31,6 @@ const (
 	appCITemplateName = "app-ci-template"
 )
 
-var defaultPipelines = &config.Pipelines{
-	Integration: &config.TemplateBinding{
-		Template: "app-ci-template",
-		Bindings: []string{"github-pr-binding"},
-	},
-}
-
 // BootstrapOptions is a struct that provides the optional flags
 type BootstrapOptions struct {
 	GitOpsRepoURL            string // This is where the pipelines and configuration are.
@@ -98,7 +91,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 
 	ns := namespaces.NamesWithPrefix(o.Prefix)
 	serviceName := repoToServiceName(repoName)
-	secretName := secrets.MakeServiceWebhookSecretName(serviceName)
+	secretName := secrets.MakeServiceWebhookSecretName(ns["dev"], serviceName)
 	envs, err := bootstrapEnvironments(appRepo, o.Prefix, secretName, ns)
 	if err != nil {
 		return nil, err
@@ -191,24 +184,13 @@ func bootstrapEnvironments(repo scm.Repository, prefix, secretName string, ns ma
 			}
 			env.Apps = []*config.Application{app}
 			env.Services = []*config.Service{svc}
-			// add the binding specific to service repo
-			_, bindingName := repo.CreatePRBinding(ns[k])
-			env.Pipelines = createPipeline(appCITemplateName, []string{bindingName})
+			env.Pipelines = defaultPipelines(repo)
 		}
 		envs = append(envs, env)
 	}
 	envs = append(envs, &config.Environment{Name: prefix + "argocd", IsArgoCD: true})
 	sort.Sort(config.ByName(envs))
 	return envs, nil
-}
-
-func createPipeline(template string, bindings []string) *config.Pipelines {
-	return &config.Pipelines{
-		Integration: &config.TemplateBinding{
-			Template: template,
-			Bindings: bindings,
-		},
-	}
 }
 
 func serviceFromRepo(repoURL, secretName, secretNS string) (*config.Service, error) {
@@ -282,4 +264,13 @@ func createBootstrapService(ns, name string) *corev1.Service {
 
 func repoToServiceName(repoName string) string {
 	return repoName + "-svc"
+}
+
+func defaultPipelines(r scm.Repository) *config.Pipelines {
+	return &config.Pipelines{
+		Integration: &config.TemplateBinding{
+			Template: appCITemplateName,
+			Bindings: []string{r.PRBindingName()},
+		},
+	}
 }

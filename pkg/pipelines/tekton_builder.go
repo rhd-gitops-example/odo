@@ -28,7 +28,6 @@ type patchStringValue struct {
 type tektonBuilder struct {
 	files      res.Resources
 	gitOpsRepo string
-	cicdEnv    *config.Environment
 	triggers   []v1alpha1.EventListenerTrigger
 }
 
@@ -44,7 +43,7 @@ func buildEventListenerResources(gitOpsRepo string, m *config.Manifest) (res.Res
 		return nil, nil
 	}
 	files := make(res.Resources)
-	tb := &tektonBuilder{files: files, gitOpsRepo: gitOpsRepo, cicdEnv: cicd}
+	tb := &tektonBuilder{files: files, gitOpsRepo: gitOpsRepo}
 	err = m.Walk(tb)
 	return tb.files, err
 }
@@ -57,7 +56,7 @@ func (tk *tektonBuilder) Service(env *config.Environment, svc *config.Service) e
 	if err != nil {
 		return err
 	}
-	pipelines := getPipelines(tk.cicdEnv, env, svc, repo)
+	pipelines := getPipelines(env, svc, repo)
 	ciTrigger := repo.CreateCITrigger(triggerName(svc.Name), svc.Webhook.Secret.Name, svc.Webhook.Secret.Namespace, pipelines.Integration.Template, pipelines.Integration.Bindings)
 	tk.triggers = append(tk.triggers, ciTrigger)
 	return nil
@@ -86,17 +85,14 @@ func createTriggersForCICD(gitOpsRepo string, env *config.Environment) ([]v1alph
 	if err != nil {
 		return []v1alpha1.EventListenerTrigger{}, err
 	}
-	_, prBindingName := repo.CreatePRBinding(env.Name)
-	ciTrigger := repo.CreateCITrigger("ci-dryrun-from-pr", eventlisteners.GitOpsWebhookSecret, env.Name, "ci-dryrun-from-pr-template", []string{prBindingName})
-	_, pushBindingName := repo.CreatePushBinding(env.Name)
-	cdTrigger := repo.CreateCDTrigger("cd-deploy-from-push", eventlisteners.GitOpsWebhookSecret, env.Name, "cd-deploy-from-push-template", []string{pushBindingName})
+	ciTrigger := repo.CreateCITrigger("ci-dryrun-from-pr", eventlisteners.GitOpsWebhookSecret, env.Name, "ci-dryrun-from-pr-template", []string{repo.PRBindingName()})
+	cdTrigger := repo.CreateCDTrigger("cd-deploy-from-push", eventlisteners.GitOpsWebhookSecret, env.Name, "cd-deploy-from-push-template", []string{repo.PushBindingName()})
 	triggers = append(triggers, ciTrigger, cdTrigger)
 	return triggers, nil
 }
 
-func getPipelines(cicdEnv, env *config.Environment, svc *config.Service, repo scm.Repository) *config.Pipelines {
-	_, bindingName := repo.CreatePRBinding(cicdEnv.Name)
-	pipelines := createPipeline(appCITemplateName, []string{bindingName})
+func getPipelines(env *config.Environment, svc *config.Service, r scm.Repository) *config.Pipelines {
+	pipelines := defaultPipelines(r)
 	if env.Pipelines != nil {
 		pipelines = clonePipelines(env.Pipelines)
 	}
@@ -107,8 +103,6 @@ func getPipelines(cicdEnv, env *config.Environment, svc *config.Service, repo sc
 		if svc.Pipelines.Integration.Template != "" {
 			pipelines.Integration.Template = svc.Pipelines.Integration.Template
 		}
-
-		return pipelines
 	}
 	return pipelines
 }

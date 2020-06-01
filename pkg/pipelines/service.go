@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/roles"
-	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
 
 	"github.com/openshift/odo/pkg/pipelines/secrets"
@@ -91,7 +90,7 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServiceParameters) 
 
 	// add the secret only if CI/CD env is present
 	if cicdEnv != nil {
-		secretName := secrets.MakeServiceWebhookSecretName(svc.Name)
+		secretName := secrets.MakeServiceWebhookSecretName(p.EnvName, svc.Name)
 		hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdEnv.Name, secretName), p.WebhookSecret, eventlisteners.WebhookSecretKey)
 		if err != nil {
 			return nil, err
@@ -114,13 +113,9 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServiceParameters) 
 			}
 
 			files = res.Merge(resources, files)
-			bindings, err := inheritBindings(cicdEnv, env, svc)
-			if err != nil {
-				return nil, err
-			}
 			svc.Pipelines = &config.Pipelines{
 				Integration: &config.TemplateBinding{
-					Bindings: append([]string{bindingName}, bindings...),
+					Bindings: append([]string{bindingName}, env.Pipelines.Integration.Bindings[:]...),
 				},
 			}
 		}
@@ -146,40 +141,6 @@ func serviceResources(m *config.Manifest, fs afero.Fs, p *AddServiceParameters) 
 		return nil, err
 	}
 	return res.Merge(built, files), nil
-}
-
-func inheritBindings(cicdEnv, env *config.Environment, svc *config.Service) ([]string, error) {
-	var bindings []string
-	if svc.SourceURL == "" {
-		return []string{}, nil
-	}
-	// inherit pipelines from env
-	if env.Pipelines != nil {
-		bindings = env.Pipelines.Integration.Bindings
-	}
-	repo, err := scm.NewRepository(svc.SourceURL)
-	if err != nil {
-		return []string{}, err
-	}
-	_, svcBinding := repo.CreatePRBinding(cicdEnv.Name)
-	// remove bindings of other repo types to avoid param name collision
-	bindings = extractBindings(bindings)
-
-	// add the pipelines for the service repo type
-	bindings = append(bindings, svcBinding)
-
-	return bindings, nil
-}
-
-// extract all the bindings except service bindings
-func extractBindings(bindings []string) []string {
-	var svcBindings []string
-	for i := range bindings {
-		if !scm.IsRepositoryBinding(bindings[i]) {
-			svcBindings = append(svcBindings, bindings[i])
-		}
-	}
-	return svcBindings
 }
 
 func createImageRepoResources(m *config.Manifest, cicdEnv, env *config.Environment, p *AddServiceParameters) ([]string, res.Resources, string, error) {

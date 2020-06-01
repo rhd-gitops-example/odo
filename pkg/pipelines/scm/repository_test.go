@@ -6,13 +6,24 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestNewRepository(t *testing.T) {
+func TestNewRepositoryGitHub(t *testing.T) {
 	githubURL := "http://github.com/org/test"
 	got, err := NewRepository(githubURL)
 	assertNoError(t, err)
-	want, err := NewGitHubRepository(githubURL)
+	want, err := newGitHub(githubURL)
 	assertNoError(t, err)
-	if diff := cmp.Diff(got, want, cmp.AllowUnexported(GitHubRepository{}, repository{})); diff != "" {
+	if diff := cmp.Diff(got, want, cmp.AllowUnexported(github{}, repository{})); diff != "" {
+		t.Fatalf("NewRepository() failed:\n%s", diff)
+	}
+}
+
+func TestNewRepositoryGitLab(t *testing.T) {
+	gitlabURL := "http://gitlab.com/org/test"
+	got, err := NewRepository(gitlabURL)
+	assertNoError(t, err)
+	want, err := newGitLab(gitlabURL)
+	assertNoError(t, err)
+	if diff := cmp.Diff(got, want, cmp.AllowUnexported(gitlab{}, repository{})); diff != "" {
 		t.Fatalf("NewRepository() failed:\n%s", diff)
 	}
 }
@@ -24,41 +35,9 @@ func TestNewRepositoryForInvalidRepoType(t *testing.T) {
 	if gotErr == nil {
 		t.Fatalf("NewRepository() returned an invalid repository of type: %s", repoType)
 	}
-	wantErr := invalidRepoTypeError(githubURL)
+	wantErr := unsupportedGitTypeError(repoType)
 	if diff := cmp.Diff(wantErr.Error(), gotErr.Error()); diff != "" {
 		t.Fatalf("Errors don't match: got %v want %v", gotErr, wantErr)
-	}
-}
-
-func TestIsRepositoryBinding(t *testing.T) {
-	tests := []struct {
-		desc string
-		name string
-		want bool
-	}{
-		{
-			"valid repository binding",
-			"github-pr-binding",
-			true,
-		},
-		{
-			"valid repository binding",
-			"gitlab-pr-binding",
-			true,
-		},
-		{
-			"invalid repository binding",
-			"test-binding",
-			false,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.desc, func(rt *testing.T) {
-			got := IsRepositoryBinding(test.name)
-			if test.want != got {
-				rt.Fatalf("IsRepositoryBinding failed: got %v want %v", got, test.want)
-			}
-		})
 	}
 }
 

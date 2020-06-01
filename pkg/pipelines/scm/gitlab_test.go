@@ -5,15 +5,16 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/odo/pkg/pipelines/triggers"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestPRbindingForGitlab(t *testing.T) {
-	repo, err := NewGitLabRepository("http://gitlab.com/org/test")
+	repo, err := NewRepository("http://gitlab.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
-		TypeMeta: triggerBindingTypeMeta,
+		TypeMeta: triggers.TriggerBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "gitlab-pr-binding",
 			Namespace: "testns",
@@ -49,10 +50,10 @@ func TestPRbindingForGitlab(t *testing.T) {
 }
 
 func TestCreatePushBindingForGitlab(t *testing.T) {
-	repo, err := NewGitLabRepository("https://gitlab.com/org/fullname/subgroup/repository/subrepo/test")
+	repo, err := newGitLab("https://gitlab.com/org/fullname/subgroup/repository/subrepo/test")
 	assertNoError(t, err)
 	want := triggersv1.TriggerBinding{
-		TypeMeta: triggerBindingTypeMeta,
+		TypeMeta: triggers.TriggerBindingTypeMeta,
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "gitlab-push-binding",
 			Namespace: "testns",
@@ -84,21 +85,21 @@ func TestCreatePushBindingForGitlab(t *testing.T) {
 }
 
 func TestCreateCITriggerForGitLab(t *testing.T) {
-	repo, err := NewGitLabRepository("http://gitlab.com/org/test")
+	repo, err := NewRepository("http://gitlab.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.EventListenerTrigger{
 		Name: "test",
 		Bindings: []*triggersv1.EventListenerBinding{
-			&triggersv1.EventListenerBinding{Name: "test-binding"},
+			{Name: "test-binding"},
 		},
 		Template: triggersv1.EventListenerTemplate{Name: "test-template"},
 		Interceptors: []*triggersv1.EventInterceptor{
-			&triggersv1.EventInterceptor{
+			{
 				CEL: &triggersv1.CELInterceptor{
 					Filter: fmt.Sprintf(gitlabCIDryRunFilters, "org/test"),
 				},
 			},
-			&triggersv1.EventInterceptor{
+			{
 				GitLab: &triggersv1.GitLabInterceptor{
 					SecretRef: &triggersv1.SecretRef{SecretKey: "webhook-secret-key", SecretName: "secret", Namespace: "ns"},
 				},
@@ -112,21 +113,21 @@ func TestCreateCITriggerForGitLab(t *testing.T) {
 }
 
 func TestCreateCDTriggersForGitLab(t *testing.T) {
-	repo, err := NewGitLabRepository("http://gitlab.com/org/test")
+	repo, err := NewRepository("http://gitlab.com/org/test")
 	assertNoError(t, err)
 	want := triggersv1.EventListenerTrigger{
 		Name: "test",
 		Bindings: []*triggersv1.EventListenerBinding{
-			&triggersv1.EventListenerBinding{Name: "test-binding"},
+			{Name: "test-binding"},
 		},
 		Template: triggersv1.EventListenerTemplate{Name: "test-template"},
 		Interceptors: []*triggersv1.EventInterceptor{
-			&triggersv1.EventInterceptor{
+			{
 				CEL: &triggersv1.CELInterceptor{
 					Filter: fmt.Sprintf(gitlabCDDeployFilters, "org/test"),
 				},
 			},
-			&triggersv1.EventInterceptor{
+			{
 				GitLab: &triggersv1.GitLabInterceptor{
 					SecretRef: &triggersv1.SecretRef{SecretKey: "webhook-secret-key", SecretName: "secret", Namespace: "ns"},
 				},
@@ -148,12 +149,12 @@ func TestNewGitlabRepository(t *testing.T) {
 		{
 			"http://gitlab.com",
 			"",
-			"unable to determine repo path from: http://gitlab.com",
+			"invalid repository URL http://gitlab.com: path is empty",
 		},
 		{
-			"http://gitlab.com/",
+			"http://gitlab.com/a",
 			"",
-			"unable to determine repo path from: http://gitlab.com/",
+			"invalid repository path for gitlab: /a",
 		},
 		{
 			"http://gitlab.com/foo/bar",
@@ -174,14 +175,14 @@ func TestNewGitlabRepository(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("Test %d", i), func(rt *testing.T) {
-			repo, err := NewGitLabRepository(tt.url)
+			repo, err := NewRepository(tt.url)
 			if err != nil {
 				if diff := cmp.Diff(tt.errMsg, err.Error()); diff != "" {
 					rt.Fatalf("repo path errMsg mismatch: \n%s", diff)
 				}
 			}
 			if repo != nil {
-				if diff := cmp.Diff(tt.repoPath, repo.path); diff != "" {
+				if diff := cmp.Diff(tt.repoPath, repo.(*gitlab).path); diff != "" {
 					rt.Fatalf("repo path mismatch: got\n%s", diff)
 				}
 			}
