@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -15,6 +16,7 @@ type validateVisitor struct {
 	appNames     map[string]bool
 	serviceNames map[string]bool
 	serviceURLs  map[string][]string
+	manifest     *Manifest
 }
 
 func (m *Manifest) Validate() error {
@@ -24,6 +26,7 @@ func (m *Manifest) Validate() error {
 		appNames:     map[string]bool{},
 		serviceNames: map[string]bool{},
 		serviceURLs:  map[string][]string{},
+		manifest:     m,
 	}
 	m.Walk(vv)
 
@@ -46,6 +49,18 @@ func (vv *validateVisitor) validateServiceURLs() []error {
 }
 
 func (vv *validateVisitor) Environment(env *Environment) error {
+	if vv.manifest.Config != nil {
+		if vv.manifest.Config.CICD != nil {
+			if vv.manifest.Config.CICD.Namespace == env.Name {
+				vv.errs = append(vv.errs, errors.New("Cannot add a new application to Config environments"))
+			}
+		}
+		if vv.manifest.Config.Argo != nil {
+			if vv.manifest.Config.Argo.Namespace == env.Name {
+				vv.errs = append(vv.errs, errors.New("Cannot add a new application to Config environments"))
+			}
+		}
+	}
 	envPath := yamlPath(PathForEnvironment(env))
 	if err := checkDuplicate(env.Name, envPath, vv.envNames); err != nil {
 		vv.errs = append(vv.errs, err)
@@ -61,9 +76,6 @@ func (vv *validateVisitor) Environment(env *Environment) error {
 
 func (vv *validateVisitor) Application(env *Environment, app *Application) error {
 	appPath := yamlPath(PathForApplication(env, app))
-	// if env.IsSpecial() {
-	// 	vv.errs = append(vv.errs, invalidEnvironment(env.Name, "A special environment cannot contain applications.", []string{appPath}))
-	// }
 	if err := checkDuplicate(app.Name, appPath, vv.appNames); err != nil {
 		vv.errs = append(vv.errs, err)
 	}
@@ -95,9 +107,6 @@ func (vv *validateVisitor) Application(env *Environment, app *Application) error
 
 func (vv *validateVisitor) Service(env *Environment, svc *Service) error {
 	svcPath := yamlPath(PathForService(env, svc.Name))
-	// if env.IsSpecial() {
-	// 	vv.errs = append(vv.errs, invalidEnvironment(env.Name, "A special environment cannot contain services.", []string{svcPath}))
-	// }
 	if svc.SourceURL != "" {
 		previous, ok := vv.serviceURLs[svc.SourceURL]
 		if !ok {

@@ -23,8 +23,6 @@ var Config = &config.Config{Argo: testArgo, CICD: testCICD}
 
 func TestCreateManifest(t *testing.T) {
 	repoURL := "https://github.com/foo/bar.git"
-	// repo, err := scm.NewRepository(repoURL)
-	// assertNoError(t, err)
 	want := &config.Manifest{
 		GitOpsURL: repoURL,
 		Config:    Config,

@@ -67,8 +67,7 @@ func TestBuildEventListenerWithNoGitOpsURL(t *testing.T) {
 	m := &config.Manifest{
 		Environments: []*config.Environment{
 			{
-				Name:   "test-cicd",
-				IsCICD: true,
+				Name: "test-cicd",
 			},
 			testEnv(testService()),
 		},
