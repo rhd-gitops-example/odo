@@ -2,7 +2,6 @@ package pipelines
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"testing"
 
@@ -52,8 +51,6 @@ func TestBuildEventListenerWithServiceWithNoURL(t *testing.T) {
 	cicdPath := filepath.Join("config", "test-cicd")
 	gitOpsRepo := "http://github.com/org/gitops.git"
 	got, err := buildEventListenerResources(gitOpsRepo, m)
-	log.Println("This is the got files", got)
-	log.Println("")
 	assertNoError(t, err)
 	want := res.Resources{
 		getEventListenerPath(cicdPath): eventlisteners.CreateELFromTriggers("test-cicd", saName, fakeTiggers(t, m, gitOpsRepo)),
