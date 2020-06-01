@@ -262,8 +262,6 @@ func TestAddService(t *testing.T) {
 		"config/cicd/base/pipelines/03-secrets/github-webhook-secret-test.yaml",
 		"config/cicd/base/pipelines/kustomization.yaml",
 		"pipelines.yaml",
-		// "config/argocd/config/test-dev-test-app-app.yaml",
-		// "config/argocd/config/kustomization.yaml",
 	}
 	err = AddService(&AddServiceParameters{
 		AppName:       "test-app",
