@@ -112,8 +112,6 @@ type Environment struct {
 	Apps      []*Application `json:"apps,omitempty"`
 	// TODO: this should check that there is 0 or 1 CICD environment in the
 	// manfifest.
-	// IsCICD   bool `json:"cicd,omitempty"`
-	// IsArgoCD bool `json:"argo,omitempty"`
 }
 
 //Special are the special environments that constitute the argocd and cicd environment

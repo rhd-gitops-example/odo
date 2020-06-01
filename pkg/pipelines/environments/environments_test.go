@@ -46,10 +46,6 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 func TestBuildEnvironmentsDoesNotOutputCIorArgo(t *testing.T) {
 	var appFs = ioutils.NewMapFilesystem()
 	m := &config.Manifest{
-		// Environments: []*config.Environment{
-		// 	{Name: "test-ci", IsCICD: true},
-		// 	{Name: "test-argo", IsArgoCD: true},
-		// },
 		Config: &config.Special{
 			CICDEnv: &config.Cicd{
 				Namespace: "cicd",
@@ -86,7 +82,6 @@ func TestBuildEnvironmentsAddsKustomizedFiles(t *testing.T) {
 		},
 		Environments: []*config.Environment{
 			{Name: "test-dev"},
-			// {Name: "cicd", IsCICD: true},
 		},
 	}
 

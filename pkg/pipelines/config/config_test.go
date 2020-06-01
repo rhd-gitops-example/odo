@@ -89,7 +89,7 @@ func TestManifestWalk(t *testing.T) {
 // 		Environments: []*Environment{
 // 			{
 // 				Name:   "cicd",
-// 				IsCICD: true,
+// 				: true,
 // 			},
 // 			{
 // 				Name: "development",
@@ -249,7 +249,6 @@ func TestFindCICDEnviroment(t *testing.T) {
 func makeEnvs(ns []testEnv) []*Environment {
 	n := make([]*Environment, len(ns))
 	for i, v := range ns {
-		// n[i] = &Environment{Name: v.name, IsCICD: v.cicd, IsArgoCD: v.argocd}
 		n[i] = &Environment{Name: v.name}
 	}
 	return n

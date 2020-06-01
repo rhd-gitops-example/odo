@@ -52,7 +52,12 @@ func (vv *validateVisitor) Environment(env *Environment) error {
 	if vv.manifest.Config != nil {
 		if vv.manifest.Config.CICDEnv != nil {
 			if vv.manifest.Config.CICDEnv.Namespace == env.Name {
-				vv.errs = append(vv.errs, errors.New("Cannot name a new environment with the CICD environment Namepsace Name"))
+				vv.errs = append(vv.errs, errors.New("Cannot add a new application to Config environments"))
+			}
+		}
+		if vv.manifest.Config.ArgoCDEnv != nil {
+			if vv.manifest.Config.ArgoCDEnv.Namespace == env.Name {
+				vv.errs = append(vv.errs, errors.New("Cannot add a new application to Config environments"))
 			}
 		}
 	}
@@ -70,18 +75,6 @@ func (vv *validateVisitor) Environment(env *Environment) error {
 }
 
 func (vv *validateVisitor) Application(env *Environment, app *Application) error {
-	if vv.manifest.Config != nil {
-		if vv.manifest.Config.CICDEnv != nil {
-			if vv.manifest.Config.CICDEnv.Namespace == env.Name {
-				vv.errs = append(vv.errs, errors.New("Cannot add a new application to Config environments"))
-			}
-		}
-		if vv.manifest.Config.ArgoCDEnv != nil {
-			if vv.manifest.Config.ArgoCDEnv.Namespace == env.Name {
-				vv.errs = append(vv.errs, errors.New("Cannot add a new application to Config environments"))
-			}
-		}
-	}
 	appPath := yamlPath(PathForApplication(env, app))
 	if err := checkDuplicate(app.Name, appPath, vv.appNames); err != nil {
 		vv.errs = append(vv.errs, err)
@@ -113,18 +106,6 @@ func (vv *validateVisitor) Application(env *Environment, app *Application) error
 }
 
 func (vv *validateVisitor) Service(env *Environment, svc *Service) error {
-	if vv.manifest.Config != nil {
-		if vv.manifest.Config.CICDEnv != nil {
-			if vv.manifest.Config.CICDEnv.Namespace == env.Name {
-				vv.errs = append(vv.errs, errors.New("Cannot add a new service to Config environments"))
-			}
-		}
-		if vv.manifest.Config.ArgoCDEnv != nil {
-			if vv.manifest.Config.ArgoCDEnv.Namespace == env.Name {
-				vv.errs = append(vv.errs, errors.New("Cannot add a new service to Config environments"))
-			}
-		}
-	}
 	svcPath := yamlPath(PathForService(env, svc.Name))
 	if svc.SourceURL != "" {
 		previous, ok := vv.serviceURLs[svc.SourceURL]
