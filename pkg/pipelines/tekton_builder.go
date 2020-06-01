@@ -44,7 +44,6 @@ func buildEventListenerResources(gitOpsRepo string, m *config.Manifest) (res.Res
 		return nil, nil
 	}
 	files := make(res.Resources)
-	// tb := &tektonBuilder{files: files, gitOpsRepo: gitOpsRepo}
 	tb := &tektonBuilder{files: files, gitOpsRepo: gitOpsRepo, manifest: m}
 	err = m.Walk(tb)
 	return tb.files, err
@@ -74,8 +73,6 @@ func (tk *tektonBuilder) Environment(env *config.Environment) error {
 			return err
 		}
 		tk.triggers = append(tk.triggers, triggers...)
-		// cicdPath := config.PathForEnvironment(env)
-		// tk.files[getEventListenerPath(cicdPath)] = eventlisteners.CreateELFromTriggers(env.Name, saName, tk.triggers)
 		cicdPath := config.PathForCICDEnvironment(cicdEnv)
 		tk.files[getEventListenerPath(cicdPath)] = eventlisteners.CreateELFromTriggers(cicdEnv.Namespace, saName, tk.triggers)
 	}
@@ -92,10 +89,6 @@ func createTriggersForCICD(gitOpsRepo string, env *config.Cicd) ([]v1alpha1.Even
 	if err != nil {
 		return []v1alpha1.EventListenerTrigger{}, err
 	}
-	// _, prBindingName := repo.CreatePRBinding(env.Name)
-	// ciTrigger := repo.CreateCITrigger("ci-dryrun-from-pr", eventlisteners.GitOpsWebhookSecret, env.Name, "ci-dry-run-from-pr-template", []string{prBindingName})
-	// _, pushBindingName := repo.CreatePushBinding(env.Name)
-	// cdTrigger := repo.CreateCDTrigger("cd-deploy-from-push", eventlisteners.GitOpsWebhookSecret, env.Name, "cd-deploy-from-push-template", []string{pushBindingName})
 	_, prBindingName := repo.CreatePRBinding(env.Namespace)
 	ciTrigger := repo.CreateCITrigger("ci-dryrun-from-pr", eventlisteners.GitOpsWebhookSecret, env.Namespace, "ci-dryrun-from-pr-template", []string{prBindingName})
 	_, pushBindingName := repo.CreatePushBinding(env.Namespace)

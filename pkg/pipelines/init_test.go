@@ -17,14 +17,10 @@ import (
 
 var testCICD = &config.Cicd{Namespace: "tst-cicd"}
 var testArgo = &config.Argo{Namespace: "tst-argocd"}
-
-//var testdevEnv = &config.Environment{Name: "tst-dev"}
 var Config = &config.Config{Argo: testArgo, CICD: testCICD}
 
 func TestCreateManifest(t *testing.T) {
 	repoURL := "https://github.com/foo/bar.git"
-	// repo, err := scm.NewRepository(repoURL)
-	// assertNoError(t, err)
 	want := &config.Manifest{
 		GitOpsURL: repoURL,
 		Config:    Config,

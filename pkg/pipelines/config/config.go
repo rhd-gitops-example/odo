@@ -26,9 +26,7 @@ func PathForCICDEnvironment(cicd *Cicd) string {
 	return filepath.Join("config", cicd.Namespace)
 }
 
-// func PathForArgoEnvironment(argo *Argo) string {
-// 	return filepath.Join("config", argo.Namespace)
-// }
+//PathForArgoEnvironment returns the hardcoded path for the argocd environment
 func PathForArgoEnvironment() string {
 	return filepath.Join("config", "argocd")
 }
@@ -92,28 +90,14 @@ func (m *Manifest) GetCICD() (*Cicd, error) {
 	return nil, nil
 }
 
-// GetArgoironment returns the ArgoCD Environment if one exists.
-func (m *Manifest) GetArgoironment() (*Argo, error) {
-	// envs := []*Environment{}
-	// for _, env := range m.Environments {
-	// 	if env.IsArgoCD {
-	// 		envs = append(envs, env)
-	// 	}
-	// }
-	// if len(envs) > 1 {
-	// 	return nil, errors.New("found multiple ArgoCD environments")
-	// }
-	// if len(envs) == 0 {
-	// 	return nil, errors.New("could not find ArgoCD environment")
-	// }
-	// return envs[0], nil
+// GetArgoCDEnvironment returns the ArgoCD Environment if one exists.
+func (m *Manifest) GetArgoCDEnvironment() (*Argo, error) {
 	if m.Config != nil {
 		if m.Config.Argo != nil {
 			return m.Config.Argo, nil
 		}
 	}
 	return nil, nil
-
 }
 
 // Environment is a slice of Apps, these are the named apps in the namespace.
@@ -128,8 +112,8 @@ type Environment struct {
 	Apps      []*Application `json:"apps,omitempty"`
 	// TODO: this should check that there is 0 or 1 CICD environment in the
 	// manfifest.
-	IsCICD   bool `json:"cicd,omitempty"`
-	IsArgoCD bool `json:"argo,omitempty"`
+	// IsCICD   bool `json:"cicd,omitempty"`
+	// IsArgoCD bool `json:"argo,omitempty"`
 }
 
 //Config are the Config environments that constitute the argocd and cicd environment
@@ -152,12 +136,6 @@ type Argo struct {
 func (e Environment) GoString() string {
 	return e.Name
 }
-
-// IsSpecial returns true if the environment is a special environment reserved
-// for specific files.
-// func (e Environment) IsSpecial() bool {
-// 	return e.IsCICD || e.IsArgoCD
-// }
 
 // Application has many services.
 //
@@ -255,11 +233,5 @@ type ByName []*Environment
 func (a ByName) Len() int      { return len(a) }
 func (a ByName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a ByName) Less(i, j int) bool {
-	// if a[i].IsSpecial() {
-	// 	return false
-	// }
-	// if a[j].IsSpecial() {
-	// 	return true
-	// }
 	return a[i].Name < a[j].Name
 }
