@@ -46,10 +46,6 @@ func TestBuildEnvironmentFiles(t *testing.T) {
 func TestBuildEnvironmentsDoesNotOutputCIorArgo(t *testing.T) {
 	var appFs = ioutils.NewMapFilesystem()
 	m := &config.Manifest{
-		// Environments: []*config.Environment{
-		// 	{Name: "test-ci", IsCICD: true},
-		// 	{Name: "test-argo", IsArgoCD: true},
-		// },
 		Config: &config.Config{
 			CICD: &config.Cicd{
 				Namespace: "cicd",
@@ -86,7 +82,6 @@ func TestBuildEnvironmentsAddsKustomizedFiles(t *testing.T) {
 		},
 		Environments: []*config.Environment{
 			{Name: "test-dev"},
-			// {Name: "cicd", IsCICD: true},
 		},
 	}
 
@@ -148,32 +143,6 @@ func filesFromResources(r res.Resources) []string {
 }
 
 func buildManifest(withCICD bool) *config.Manifest {
-	// cfg := &config.Manifest{
-	// 	Environments: []*config.Environment{
-	// 		{
-	// 			Name: "test-dev",
-	// 			Apps: []*config.Application{
-	// 				{
-	// 					Name: "my-app-1",
-	// 					ServiceRefs: []string{
-	// 						"service-http",
-	// 						"service-metrics",
-	// 					},
-	// 				},
-	// 			},
-	// 			Services: []*config.Service{
-	// 				{
-	// 					Name:      "service-http",
-	// 					SourceURL: "https://github.com/myproject/myservice.git",
-	// 				},
-	// 				{
-	// 					Name: "service-metrics",
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// }
-
 	if withCICD {
 		return &config.Manifest{
 			Config: &config.Config{
