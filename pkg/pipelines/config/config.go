@@ -90,8 +90,8 @@ func (m *Manifest) GetCICD() (*Cicd, error) {
 	return nil, nil
 }
 
-// GetArgoCDEnvironment returns the ArgoCD Environment if one exists.
-func (m *Manifest) GetArgoCDEnvironment() (*Argo, error) {
+// GetArgo returns the ArgoCD Environment if one exists.
+func (m *Manifest) GetArgo() (*Argo, error) {
 	if m.Config != nil {
 		if m.Config.Argo != nil {
 			return m.Config.Argo, nil

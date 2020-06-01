@@ -50,13 +50,13 @@ func (vv *validateVisitor) validateServiceURLs() []error {
 
 func (vv *validateVisitor) Environment(env *Environment) error {
 	if vv.manifest.Config != nil {
-		if vv.manifest.Config.CICDEnv != nil {
-			if vv.manifest.Config.CICDEnv.Namespace == env.Name {
+		if vv.manifest.Config.CICD != nil {
+			if vv.manifest.Config.CICD.Namespace == env.Name {
 				vv.errs = append(vv.errs, errors.New("Cannot add a new application to Config environments"))
 			}
 		}
-		if vv.manifest.Config.ArgoCDEnv != nil {
-			if vv.manifest.Config.ArgoCDEnv.Namespace == env.Name {
+		if vv.manifest.Config.Argo != nil {
+			if vv.manifest.Config.Argo.Namespace == env.Name {
 				vv.errs = append(vv.errs, errors.New("Cannot add a new application to Config environments"))
 			}
 		}
