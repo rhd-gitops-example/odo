@@ -28,7 +28,6 @@ type triggerSpec interface {
 	eventInterceptor(secretNamespace, secretName string) *triggersv1.EventInterceptor
 	prBindingName() string
 	pushBindingName() string
-	//URL() string
 }
 
 // NewRepository returns a suitable Repository instance
