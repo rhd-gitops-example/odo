@@ -45,8 +45,8 @@ var (
 	Rules = []v1rbac.PolicyRule{
 		{
 			APIGroups: []string{""},
-			Resources: []string{"namespaces"},
-			Verbs:     []string{"patch"},
+			Resources: []string{"namespaces", "services"},
+			Verbs:     []string{"patch", "get", "create"},
 		},
 		{
 			APIGroups: []string{"rbac.authorization.k8s.io"},
@@ -62,6 +62,16 @@ var (
 			APIGroups: []string{"bitnami.com"},
 			Resources: []string{"sealedsecrets"},
 			Verbs:     []string{"get", "patch", "create"},
+		},
+		{
+			APIGroups: []string{"apps"},
+			Resources: []string{"deployments"},
+			Verbs:     []string{"get", "create", "patch"},
+		},
+		{
+			APIGroups: []string{"argoproj.io"},
+			Resources: []string{"applications"},
+			Verbs:     []string{"get", "create", "patch"},
 		},
 	}
 )
@@ -197,7 +207,11 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *confi
 	}
 
 	outputs[rolebindingsPath] = roles.CreateClusterRoleBinding(meta.NamespacedName("", roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
-	outputs[gitopsTasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, filepath.Join(config.PathForPipelines(pipelineConfig), "base"))
+	script, err := makeScript("kubectl", cicdNamespace)
+	if err != nil {
+		return nil, err
+	}
+	outputs[gitopsTasksPath] = tasks.CreateDeployFromSourceTask(cicdNamespace, script)
 	outputs[appTaskPath] = tasks.CreateDeployUsingKubectlTask(cicdNamespace)
 	outputs[ciPipelinesPath] = pipelines.CreateCIPipeline(meta.NamespacedName(cicdNamespace, "ci-dryrun-from-pr-pipeline"), cicdNamespace)
 	outputs[cdPipelinesPath] = pipelines.CreateCDPipeline(meta.NamespacedName(cicdNamespace, "cd-deploy-from-push-pipeline"), cicdNamespace)
