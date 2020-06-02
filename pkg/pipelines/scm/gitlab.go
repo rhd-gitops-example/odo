@@ -10,16 +10,12 @@ import (
 const (
 	gitlabCIDryRunFilters = "header.match('X-Gitlab-Event','Merge Request Hook') && body.object_attributes.state == 'opened' && body.project.path_with_namespace == '%s'  && body.project.default_branch == body.object_attributes.target_branch"
 	gitlabCDDeployFilters = "header.match('X-Gitlab-Event','Push Hook') && body.project.path_with_namespace == '%s' && body.ref.endsWith(body.project.default_branch)"
-	gitlabPRBindingName   = "gitlab-pr-binding"
-	gitlabPushBindingName = "gitlab-push-binding"
 	gitlabType            = "gitlab"
 )
 
-type gitlab struct {
-	repository
-}
-
 type gitlabSpec struct {
+	prBinding   string
+	pushBinding string
 }
 
 func init() {
@@ -31,7 +27,7 @@ func newGitLab(rawURL string) (Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &gitlab{repository{url: rawURL, path: path, spec: &gitlabSpec{}}}, nil
+	return &repository{url: rawURL, path: path, spec: &gitlabSpec{prBinding: "gitlab-pr-binding", pushBinding: "gitlab-push-binding"}}, nil
 }
 
 func proccessGitLabPath(parsedURL *url.URL) (string, error) {
@@ -46,20 +42,12 @@ func proccessGitLabPath(parsedURL *url.URL) (string, error) {
 	return path, nil
 }
 
-func (r *gitlab) PRBindingName() string {
-	return r.spec.prBindingName()
-}
-
-func (r *gitlab) PushBindingName() string {
-	return r.spec.pushBindingName()
-}
-
 func (r *gitlabSpec) prBindingName() string {
-	return gitlabPRBindingName
+	return r.prBinding
 }
 
 func (r *gitlabSpec) pushBindingName() string {
-	return gitlabPushBindingName
+	return r.pushBinding
 }
 
 func (r *gitlabSpec) prBindingParams() []triggersv1.Param {

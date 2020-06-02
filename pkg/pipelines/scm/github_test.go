@@ -41,8 +41,8 @@ func TestCreatePRBindingForGithub(t *testing.T) {
 		},
 	}
 	got, name := repo.CreatePRBinding("testns")
-	if name != githubPRBindingName {
-		t.Fatalf("CreatePushBinding() returned a wrong binding: want %v got %v", githubPRBindingName, name)
+	if name != "github-pr-binding" {
+		t.Fatalf("CreatePushBinding() returned a wrong binding: want %v got %v", "github-pr-binding", name)
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("createPRBinding() failed:\n%s", diff)
@@ -76,8 +76,8 @@ func TestCreatePushBindingForGithub(t *testing.T) {
 		},
 	}
 	got, name := repo.CreatePushBinding("testns")
-	if name != githubPushBindingName {
-		t.Fatalf("CreatePushBinding() returned a wrong binding: want %v got %v", githubPushBindingName, name)
+	if name != "github-push-binding" {
+		t.Fatalf("CreatePushBinding() returned a wrong binding: want %v got %v", "github-push-binding", name)
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("CreatePushBinding() failed:\n%s", diff)
@@ -182,7 +182,7 @@ func TestNewGitHubRepository(t *testing.T) {
 				}
 			}
 			if repo != nil {
-				if diff := cmp.Diff(tt.repoPath, repo.(*github).path); diff != "" {
+				if diff := cmp.Diff(tt.repoPath, repo.(*repository).path); diff != "" {
 					rt.Fatalf("repo path mismatch: got\n%s", diff)
 				}
 			}

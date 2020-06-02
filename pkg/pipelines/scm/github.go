@@ -10,16 +10,12 @@ import (
 const (
 	githubCIDryRunFilters = "(header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize') && body.pull_request.head.repo.full_name == '%s'"
 	githubCDDeployFilters = "(header.match('X-GitHub-Event', 'push') && body.repository.full_name == '%s') && body.ref.startsWith('refs/heads/master')"
-	githubPRBindingName   = "github-pr-binding"
-	githubPushBindingName = "github-push-binding"
 	githubType            = "github"
 )
 
-type github struct {
-	repository
-}
-
 type githubSpec struct {
+	prBinding   string
+	pushBinding string
 }
 
 func init() {
@@ -31,7 +27,7 @@ func newGitHub(rawURL string) (Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &github{repository{url: rawURL, path: path, spec: &githubSpec{}}}, nil
+	return &repository{url: rawURL, path: path, spec: &githubSpec{prBinding: "github-pr-binding", pushBinding: "github-push-binding"}}, nil
 }
 
 func proccessGitHubPath(parsedURL *url.URL) (string, error) {
@@ -47,20 +43,12 @@ func proccessGitHubPath(parsedURL *url.URL) (string, error) {
 	return path, nil
 }
 
-func (r *github) PRBindingName() string {
-	return r.spec.prBindingName()
-}
-
-func (r *github) PushBindingName() string {
-	return r.spec.pushBindingName()
-}
-
 func (r *githubSpec) prBindingName() string {
-	return githubPRBindingName
+	return r.prBinding
 }
 
 func (r *githubSpec) pushBindingName() string {
-	return githubPushBindingName
+	return r.pushBinding
 }
 
 func (r *githubSpec) prBindingParams() []triggersv1.Param {

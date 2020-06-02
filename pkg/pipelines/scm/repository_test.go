@@ -12,7 +12,7 @@ func TestNewRepositoryGitHub(t *testing.T) {
 	assertNoError(t, err)
 	want, err := newGitHub(githubURL)
 	assertNoError(t, err)
-	if diff := cmp.Diff(got, want, cmp.AllowUnexported(github{}, repository{})); diff != "" {
+	if diff := cmp.Diff(got, want, cmp.AllowUnexported(githubSpec{}, repository{})); diff != "" {
 		t.Fatalf("NewRepository() failed:\n%s", diff)
 	}
 }
@@ -23,7 +23,7 @@ func TestNewRepositoryGitLab(t *testing.T) {
 	assertNoError(t, err)
 	want, err := newGitLab(gitlabURL)
 	assertNoError(t, err)
-	if diff := cmp.Diff(got, want, cmp.AllowUnexported(gitlab{}, repository{})); diff != "" {
+	if diff := cmp.Diff(got, want, cmp.AllowUnexported(gitlabSpec{}, repository{})); diff != "" {
 		t.Fatalf("NewRepository() failed:\n%s", diff)
 	}
 }

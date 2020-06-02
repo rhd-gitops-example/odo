@@ -90,6 +90,14 @@ func (r *repository) createTrigger(name, filters, template string, bindings []st
 	}
 }
 
+func (r *repository) PRBindingName() string {
+	return r.spec.prBindingName()
+}
+
+func (r *repository) PushBindingName() string {
+	return r.spec.pushBindingName()
+}
+
 // URL returns the URL of the GitHub repository
 func (r *repository) URL() string {
 	return r.url
