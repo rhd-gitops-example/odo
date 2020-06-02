@@ -22,7 +22,7 @@ func TestValidate(t *testing.T) {
 		wantErr  error
 	}{
 		{
-			"serivce repo URL must be the same Git type as the GitOps URL",
+			"service repo URL must be the same Git type as the GitOps URL",
 			"testdata/svc_git_type_mismatch.yaml",
 			multierror.Join(
 				[]error{
