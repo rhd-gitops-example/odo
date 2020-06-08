@@ -8,6 +8,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/openshift/odo/pkg/pipelines/config"
+	"github.com/openshift/odo/pkg/pipelines/dryrun"
 	"github.com/openshift/odo/pkg/pipelines/eventlisteners"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/meta"
@@ -207,7 +208,7 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *confi
 	}
 
 	outputs[rolebindingsPath] = roles.CreateClusterRoleBinding(meta.NamespacedName("", roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
-	script, err := makeScript("kubectl", cicdNamespace)
+	script, err := dryrun.MakeScript("kubectl", cicdNamespace)
 	if err != nil {
 		return nil, err
 	}

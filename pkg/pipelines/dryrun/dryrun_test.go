@@ -1,4 +1,4 @@
-package pipelines
+package dryrun
 
 import (
 	"io/ioutil"
@@ -37,7 +37,7 @@ func TestMakeScriptWithArgo(t *testing.T) {
 
 	fs := ioutils.NewFilesystem()
 	setupGitOpsTree(t, fs, tempDir, true)
-	s, err := makeScript("", "cicd")
+	s, err := MakeScript("", "cicd")
 	assertNoError(t, err)
 
 	want := logsWithArgoCD
@@ -53,7 +53,7 @@ func TestMakeScriptWithoutArgo(t *testing.T) {
 
 	fs := ioutils.NewFilesystem()
 	setupGitOpsTree(t, fs, tempDir, false)
-	s, err := makeScript("", "cicd")
+	s, err := MakeScript("", "cicd")
 	assertNoError(t, err)
 
 	want := logsWithoutArgoCD
@@ -104,5 +104,11 @@ func tempDir(t *testing.T) (string, func()) {
 	return dir, func() {
 		err := os.RemoveAll(dir)
 		assertNoError(t, err)
+	}
+}
+
+func assertNoError(t *testing.T, err error) {
+	if err != nil {
+		t.Fatal(err)
 	}
 }
