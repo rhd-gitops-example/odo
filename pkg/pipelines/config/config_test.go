@@ -147,45 +147,6 @@ func TestManifestWalkCalls(t *testing.T) {
 	}
 }
 
-func TestEnviromentSorting(t *testing.T) {
-	envNames := func(envs []*Environment) []string {
-		n := make([]string, len(envs))
-		for i, v := range envs {
-			n[i] = v.Name
-		}
-		return n
-	}
-	envTests := []struct {
-		names []testEnv
-		want  []string
-	}{
-		{
-			[]testEnv{{"prod"}, {"staging"}, {"dev"}},
-			[]string{"dev", "prod", "staging"},
-		},
-		{
-			[]testEnv{{"staging"}, {"dev"}},
-			[]string{"dev", "staging"},
-		},
-		{
-			[]testEnv{{"staging"}, {"dev"}},
-			[]string{"dev", "staging"},
-		},
-		{
-			[]testEnv{{"testing"}},
-			[]string{"testing"},
-		},
-	}
-
-	for _, tt := range envTests {
-		envs := makeEnvs(tt.names)
-		sort.Sort(ByName(envs))
-		if diff := cmp.Diff(tt.want, envNames(envs)); diff != "" {
-			t.Errorf("sort(%#v): %s", envs, diff)
-		}
-	}
-}
-
 func TestGetPipelinesConfig(t *testing.T) {
 	cfg := &Config{
 		Pipelines: &PipelinesConfig{
