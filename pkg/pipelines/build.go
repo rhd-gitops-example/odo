@@ -2,7 +2,6 @@ package pipelines
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/openshift/odo/pkg/pipelines/argocd"
 	"github.com/openshift/odo/pkg/pipelines/config"
@@ -40,10 +39,8 @@ func buildResources(fs afero.Fs, o *BuildParameters, m *config.Manifest) (res.Re
 	resources := res.Resources{}
 
 	argoCD := m.GetArgoCDConfig()
-	log.Printf("KEVIN!!!! %#v\n", argoCD)
 	appLinks := environments.EnvironmentsToApps
 	if argoCD != nil {
-		log.Println("switching to AppsToEnvironments")
 		appLinks = environments.AppsToEnvironments
 	}
 
