@@ -46,6 +46,14 @@ func Build(argoNS, repoURL string, m *config.Manifest) (res.Resources, error) {
 	files := make(res.Resources)
 	eb := &argocdBuilder{repoURL: repoURL, files: files, argoCDConfig: argoCDConfig, argoNS: argoNS}
 	err := m.Walk(eb)
+	if err != nil {
+		return nil, err
+	}
+
+	err = argoCDConfigResources(eb.argoCDConfig, eb.files)
+	if err != nil {
+		return nil, err
+	}
 	return eb.files, err
 }
 
@@ -62,10 +70,6 @@ func (b *argocdBuilder) Application(env *config.Environment, app *config.Applica
 	filename := filepath.Join(basePath, env.Name+"-"+app.Name+"-app.yaml")
 	argoFiles[filename] = makeApplication(env.Name+"-"+app.Name, b.argoNS, defaultProject, env.Name, defaultServer, makeSource(env, app, b.repoURL))
 	b.files = res.Merge(argoFiles, b.files)
-	err := argoCDConfigResources(b.argoCDConfig, b.files)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

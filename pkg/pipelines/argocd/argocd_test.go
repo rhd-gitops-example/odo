@@ -98,7 +98,7 @@ func TestBuildCreatesArgoCDWithMultipleApps(t *testing.T) {
 	if len(files) != 3 {
 		t.Fatalf("got %d files, want 3\n", len(files))
 	}
-	want := &res.Kustomization{Resources: []string{"kustomization.yaml", "test-dev-http-api-app.yaml", "test-production-http-api-app.yaml"}}
+	want := &res.Kustomization{Resources: []string{"test-dev-http-api-app.yaml", "test-production-http-api-app.yaml"}}
 	if diff := cmp.Diff(want, files["config/argocd/config/kustomization.yaml"]); diff != "" {
 		t.Fatalf("files didn't match: %s\n", diff)
 	}
