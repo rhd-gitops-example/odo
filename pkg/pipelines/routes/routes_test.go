@@ -92,7 +92,6 @@ func TestMarshalRoute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	log.Printf("KEVIN!!!! %s\n", b)
 	if strings.Index(strings.ToLower(string(b)), "ingress") > -1 {
 		t.Fatal("the marshaled output contains the ingress field")
 	}
