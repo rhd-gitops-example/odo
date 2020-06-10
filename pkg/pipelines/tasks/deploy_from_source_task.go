@@ -16,35 +16,48 @@ var argsForRunKubectlStep = []string{
 }
 
 // CreateDeployFromSourceTask creates DeployFromSourceTask
-func CreateDeployFromSourceTask(ns, path string) pipelinev1.Task {
+func CreateDeployFromSourceTask(ns, script string) pipelinev1.Task {
 	task := pipelinev1.Task{
 		TypeMeta:   taskTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, "deploy-from-source-task")),
 		Spec: pipelinev1.TaskSpec{
-			Inputs: createInputsForDeployFromSourceTask(path),
-			Steps:  createStepsForDeployFromSourceTask(),
+			Params:    paramsForDeploymentFromSourceTask(),
+			Resources: createResourcesForDeployFromSourceTask(),
+			Steps:     createStepsForDeployFromSourceTask(script),
 		},
 	}
 	return task
 }
 
-func createStepsForDeployFromSourceTask() []pipelinev1.Step {
+func createStepsForDeployFromSourceTask(script string) []pipelinev1.Step {
 	return []pipelinev1.Step{
 		{
 			Container: createContainer(
 				"run-kubectl",
 				"quay.io/redhat-developer/k8s-kubectl",
 				"/workspace/source",
-				[]string{"kubectl"},
-				argsForRunKubectlStep,
+				nil,
+				nil,
 			),
+			Script: script,
 		},
 	}
 }
 
-func createInputsForDeployFromSourceTask(path string) *pipelinev1.Inputs {
-	return &pipelinev1.Inputs{
-		Resources: []pipelinev1.TaskResource{
+func paramsForDeploymentFromSourceTask() []pipelinev1.ParamSpec {
+	return []pipelinev1.ParamSpec{
+		createTaskParamWithDefault(
+			"DRYRUN",
+			"If true run a server-side dryrun.",
+			pipelinev1.ParamTypeString,
+			"false",
+		),
+	}
+}
+
+func createResourcesForDeployFromSourceTask() *pipelinev1.TaskResources {
+	return &pipelinev1.TaskResources{
+		Inputs: []pipelinev1.TaskResource{
 			createTaskResource("source", "git"),
 		},
 		Params: []pipelinev1.ParamSpec{
