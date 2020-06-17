@@ -1,7 +1,7 @@
 package tasks
 
 import (
-	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 
 	"github.com/openshift/odo/pkg/pipelines/meta"
 )
@@ -60,25 +60,5 @@ func createResourcesForDeployFromSourceTask() *pipelinev1.TaskResources {
 		Inputs: []pipelinev1.TaskResource{
 			createTaskResource("source", "git"),
 		},
-		Params: []pipelinev1.ParamSpec{
-			createTaskParamWithDefault(
-				"PATHTODEPLOYMENT",
-				"Path to the pipelines to apply",
-				pipelinev1.ParamTypeString,
-				path,
-			),
-			createTaskParam(
-				"NAMESPACE",
-				"Namespace to deploy into",
-				pipelinev1.ParamTypeString,
-			),
-			createTaskParamWithDefault(
-				"DRYRUN",
-				"If true run a server-side dryrun.",
-				pipelinev1.ParamTypeString,
-				"false",
-			),
-		},
 	}
-
 }

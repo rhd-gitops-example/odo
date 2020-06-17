@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/odo/pkg/odo/cli/login"
 	"github.com/openshift/odo/pkg/odo/cli/logout"
 	"github.com/openshift/odo/pkg/odo/cli/pipelines"
+	"github.com/openshift/odo/pkg/odo/cli/plugins"
 	"github.com/openshift/odo/pkg/odo/cli/preference"
 	"github.com/openshift/odo/pkg/odo/cli/project"
 	"github.com/openshift/odo/pkg/odo/cli/registry"
