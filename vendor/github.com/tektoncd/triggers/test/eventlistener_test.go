@@ -24,11 +24,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os/exec"
+	"net/url"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -41,6 +41,11 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/portforward"
+	"k8s.io/client-go/transport/spdy"
 	knativetest "knative.dev/pkg/test"
 )
 
@@ -56,7 +61,7 @@ func loadExamplePREventBytes() ([]byte, error) {
 	path := filepath.Join("testdata", examplePRJsonFilename)
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't load testdata example PullRequest event data: %v", err)
+		return nil, fmt.Errorf("couldn't load testdata example PullRequest event data: %v", err)
 	}
 	return bytes, nil
 }
@@ -65,8 +70,8 @@ func TestEventListenerCreate(t *testing.T) {
 	c, namespace := setup(t)
 	t.Parallel()
 
-	defer tearDown(t, c, namespace)
-	knativetest.CleanupOnInterrupt(func() { tearDown(t, c, namespace) }, t.Logf)
+	defer cleanup(t, c, namespace, "my-eventlistener")
+	knativetest.CleanupOnInterrupt(func() { cleanup(t, c, namespace, "my-eventlistener") }, t.Logf)
 
 	t.Log("Start EventListener e2e test")
 
@@ -121,7 +126,7 @@ func TestEventListenerCreate(t *testing.T) {
 	}
 
 	// TriggerTemplate
-	tt, err := c.TriggersClient.TektonV1alpha1().TriggerTemplates(namespace).Create(
+	tt, err := c.TriggersClient.TriggersV1alpha1().TriggerTemplates(namespace).Create(
 		bldr.TriggerTemplate("my-triggertemplate", "",
 			bldr.TriggerTemplateSpec(
 				bldr.TriggerTemplateParam("oneparam", "", ""),
@@ -130,8 +135,8 @@ func TestEventListenerCreate(t *testing.T) {
 				bldr.TriggerTemplateParam("license", "", ""),
 				bldr.TriggerTemplateParam("header", "", ""),
 				bldr.TriggerTemplateParam("prmessage", "", ""),
-				bldr.TriggerResourceTemplate(pr1Bytes),
-				bldr.TriggerResourceTemplate(pr2Bytes),
+				bldr.TriggerResourceTemplate(runtime.RawExtension{Raw: pr1Bytes}),
+				bldr.TriggerResourceTemplate(runtime.RawExtension{Raw: pr2Bytes}),
 			),
 		),
 	)
@@ -140,19 +145,30 @@ func TestEventListenerCreate(t *testing.T) {
 	}
 
 	// TriggerBinding
-	tb, err := c.TriggersClient.TektonV1alpha1().TriggerBindings(namespace).Create(
+	tb, err := c.TriggersClient.TriggersV1alpha1().TriggerBindings(namespace).Create(
 		bldr.TriggerBinding("my-triggerbinding", "",
 			bldr.TriggerBindingSpec(
 				bldr.TriggerBindingParam("oneparam", "$(body.action)"),
 				bldr.TriggerBindingParam("twoparamname", "$(body.pull_request.state)"),
-				bldr.TriggerBindingParam("license", "$(body.repository.license)"),
-				bldr.TriggerBindingParam("header", "$(header)"),
 				bldr.TriggerBindingParam("prmessage", "$(body.pull_request.body)"),
 			),
 		),
 	)
 	if err != nil {
 		t.Fatalf("Error creating TriggerBinding: %s", err)
+	}
+
+	// ClusterTriggerBinding
+	ctb, err := c.TriggersClient.TriggersV1alpha1().ClusterTriggerBindings().Create(
+		bldr.ClusterTriggerBinding("my-clustertriggerbinding",
+			bldr.ClusterTriggerBindingSpec(
+				bldr.TriggerBindingParam("license", "$(body.repository.license)"),
+				bldr.TriggerBindingParam("header", "$(header)"),
+			),
+		),
+	)
+	if err != nil {
+		t.Fatalf("Error creating ClusterTriggerBinding: %s", err)
 	}
 
 	// ServiceAccount + Role + RoleBinding to authorize the creation of our
@@ -165,28 +181,30 @@ func TestEventListenerCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating ServiceAccount: %s", err)
 	}
-	_, err = c.KubeClient.RbacV1().Roles(namespace).Create(
-		&rbacv1.Role{
+	_, err = c.KubeClient.RbacV1().ClusterRoles().Create(
+		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
-			Rules: []rbacv1.PolicyRule{
-				{
-					APIGroups: []string{"tekton.dev"},
-					Resources: []string{"eventlisteners", "triggerbindings", "triggertemplates", "pipelineresources"},
-					Verbs:     []string{"create", "get"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"configmaps"},
-					Verbs:     []string{"get", "list", "watch"},
-				},
+			Rules: []rbacv1.PolicyRule{{
+				APIGroups: []string{triggersv1.GroupName},
+				Resources: []string{"clustertriggerbindings", "eventlisteners", "triggerbindings", "triggertemplates"},
+				Verbs:     []string{"get"},
+			}, {
+				APIGroups: []string{"tekton.dev"},
+				Resources: []string{"pipelineresources"},
+				Verbs:     []string{"create"},
+			}, {
+				APIGroups: []string{""},
+				Resources: []string{"configmaps", "serviceaccounts", "secrets"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
 			},
 		},
 	)
 	if err != nil {
 		t.Fatalf("Error creating Role: %s", err)
 	}
-	_, err = c.KubeClient.RbacV1().RoleBindings(namespace).Create(
-		&rbacv1.RoleBinding{
+	_, err = c.KubeClient.RbacV1().ClusterRoleBindings().Create(
+		&rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "my-rolebinding"},
 			Subjects: []rbacv1.Subject{{
 				Kind:      "ServiceAccount",
@@ -195,7 +213,7 @@ func TestEventListenerCreate(t *testing.T) {
 			}},
 			RoleRef: rbacv1.RoleRef{
 				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     "Role",
+				Kind:     "ClusterRole",
 				Name:     "my-role",
 			},
 		},
@@ -205,14 +223,17 @@ func TestEventListenerCreate(t *testing.T) {
 	}
 
 	// EventListener
-	el, err := c.TriggersClient.TektonV1alpha1().EventListeners(namespace).Create(
+	el, err := c.TriggersClient.TriggersV1alpha1().EventListeners(namespace).Create(
 		bldr.EventListener("my-eventlistener", namespace,
 			bldr.EventListenerMeta(
 				bldr.Label("triggers", "eventlistener"),
 			),
 			bldr.EventListenerSpec(
 				bldr.EventListenerServiceAccount(sa.Name),
-				bldr.EventListenerTrigger(tb.Name, tt.Name, ""),
+				bldr.EventListenerTrigger(tt.Name, "",
+					bldr.EventListenerTriggerBinding(tb.Name, "", tb.Name, "v1alpha1"),
+					bldr.EventListenerTriggerBinding(ctb.Name, "ClusterTriggerBinding", ctb.Name, "v1alpha1"),
+				),
 			),
 		))
 	if err != nil {
@@ -284,21 +305,51 @@ func TestEventListenerCreate(t *testing.T) {
 	// ElPort forward sink pod for http request
 	portString := strconv.Itoa(*eventReconciler.ElPort)
 	podName := sinkPods.Items[0].Name
-	cmd := exec.Command("kubectl", "port-forward", podName, "-n", namespace, fmt.Sprintf("%s:%s", portString, portString))
-	err = cmd.Start()
-	if err != nil {
-		t.Fatalf("Error starting port-forward command: %s", err)
-	}
-	if cmd.Process == nil {
-		t.Fatalf("Error starting command. Process is nil")
-	}
+	stopChan, errChan := make(chan struct{}, 1), make(chan error, 1)
+
 	defer func() {
-		if err = cmd.Process.Kill(); err != nil {
-			t.Fatalf("Error killing port-forward process: %s", err)
-		}
+		close(stopChan)
 	}()
-	// Wait for port forward to take effect
-	time.Sleep(5 * time.Second)
+	go func(stopChan chan struct{}, errChan chan error) {
+		config, err := clientcmd.BuildConfigFromFlags("", knativetest.Flags.Kubeconfig)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		roundTripper, upgrader, err := spdy.RoundTripperFor(config)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, podName)
+		hostIP := strings.TrimPrefix(config.Host, "https://")
+		serverURL := url.URL{Scheme: "https", Path: path, Host: hostIP}
+		dialer := spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, http.MethodPost, &serverURL)
+		out, errOut := new(bytes.Buffer), new(bytes.Buffer)
+		readyChan := make(chan struct{}, 1)
+		forwarder, err := portforward.New(dialer, []string{portString}, stopChan, readyChan, out, errOut)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		go func() {
+			for range readyChan {
+			}
+			if len(errOut.String()) != 0 {
+				errChan <- fmt.Errorf("%s", errOut)
+			}
+			close(errChan)
+		}()
+		if err = forwarder.ForwardPorts(); err != nil { // This locks until stopChan is closed.
+			errChan <- err
+			return
+		}
+	}(stopChan, errChan)
+
+	if err := <-errChan; err != nil {
+		t.Fatalf("Forwarding stream of data failed:: %v", err)
+	}
 
 	// Send POST request to EventListener sink
 	req, err := http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%s", portString), bytes.NewBuffer(eventBodyJSON))
@@ -308,7 +359,7 @@ func TestEventListenerCreate(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatalf("Error sending POST request: %s", err)
+		t.Fatalf("Error sending POST request: %v", err)
 	}
 
 	if resp.StatusCode > http.StatusAccepted {
@@ -333,7 +384,7 @@ func TestEventListenerCreate(t *testing.T) {
 		if err = WaitFor(pipelineResourceExist(t, c, namespace, wantPr.Name)); err != nil {
 			t.Fatalf("Failed to create ResourceTemplate %s: %s", wantPr.Name, err)
 		}
-		gotPr, err := c.PipelineClient.TektonV1alpha1().PipelineResources(namespace).Get(wantPr.Name, metav1.GetOptions{})
+		gotPr, err := c.ResourceClient.TektonV1alpha1().PipelineResources(namespace).Get(wantPr.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("Error getting ResourceTemplate: %s: %s", wantPr.Name, err)
 		}
@@ -350,24 +401,103 @@ func TestEventListenerCreate(t *testing.T) {
 		}
 	}
 
-	// Delete EventListener
-	err = c.TriggersClient.TektonV1alpha1().EventListeners(namespace).Delete(el.Name, &metav1.DeleteOptions{})
+	// Now let's override auth at the trigger level and make sure we get a permission problem
+
+	// create SA/secret with insufficient permissions to set at trigger level
+	userWithoutPermissions := "user-with-no-permissions"
+	triggerSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      userWithoutPermissions,
+			Namespace: namespace,
+			UID:       types.UID(userWithoutPermissions),
+		},
+	}
+
+	_, err = c.KubeClient.CoreV1().ServiceAccounts(namespace).Create(triggerSA)
 	if err != nil {
-		t.Fatalf("Failed to delete EventListener: %s", err)
+		t.Fatalf("Error creating trigger SA: %s", err.Error())
 	}
-	t.Log("Deleted EventListener")
 
-	// Verify the EventListener's Deployment is deleted
-	if err = WaitFor(deploymentNotExist(t, c, namespace, fmt.Sprintf("%s-%s", eventReconciler.GeneratedResourcePrefix, el.Name))); err != nil {
-		t.Fatalf("Failed to delete EventListener Deployment: %s", err)
+	if err := WaitFor(func() (bool, error) {
+		el, err := c.TriggersClient.TriggersV1alpha1().EventListeners(namespace).Get(el.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for i, trigger := range el.Spec.Triggers {
+			trigger.ServiceAccount = &corev1.ObjectReference{
+				Namespace: namespace,
+				Name:      userWithoutPermissions,
+			}
+			el.Spec.Triggers[i] = trigger
+		}
+		_, err = c.TriggersClient.TriggersV1alpha1().EventListeners(namespace).Update(el)
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		t.Fatalf("Failed to update EventListener for trigger auth test: %s", err)
 	}
-	t.Log("EventListener's Deployment was deleted")
 
-	// Verify the EventListener's Service is deleted
-	if err = WaitFor(serviceNotExist(t, c, namespace, fmt.Sprintf("%s-%s", eventReconciler.GeneratedResourcePrefix, el.Name))); err != nil {
-		t.Fatalf("Failed to delete EventListener Service: %s", err)
+	// Verify the EventListener is ready with the new update
+	if err := WaitFor(eventListenerReady(t, c, namespace, el.Name)); err != nil {
+		t.Fatalf("EventListener not ready after trigger auth update: %s", err)
 	}
-	t.Log("EventListener's Service was deleted")
+	// Send POST request to EventListener sink
+	req, err = http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%s", portString), bytes.NewBuffer(eventBodyJSON))
+	if err != nil {
+		t.Fatalf("Error creating POST request for trigger auth: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Error sending POST request for trigger auth: %s", err)
+	}
+
+	if resp.StatusCode != http.StatusUnauthorized && resp.StatusCode != http.StatusForbidden {
+		t.Errorf("sink did not return 401/403 response. Got status code: %d", resp.StatusCode)
+	}
+
+	// now set the trigger SA to the original one, should not get a 401/403
+	if err := WaitFor(func() (bool, error) {
+		el, err := c.TriggersClient.TriggersV1alpha1().EventListeners(namespace).Get(el.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for i, trigger := range el.Spec.Triggers {
+			trigger.ServiceAccount = &corev1.ObjectReference{
+				Namespace: namespace,
+				Name:      sa.Name,
+			}
+			el.Spec.Triggers[i] = trigger
+		}
+		_, err = c.TriggersClient.TriggersV1alpha1().EventListeners(namespace).Update(el)
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		t.Fatalf("Failed to update EventListener for trigger auth test: %s", err)
+	}
+
+	// Verify the EventListener is ready with the new update
+	if err := WaitFor(eventListenerReady(t, c, namespace, el.Name)); err != nil {
+		t.Fatalf("EventListener not ready after trigger auth update: %s", err)
+	}
+	// Send POST request to EventListener sink
+	req, err = http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%s", portString), bytes.NewBuffer(eventBodyJSON))
+	if err != nil {
+		t.Fatalf("Error creating POST request for trigger auth: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Error sending POST request for trigger auth: %s", err)
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		t.Errorf("sink returned 401/403 response: %d", resp.StatusCode)
+	}
 }
 
 // The structure of this field corresponds to values for the `license` key in
@@ -405,4 +535,39 @@ func compareParamsWithLicenseJSON(x, y v1alpha1.ResourceParam) bool {
 		return true
 	}
 	return false
+}
+
+func cleanup(t *testing.T, c *clients, namespace, elName string) {
+	t.Helper()
+	tearDown(t, c, namespace)
+	// Delete EventListener
+	err := c.TriggersClient.TriggersV1alpha1().EventListeners(namespace).Delete(elName, &metav1.DeleteOptions{})
+	if err != nil {
+		t.Fatalf("Failed to delete EventListener: %s", err)
+	}
+	t.Log("Deleted EventListener")
+
+	// Verify the EventListener's Deployment is deleted
+	if err = WaitFor(deploymentNotExist(t, c, namespace, fmt.Sprintf("%s-%s", eventReconciler.GeneratedResourcePrefix, elName))); err != nil {
+		t.Fatalf("Failed to delete EventListener Deployment: %s", err)
+	}
+	t.Log("EventListener's Deployment was deleted")
+
+	// Verify the EventListener's Service is deleted
+	if err = WaitFor(serviceNotExist(t, c, namespace, fmt.Sprintf("%s-%s", eventReconciler.GeneratedResourcePrefix, elName))); err != nil {
+		t.Fatalf("Failed to delete EventListener Service: %s", err)
+	}
+	t.Log("EventListener's Service was deleted")
+
+	// Cleanup cluster-scoped resources
+	t.Logf("Deleting cluster-scoped resources")
+	if err := c.KubeClient.RbacV1().ClusterRoles().Delete("my-role", &metav1.DeleteOptions{}); err != nil {
+		t.Errorf("Failed to delete clusterrole my-role: %s", err)
+	}
+	if err := c.KubeClient.RbacV1().ClusterRoleBindings().Delete("my-rolebinding", &metav1.DeleteOptions{}); err != nil {
+		t.Errorf("Failed to delete clusterrolebinding my-rolebinding: %s", err)
+	}
+	if err := c.TriggersClient.TriggersV1alpha1().ClusterTriggerBindings().Delete("my-clustertriggerbinding", &metav1.DeleteOptions{}); err != nil {
+		t.Errorf("Failed to delete clustertriggerbinding my-clustertriggerbinding: %s", err)
+	}
 }

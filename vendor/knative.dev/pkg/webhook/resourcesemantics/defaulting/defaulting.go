@@ -30,6 +30,7 @@ import (
 	jsonpatch "gomodules.xyz/jsonpatch/v2"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	admissionlisters "k8s.io/client-go/listers/admissionregistration/v1beta1"
@@ -50,6 +51,8 @@ var errMissingNewObject = errors.New("the new object may not be nil")
 
 // reconciler implements the AdmissionController for resources
 type reconciler struct {
+	webhook.StatelessAdmissionImpl
+
 	name     string
 	path     string
 	handlers map[schema.GroupVersionKind]resourcesemantics.GenericCRD
@@ -66,6 +69,7 @@ type reconciler struct {
 
 var _ controller.Reconciler = (*reconciler)(nil)
 var _ webhook.AdmissionController = (*reconciler)(nil)
+var _ webhook.StatelessAdmissionController = (*reconciler)(nil)
 
 // Reconcile implements controller.Reconciler
 func (ac *reconciler) Reconcile(ctx context.Context, key string) error {
@@ -124,7 +128,7 @@ func (ac *reconciler) Admit(ctx context.Context, request *admissionv1beta1.Admis
 func (ac *reconciler) reconcileMutatingWebhook(ctx context.Context, caCert []byte) error {
 	logger := logging.FromContext(ctx)
 
-	var rules []admissionregistrationv1beta1.RuleWithOperations
+	rules := make([]admissionregistrationv1beta1.RuleWithOperations, 0, len(ac.handlers))
 	for gvk := range ac.handlers {
 		plural := strings.ToLower(inflect.Pluralize(gvk.Kind))
 
@@ -155,7 +159,7 @@ func (ac *reconciler) reconcileMutatingWebhook(ctx context.Context, caCert []byt
 
 	configuredWebhook, err := ac.mwhlister.Get(ac.name)
 	if err != nil {
-		return fmt.Errorf("error retrieving webhook: %v", err)
+		return fmt.Errorf("error retrieving webhook: %w", err)
 	}
 
 	webhook := configuredWebhook.DeepCopy()
@@ -169,6 +173,12 @@ func (ac *reconciler) reconcileMutatingWebhook(ctx context.Context, caCert []byt
 			continue
 		}
 		webhook.Webhooks[i].Rules = rules
+		webhook.Webhooks[i].NamespaceSelector = &metav1.LabelSelector{
+			MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "webhooks.knative.dev/exclude",
+				Operator: metav1.LabelSelectorOpDoesNotExist,
+			}},
+		}
 		webhook.Webhooks[i].ClientConfig.CABundle = caCert
 		if webhook.Webhooks[i].ClientConfig.Service == nil {
 			return fmt.Errorf("missing service reference for webhook: %s", wh.Name)
@@ -177,12 +187,12 @@ func (ac *reconciler) reconcileMutatingWebhook(ctx context.Context, caCert []byt
 	}
 
 	if ok, err := kmp.SafeEqual(configuredWebhook, webhook); err != nil {
-		return fmt.Errorf("error diffing webhooks: %v", err)
+		return fmt.Errorf("error diffing webhooks: %w", err)
 	} else if !ok {
 		logger.Info("Updating webhook")
 		mwhclient := ac.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
 		if _, err := mwhclient.Update(webhook); err != nil {
-			return fmt.Errorf("failed to update webhook: %v", err)
+			return fmt.Errorf("failed to update webhook: %w", err)
 		}
 	} else {
 		logger.Info("Webhook is valid")
@@ -218,7 +228,7 @@ func (ac *reconciler) mutate(ctx context.Context, req *admissionv1beta1.Admissio
 			newDecoder.DisallowUnknownFields()
 		}
 		if err := newDecoder.Decode(&newObj); err != nil {
-			return nil, fmt.Errorf("cannot decode incoming new object: %v", err)
+			return nil, fmt.Errorf("cannot decode incoming new object: %w", err)
 		}
 	}
 	if len(oldBytes) != 0 {
@@ -228,7 +238,7 @@ func (ac *reconciler) mutate(ctx context.Context, req *admissionv1beta1.Admissio
 			oldDecoder.DisallowUnknownFields()
 		}
 		if err := oldDecoder.Decode(&oldObj); err != nil {
-			return nil, fmt.Errorf("cannot decode incoming old object: %v", err)
+			return nil, fmt.Errorf("cannot decode incoming old object: %w", err)
 		}
 	}
 	var patches duck.JSONPatch
@@ -241,7 +251,7 @@ func (ac *reconciler) mutate(ctx context.Context, req *admissionv1beta1.Admissio
 		// because it expects the round tripped through Golang fields to be present already.
 		rtp, err := roundTripPatch(newBytes, newObj)
 		if err != nil {
-			return nil, fmt.Errorf("cannot create patch for round tripped newBytes: %v", err)
+			return nil, fmt.Errorf("cannot create patch for round tripped newBytes: %w", err)
 		}
 		patches = append(patches, rtp...)
 	}
@@ -321,7 +331,7 @@ func roundTripPatch(bytes []byte, unmarshalled interface{}) (duck.JSONPatch, err
 	}
 	marshaledBytes, err := json.Marshal(unmarshalled)
 	if err != nil {
-		return nil, fmt.Errorf("cannot marshal interface: %v", err)
+		return nil, fmt.Errorf("cannot marshal interface: %w", err)
 	}
 	return jsonpatch.CreatePatch(bytes, marshaledBytes)
 }

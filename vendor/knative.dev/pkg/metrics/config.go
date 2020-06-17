@@ -29,11 +29,8 @@ import (
 
 	"go.opencensus.io/stats"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/metrics/metricskey"
-)
-
-const (
-	DomainEnv = "METRICS_DOMAIN"
 )
 
 // metricsBackend specifies the backend to use for metrics
@@ -43,15 +40,17 @@ const (
 	// The following keys are used to configure metrics reporting.
 	// See https://github.com/knative/serving/blob/master/config/config-observability.yaml
 	// for details.
-	AllowStackdriverCustomMetricsKey    = "metrics.allow-stackdriver-custom-metrics"
-	BackendDestinationKey               = "metrics.backend-destination"
-	ReportingPeriodKey                  = "metrics.reporting-period-seconds"
-	StackdriverCustomMetricSubDomainKey = "metrics.stackdriver-custom-metrics-subdomain"
+	AllowStackdriverCustomMetricsKey = "metrics.allow-stackdriver-custom-metrics"
+	BackendDestinationKey            = "metrics.backend-destination"
+	ReportingPeriodKey               = "metrics.reporting-period-seconds"
 	// Stackdriver client configuration keys
-	StackdriverProjectIDKey   = "metrics.stackdriver-project-id"
-	StackdriverGCPLocationKey = "metrics.stackdriver-gcp-location"
-	StackdriverClusterNameKey = "metrics.stackdriver-cluster-name"
-	StackdriverUseSecretKey   = "metrics.stackdriver-use-secret"
+	StackdriverProjectIDKey             = "metrics.stackdriver-project-id"
+	StackdriverGCPLocationKey           = "metrics.stackdriver-gcp-location"
+	StackdriverClusterNameKey           = "metrics.stackdriver-cluster-name"
+	StackdriverUseSecretKey             = "metrics.stackdriver-use-secret"
+	StackdriverCustomMetricSubDomainKey = "metrics.stackdriver-custom-metrics-subdomain"
+
+	DomainEnv = "METRICS_DOMAIN"
 
 	// Stackdriver is used for Stackdriver backend
 	Stackdriver metricsBackend = "stackdriver"
@@ -60,12 +59,15 @@ const (
 	// OpenCensus is used to export to the OpenCensus Agent / Collector,
 	// which can send to many other services.
 	OpenCensus metricsBackend = "opencensus"
+	// None is used to export, well, nothing.
+	None metricsBackend = "none"
 
 	defaultBackendEnvName = "DEFAULT_METRICS_BACKEND"
 
 	CollectorAddressKey = "metrics.opencensus-address"
 	CollectorSecureKey  = "metrics.opencensus-require-tls"
 
+	prometheusPortEnvName = "METRICS_PROMETHEUS_PORT"
 	defaultPrometheusPort = 9090
 	maxPrometheusPort     = 65535
 	minPrometheusPort     = 1024
@@ -85,6 +87,9 @@ type metricsConfig struct {
 	// recorder provides a hook for performing custom transformations before
 	// writing the metrics to the stats.RecordWithOptions interface.
 	recorder func(context.Context, []stats.Measurement, ...stats.Options) error
+
+	// secret contains credentials for an exporter to use for authentication.
+	secret *corev1.Secret
 
 	// ---- OpenCensus specific below ----
 	// collectorAddress is the address of the collector, if not `localhost:55678`
@@ -147,7 +152,12 @@ func NewStackdriverClientConfigFromMap(config map[string]string) *StackdriverCli
 // record applies the `ros` Options to each measurement in `mss` and then records the resulting
 // measurements in the metricsConfig's designated backend.
 func (mc *metricsConfig) record(ctx context.Context, mss []stats.Measurement, ros ...stats.Options) error {
-	if mc == nil || mc.recorder == nil {
+	if mc == nil {
+		// Don't record data points if the metric config is not initialized yet.
+		// At this point, it's unclear whether should record or not.
+		return nil
+	}
+	if mc.recorder == nil {
 		return stats.RecordWithOptions(ctx, append(ros, stats.WithMeasurements(mss...))...)
 	}
 	return mc.recorder(ctx, mss, ros...)
@@ -195,17 +205,31 @@ func createMetricsConfig(ops ExporterOptions, logger *zap.SugaredLogger) (*metri
 			if mc.requireSecure, err = strconv.ParseBool(isSecure); err != nil {
 				return nil, fmt.Errorf("invalid %s value %q", CollectorSecureKey, isSecure)
 			}
+
+			if mc.requireSecure {
+				mc.secret, err = getOpenCensusSecret(ops.Component, ops.Secrets)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
 	if mc.backendDestination == Prometheus {
 		pp := ops.PrometheusPort
 		if pp == 0 {
-			pp = defaultPrometheusPort
+			var err error
+			pp, err = prometheusPort()
+			if err != nil {
+				return nil, fmt.Errorf("failed to determine Prometheus port: %w", err)
+			}
 		}
+
 		if pp < minPrometheusPort || pp > maxPrometheusPort {
-			return nil, fmt.Errorf("invalid port %v, should between %v and %v", pp, minPrometheusPort, maxPrometheusPort)
+			return nil, fmt.Errorf("invalid port %d, should be between %d and %d",
+				pp, minPrometheusPort, maxPrometheusPort)
 		}
+
 		mc.prometheusPort = pp
 	}
 
@@ -255,6 +279,15 @@ func createMetricsConfig(ops ExporterOptions, logger *zap.SugaredLogger) (*metri
 				return stats.RecordWithOptions(ctx, append(ros, stats.WithMeasurements(mss...))...)
 			}
 		}
+
+		if scc.UseSecret {
+			secret, err := getStackdriverSecret(ops.Secrets)
+			if err != nil {
+				return nil, err
+			}
+
+			mc.secret = secret
+		}
 	}
 
 	// If reporting period is specified, use the value from the configuration.
@@ -300,6 +333,25 @@ following import:
 import (
 	_ "knative.dev/pkg/metrics/testing"
 )`, DomainEnv, DomainEnv))
+}
+
+// prometheusPort returns the TCP port number configured via the environment
+// for the Prometheus metrics exporter if it's set, a default value otherwise.
+// No validation is performed on the port value, other than ensuring that value
+// is a valid port number (16-bit unsigned integer).
+func prometheusPort() (int, error) {
+	ppStr := os.Getenv(prometheusPortEnvName)
+	if ppStr == "" {
+		return defaultPrometheusPort, nil
+	}
+
+	pp, err := strconv.ParseUint(ppStr, 10, 16)
+	if err != nil {
+		return -1, fmt.Errorf("the environment variable %q could not be parsed as a port number: %w",
+			prometheusPortEnvName, err)
+	}
+
+	return int(pp), nil
 }
 
 // JsonToMetricsOptions converts a json string of a

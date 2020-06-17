@@ -22,13 +22,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1alpha1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
 )
 
@@ -48,6 +49,7 @@ var (
 		stats.UnitDimensionless)
 )
 
+// Recorder holds keys for Tekton metrics
 type Recorder struct {
 	initialized bool
 
@@ -55,6 +57,8 @@ type Recorder struct {
 	pipelineRun tag.Key
 	namespace   tag.Key
 	status      tag.Key
+
+	ReportingPeriod time.Duration
 }
 
 // NewRecorder creates a new metrics recorder instance
@@ -62,6 +66,9 @@ type Recorder struct {
 func NewRecorder() (*Recorder, error) {
 	r := &Recorder{
 		initialized: true,
+
+		// Default to 30s intervals.
+		ReportingPeriod: 30 * time.Second,
 	}
 
 	pipeline, err := tag.NewKey("pipeline")
@@ -119,7 +126,7 @@ func NewRecorder() (*Recorder, error) {
 // DurationAndCount logs the duration of PipelineRun execution and
 // count for number of PipelineRuns succeed or failed
 // returns an error if its failed to log the metrics
-func (r *Recorder) DurationAndCount(pr *v1alpha1.PipelineRun) error {
+func (r *Recorder) DurationAndCount(pr *v1beta1.PipelineRun) error {
 	if !r.initialized {
 		return fmt.Errorf("ignoring the metrics recording for %s , failed to initialize the metrics recorder", pr.Name)
 	}
@@ -182,4 +189,23 @@ func (r *Recorder) RunningPipelineRuns(lister listers.PipelineRunLister) error {
 	metrics.Record(ctx, runningPRsCount.M(float64(runningPRs)))
 
 	return nil
+}
+
+// ReportRunningPipelineRuns invokes RunningPipelineRuns on our configured PeriodSeconds
+// until the context is cancelled.
+func (r *Recorder) ReportRunningPipelineRuns(ctx context.Context, lister listers.PipelineRunLister) {
+	logger := logging.FromContext(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			// When the context is cancelled, stop reporting.
+			return
+
+		case <-time.After(r.ReportingPeriod):
+			// Every 30s surface a metric for the number of running pipelines.
+			if err := r.RunningPipelineRuns(lister); err != nil {
+				logger.Warnf("Failed to log the metrics : %v", err)
+			}
+		}
+	}
 }

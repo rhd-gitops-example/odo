@@ -25,8 +25,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
+	"github.com/tektoncd/pipeline/pkg/credentials"
 	"github.com/tektoncd/pipeline/pkg/entrypoint"
+	"github.com/tektoncd/pipeline/pkg/termination"
 )
 
 var (
@@ -54,17 +55,20 @@ func main() {
 		PostWriter:      &realPostWriter{},
 		Results:         strings.Split(*results, ","),
 	}
-	// strings.Split(..) with an empty string returns an array that contains one element, an empty string.
-	// The result folder should only be created if there are actual results to defined for the entrypoint.
-	if len(e.Results) >= 1 && e.Results[0] != "" {
-		if err := os.MkdirAll(pipeline.DefaultResultPath, 0755); err != nil {
-			log.Fatalf("Error creating the results directory: %v", err)
-		}
+
+	// Copy any creds injected by creds-init into the $HOME directory of the current
+	// user so that they're discoverable by git / ssh.
+	if err := credentials.CopyCredsToHome(credentials.CredsInitCredentials); err != nil {
+		log.Printf("non-fatal error copying credentials: %q", err)
 	}
+
 	if err := e.Go(); err != nil {
 		switch t := err.(type) {
 		case skipError:
 			log.Print("Skipping step because a previous step failed")
+			os.Exit(1)
+		case termination.MessageLengthError:
+			log.Print(err.Error())
 			os.Exit(1)
 		case *exec.ExitError:
 			// Copied from https://stackoverflow.com/questions/10385551/get-exit-code-go

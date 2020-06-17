@@ -23,23 +23,10 @@ spec:
     type: image
   - name: builtEventListenerSinkImage
     type: image
+  - name: notification
+    type: cloudEvent
   tasks:
-    - name: lint
-      taskRef:
-        name: golangci-lint
-      params:
-        - name: package
-          value: $(params.package)
-        - name: flags
-          value: "-v --timeout=30m"
-        - name: version
-          value: "v1.21.0"
-      resources:
-        inputs:
-          - name: source
-            resource: source-repo
     - name: unit-tests
-      runAfter: [lint]
       taskRef:
         name: golang-test
       params:
@@ -52,7 +39,6 @@ spec:
           - name: source
             resource: source-repo
     - name: build
-      runAfter: [lint]
       taskRef:
         name: golang-build
       params:
@@ -90,3 +76,5 @@ spec:
             resource: builtWebhookImage
           - name: builtEventListenerSinkImage
             resource: builtEventListenerSinkImage
+          - name: notification
+            resource: notification

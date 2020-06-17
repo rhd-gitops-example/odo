@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	tb "github.com/tektoncd/pipeline/test/builder"
+	tb "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +35,8 @@ func TestPod(t *testing.T) {
 		Name:         "tools-volume",
 		VolumeSource: corev1.VolumeSource{},
 	}
-	got := tb.Pod("foo-pod-123456", "foo",
+	got := tb.Pod("foo-pod-123456",
+		tb.PodNamespace("foo"),
 		tb.PodAnnotation("annotation", "annotation-value"),
 		tb.PodLabel("label", "label-value"),
 		tb.PodOwnerReference("TaskRun", "taskrun-foo",

@@ -1,3 +1,9 @@
+<!--
+---
+linkTitle: "Labels"
+weight: 10
+---
+-->
 # Labels
 
 In order to make it easier to identify objects that are all part of the same
@@ -46,8 +52,14 @@ The following labels are added to resources automatically:
   [Specifying a `Task`](taskruns.md#specifying-a-task) section of the `TaskRun`
   documentation), and contains the name of the `Task` that the `TaskRun`
   references.
+- `tekton.dev/clusterTask` is added to `TaskRuns` (and propagated to `Pods`) that
+  reference an existing `ClusterTask`and contains the name of the `ClusterTask` 
+  that the `TaskRun` references. For backwards compatibility, `TaskRuns` that
+  reference a `ClusterTask` will also receive `tekton.dev/task`.
 - `tekton.dev/taskRun` is added to `Pods`, and contains the name of the
   `TaskRun` that created the `Pod`.
+- `app.kubernetes.io/instance` and `app.kubernetes.io/component` is added to 
+  Affinity Assistant `StatefulSets` and `Pods`. These are used for Pod Affinity for TaskRuns.
 
 ## Examples
 
@@ -70,4 +82,13 @@ the following command:
 
 ```shell
 kubectl get taskruns --all-namespaces -l tekton.dev/task=test-task
+```
+
+### Finding TaskRuns for a Specific ClusterTask
+
+To find all `TaskRuns` that reference a `ClusterTask` named test-clustertask, you could use
+the following command:
+
+```shell
+kubectl get taskruns --all-namespaces -l tekton.dev/clusterTask=test-clustertask
 ```

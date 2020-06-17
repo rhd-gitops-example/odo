@@ -22,7 +22,10 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	"github.com/tektoncd/pipeline/pkg/reconciler/pipelinerun"
 	"github.com/tektoncd/pipeline/pkg/reconciler/taskrun"
+	corev1 "k8s.io/api/core/v1"
+	"knative.dev/pkg/injection"
 	"knative.dev/pkg/injection/sharedmain"
+	"knative.dev/pkg/signals"
 )
 
 const (
@@ -33,8 +36,9 @@ const (
 var (
 	entrypointImage = flag.String("entrypoint-image", "override-with-entrypoint:latest",
 		"The container image containing our entrypoint binary.")
-	nopImage = flag.String("nop-image", "tianon/true", "The container image used to stop sidecars")
-	gitImage = flag.String("git-image", "override-with-git:latest",
+	nopImage               = flag.String("nop-image", "tianon/true", "The container image used to stop sidecars")
+	affinityAssistantImage = flag.String("affinity-assistant-image", "nginx", "The container image used for the Affinity Assistant")
+	gitImage               = flag.String("git-image", "override-with-git:latest",
 		"The container image containing our Git binary.")
 	credsImage = flag.String("creds-image", "override-with-creds:latest",
 		"The container image for preparing our Build's credentials.")
@@ -49,6 +53,7 @@ var (
 		"The container image containing our PR binary.")
 	imageDigestExporterImage = flag.String("imagedigest-exporter-image", "override-with-imagedigest-exporter-image:latest",
 		"The container image containing our image digest exporter binary.")
+	namespace = flag.String("namespace", corev1.NamespaceAll, "Namespace to restrict informer to. Optional, defaults to all namespaces.")
 )
 
 func main() {
@@ -56,6 +61,7 @@ func main() {
 	images := pipeline.Images{
 		EntrypointImage:          *entrypointImage,
 		NopImage:                 *nopImage,
+		AffinityAssistantImage:   *affinityAssistantImage,
 		GitImage:                 *gitImage,
 		CredsImage:               *credsImage,
 		KubeconfigWriterImage:    *kubeconfigWriterImage,
@@ -65,8 +71,8 @@ func main() {
 		PRImage:                  *prImage,
 		ImageDigestExporterImage: *imageDigestExporterImage,
 	}
-	sharedmain.Main(ControllerLogKey,
-		taskrun.NewController(images),
-		pipelinerun.NewController(images),
+	sharedmain.MainWithContext(injection.WithNamespaceScope(signals.NewContext(), *namespace), ControllerLogKey,
+		taskrun.NewController(*namespace, images),
+		pipelinerun.NewController(*namespace, images),
 	)
 }

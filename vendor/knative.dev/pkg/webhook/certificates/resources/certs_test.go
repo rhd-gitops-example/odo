@@ -21,6 +21,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 
@@ -28,7 +29,7 @@ import (
 )
 
 func TestCreateCerts(t *testing.T) {
-	sKey, serverCertPEM, caCertBytes, err := CreateCerts(TestContextWithLogger(t), "got-the-hook", "knative-webhook")
+	sKey, serverCertPEM, caCertBytes, err := CreateCerts(TestContextWithLogger(t), "got-the-hook", "knative-webhook", time.Now().AddDate(1, 0, 0))
 	if err != nil {
 		t.Fatalf("Failed to create certs %v", err)
 	}
@@ -58,6 +59,13 @@ func TestCreateCerts(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify common name
+	const expectedCommonName = "got-the-hook.knative-webhook.svc"
+
+	if caParsedCert.Subject.CommonName != expectedCommonName {
+		t.Fatalf("Unexpected Cert Common Name %q, wanted %q", caParsedCert.Subject.CommonName, expectedCommonName)
+	}
+
 	// Verify domain names
 	expectedDNSNames := []string{
 		"got-the-hook",
@@ -69,6 +77,10 @@ func TestCreateCerts(t *testing.T) {
 		t.Fatalf("Unexpected CA Cert DNS Name (-want +got) : %v", diff)
 	}
 
+	if diff := cmp.Diff(caParsedCert.DNSNames, expectedDNSNames); diff != "" {
+		t.Fatalf("Unexpected CA Cert DNS Name (-want +got): %s", diff)
+	}
+
 	// Verify Server Cert is Signed by CA Cert
 	if err = sCert.CheckSignatureFrom(caParsedCert); err != nil {
 		t.Fatal("Failed to verify that the signature on server certificate is from parent CA cert", err)
@@ -77,16 +89,17 @@ func TestCreateCerts(t *testing.T) {
 
 func validCertificate(cert []byte, t *testing.T) (*x509.Certificate, error) {
 	t.Helper()
+	const certificate = "CERTIFICATE"
 	caCert, _ := pem.Decode(cert)
-	if caCert.Type != "CERTIFICATE" {
-		return nil, fmt.Errorf("Expected %s but got %s", "CERTIFICATE", caCert.Type)
+	if caCert.Type != certificate {
+		return nil, fmt.Errorf("cert.Type = %s, want: %s", caCert.Type, certificate)
 	}
 	parsedCert, err := x509.ParseCertificate(caCert.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse cert %v", err)
+		return nil, fmt.Errorf("Failed to parse cert %w", err)
 	}
 	if parsedCert.SignatureAlgorithm != x509.SHA256WithRSA {
-		return nil, fmt.Errorf("Failed to match signature. Expect %s but got %s", x509.SHA256WithRSA, parsedCert.SignatureAlgorithm)
+		return nil, fmt.Errorf("Failed to match signature. Got: %s, want: %s", parsedCert.SignatureAlgorithm, x509.SHA256WithRSA)
 	}
 	return parsedCert, nil
 }

@@ -46,7 +46,7 @@ This project extends Kubernetes (aka `k8s`) with Custom Resource Definitions
   Some of the terms here may make more sense!
 - Install via
   [official installation docs](https://github.com/tektoncd/pipeline/blob/master/docs/install.md)
-  or continue though [getting started for development](#getting-started)
+  or continue through [getting started for development](#getting-started)
 - [Tekton Pipeline "Hello World" tutorial](https://github.com/tektoncd/pipeline/blob/master/docs/tutorial.md) -
   Define `Tasks`, `Pipelines`, and `PipelineResources`, see what happens when
   they are run
@@ -98,19 +98,19 @@ configuring Kubernetes resources.
 Docker for Desktop using an edge version has been proven to work for both
 developing and running Pipelines. The recommended configuration is:
 
-- Kubernetes version 1.11 or later
+- Kubernetes version 1.15 or later
 - 4 vCPU nodes (`n1-standard-4`)
 - Node autoscaling, up to 3 nodes
 - API scopes for cloud-platform
 
 To setup a cluster with GKE:
 
-1. [Install required tools and setup GCP project](https://github.com/knative/docs/blob/master/docs/install/Knative-with-GKE.md#before-you-begin)
+1. [Install required tools and setup GCP project](https://cloud.google.com/resource-manager/docs/creating-managing-projects)
    (You may find it useful to save the ID of the project in an environment
    variable (e.g. `PROJECT_ID`).
 
 1. Create a GKE cluster (with `--cluster-version=latest` but you can use any
-   version 1.11 or later):
+   version 1.15 or later):
 
    ```bash
    export PROJECT_ID=my-gcp-project

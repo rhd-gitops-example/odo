@@ -22,14 +22,15 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1alpha1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
 )
 
@@ -69,6 +70,8 @@ type Recorder struct {
 	pipeline    tag.Key
 	pipelineRun tag.Key
 	pod         tag.Key
+
+	ReportingPeriod time.Duration
 }
 
 // NewRecorder creates a new metrics recorder instance
@@ -76,6 +79,9 @@ type Recorder struct {
 func NewRecorder() (*Recorder, error) {
 	r := &Recorder{
 		initialized: true,
+
+		// Default to reporting metrics every 30s.
+		ReportingPeriod: 30 * time.Second,
 	}
 
 	task, err := tag.NewKey("task")
@@ -163,7 +169,7 @@ func NewRecorder() (*Recorder, error) {
 // DurationAndCount logs the duration of TaskRun execution and
 // count for number of TaskRuns succeed or failed
 // returns an error if its failed to log the metrics
-func (r *Recorder) DurationAndCount(tr *v1alpha1.TaskRun) error {
+func (r *Recorder) DurationAndCount(tr *v1beta1.TaskRun) error {
 	if !r.initialized {
 		return fmt.Errorf("ignoring the metrics recording for %s , failed to initialize the metrics recorder", tr.Name)
 	}
@@ -250,9 +256,28 @@ func (r *Recorder) RunningTaskRuns(lister listers.TaskRunLister) error {
 	return nil
 }
 
+// ReportRunningTaskRuns invokes RunningTaskRuns on our configured PeriodSeconds
+// until the context is cancelled.
+func (r *Recorder) ReportRunningTaskRuns(ctx context.Context, lister listers.TaskRunLister) {
+	logger := logging.FromContext(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			// When the context is cancelled, stop reporting.
+			return
+
+		case <-time.After(r.ReportingPeriod):
+			// Every 30s surface a metric for the number of running tasks.
+			if err := r.RunningTaskRuns(lister); err != nil {
+				logger.Warnf("Failed to log the metrics : %v", err)
+			}
+		}
+	}
+}
+
 // RecordPodLatency logs the duration required to schedule the pod for TaskRun
 // returns an error if its failed to log the metrics
-func (r *Recorder) RecordPodLatency(pod *corev1.Pod, tr *v1alpha1.TaskRun) error {
+func (r *Recorder) RecordPodLatency(pod *corev1.Pod, tr *v1beta1.TaskRun) error {
 	if !r.initialized {
 		return errors.New("ignoring the metrics recording for pod , failed to initialize the metrics recorder")
 	}

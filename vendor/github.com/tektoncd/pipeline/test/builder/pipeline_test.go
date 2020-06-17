@@ -26,16 +26,18 @@ import (
 	"knative.dev/pkg/apis"
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
 
+	tb "github.com/tektoncd/pipeline/internal/builder/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	tb "github.com/tektoncd/pipeline/test/builder"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
 func TestPipeline(t *testing.T) {
 	creationTime := time.Now()
 
-	pipeline := tb.Pipeline("tomatoes", "foo", tb.PipelineSpec(
+	pipeline := tb.Pipeline("tomatoes", tb.PipelineNamespace("foo"), tb.PipelineSpec(
 		tb.PipelineDeclaredResource("my-only-git-resource", "git"),
 		tb.PipelineDeclaredResource("my-only-image-resource", "image"),
+		tb.PipelineDescription("Test Pipeline"),
 		tb.PipelineParamSpec("first-param", v1alpha1.ParamTypeString, tb.ParamSpecDefault("default-value"), tb.ParamSpecDescription("default description")),
 		tb.PipelineTask("foo", "banana",
 			tb.PipelineTaskParam("stringparam", "value"),
@@ -44,7 +46,7 @@ func TestPipeline(t *testing.T) {
 				tb.PipelineTaskConditionParam("param-name", "param-value"),
 				tb.PipelineTaskConditionResource("some-resource", "my-only-git-resource", "bar", "never-gonna"),
 			),
-			tb.PipelineTaskWorkspaceBinding("task-workspace1", "workspace1"),
+			tb.PipelineTaskWorkspaceBinding("task-workspace1", "workspace1", ""),
 		),
 		tb.PipelineTask("bar", "chocolate",
 			tb.PipelineTaskRefKind(v1alpha1.ClusterTaskKind),
@@ -53,12 +55,14 @@ func TestPipeline(t *testing.T) {
 		),
 		tb.PipelineTask("never-gonna", "give-you-up",
 			tb.RunAfter("foo"),
+			tb.PipelineTaskTimeout(5*time.Second),
 		),
-		tb.PipelineTask("foo", "", tb.PipelineTaskSpec(&v1alpha1.TaskSpec{
+		tb.PipelineTask("foo", "", tb.PipelineTaskSpec(&v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
 			Steps: []v1alpha1.Step{{Container: corev1.Container{
 				Name:  "step",
 				Image: "myimage",
-			}}}},
+			}}},
+		}},
 		)),
 		tb.PipelineWorkspaceDeclaration("workspace1"),
 	),
@@ -77,6 +81,7 @@ func TestPipeline(t *testing.T) {
 				Name: "my-only-image-resource",
 				Type: "image",
 			}},
+			Description: "Test Pipeline",
 			Params: []v1alpha1.ParamSpec{{
 				Name:        "first-param",
 				Type:        v1alpha1.ParamTypeString,
@@ -130,17 +135,17 @@ func TestPipeline(t *testing.T) {
 				Name:     "never-gonna",
 				TaskRef:  &v1alpha1.TaskRef{Name: "give-you-up"},
 				RunAfter: []string{"foo"},
+				Timeout:  &metav1.Duration{Duration: 5 * time.Second},
 			}, {
 				Name: "foo",
-				TaskSpec: &v1alpha1.TaskSpec{
+				TaskSpec: &v1alpha1.TaskSpec{TaskSpec: v1beta1.TaskSpec{
 					Steps: []v1alpha1.Step{{Container: corev1.Container{
 						Name:  "step",
 						Image: "myimage",
-					}},
-					},
-				},
+					}}},
+				}},
 			}},
-			Workspaces: []v1alpha1.WorkspacePipelineDeclaration{{
+			Workspaces: []v1alpha1.PipelineWorkspaceDeclaration{{
 				Name: "workspace1",
 			}},
 		},
@@ -154,7 +159,7 @@ func TestPipelineRun(t *testing.T) {
 	startTime := time.Now()
 	completedTime := startTime.Add(5 * time.Minute)
 
-	pipelineRun := tb.PipelineRun("pear", "foo", tb.PipelineRunSpec(
+	pipelineRun := tb.PipelineRun("pear", tb.PipelineRunNamespace("foo"), tb.PipelineRunSpec(
 		"tomatoes", tb.PipelineRunServiceAccountName("sa"),
 		tb.PipelineRunParam("first-param-string", "first-value"),
 		tb.PipelineRunParam("second-param-array", "some", "array"),
@@ -218,7 +223,7 @@ func TestPipelineRunWithPodTemplate(t *testing.T) {
 	startTime := time.Now()
 	completedTime := startTime.Add(5 * time.Minute)
 
-	pipelineRun := tb.PipelineRun("pear", "foo", tb.PipelineRunSpec(
+	pipelineRun := tb.PipelineRun("pear", tb.PipelineRunNamespace("foo"), tb.PipelineRunSpec(
 		"tomatoes", tb.PipelineRunServiceAccountName("sa"),
 		tb.PipelineRunParam("first-param-string", "first-value"),
 		tb.PipelineRunParam("second-param-array", "some", "array"),
@@ -290,7 +295,7 @@ func TestPipelineRunWithResourceSpec(t *testing.T) {
 	startTime := time.Now()
 	completedTime := startTime.Add(5 * time.Minute)
 
-	pipelineRun := tb.PipelineRun("pear", "foo", tb.PipelineRunSpec(
+	pipelineRun := tb.PipelineRun("pear", tb.PipelineRunNamespace("foo"), tb.PipelineRunSpec(
 		"tomatoes", tb.PipelineRunServiceAccountName("sa"),
 		tb.PipelineRunParam("first-param-string", "first-value"),
 		tb.PipelineRunParam("second-param-array", "some", "array"),
@@ -362,7 +367,7 @@ func TestPipelineRunWithResourceSpec(t *testing.T) {
 }
 
 func TestPipelineRunWithPipelineSpec(t *testing.T) {
-	pipelineRun := tb.PipelineRun("pear", "foo", tb.PipelineRunSpec("", tb.PipelineRunPipelineSpec(
+	pipelineRun := tb.PipelineRun("pear", tb.PipelineRunNamespace("foo"), tb.PipelineRunSpec("", tb.PipelineRunPipelineSpec(
 		tb.PipelineTask("a-task", "some-task")),
 		tb.PipelineRunServiceAccountName("sa"),
 	))
@@ -391,13 +396,14 @@ func TestPipelineRunWithPipelineSpec(t *testing.T) {
 }
 
 func TestPipelineResource(t *testing.T) {
-	pipelineResource := tb.PipelineResource("git-resource", "foo", tb.PipelineResourceSpec(
-		v1alpha1.PipelineResourceTypeGit, tb.PipelineResourceSpecParam("URL", "https://foo.git"),
+	pipelineResource := tb.PipelineResource("git-resource", tb.PipelineResourceNamespace("foo"), tb.PipelineResourceSpec(
+		v1alpha1.PipelineResourceTypeGit, tb.PipelineResourceSpecParam("URL", "https://foo.git"), tb.PipelineResourceDescription("test description"),
 	))
 	expectedPipelineResource := &v1alpha1.PipelineResource{
 		ObjectMeta: metav1.ObjectMeta{Name: "git-resource", Namespace: "foo"},
 		Spec: v1alpha1.PipelineResourceSpec{
-			Type: v1alpha1.PipelineResourceTypeGit,
+			Description: "test description",
+			Type:        v1alpha1.PipelineResourceTypeGit,
 			Params: []v1alpha1.ResourceParam{{
 				Name: "URL", Value: "https://foo.git",
 			}},

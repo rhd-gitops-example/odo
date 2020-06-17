@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	kubeclient "knative.dev/pkg/client/injection/kube/client/fake"
-	_ "knative.dev/pkg/client/injection/kube/informers/core/v1/secret/fake"
+	_ "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/secret/fake"
 
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -55,6 +55,14 @@ func TestReconcile(t *testing.T) {
 			certresources.ServerCert: []byte("present"),
 			certresources.CACert:     []byte("present"),
 		},
+	}
+
+	// This is the namespace selector setup
+	namespaceSelector := &metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{{
+			Key:      "webhooks.knative.dev/exclude",
+			Operator: metav1.LabelSelectorOpDoesNotExist,
+		}},
 	}
 
 	// These are the rules we expect given the context of "handlers".
@@ -167,7 +175,8 @@ func TestReconcile(t *testing.T) {
 						CABundle: []byte("present"),
 					},
 					// Rules are added.
-					Rules: expectedRules,
+					Rules:             expectedRules,
+					NamespaceSelector: namespaceSelector,
 				}},
 			},
 		}},
@@ -221,7 +230,8 @@ func TestReconcile(t *testing.T) {
 						CABundle: []byte("present"),
 					},
 					// Rules are fixed.
-					Rules: expectedRules,
+					Rules:             expectedRules,
+					NamespaceSelector: namespaceSelector,
 				}},
 			},
 		}},
@@ -279,7 +289,8 @@ func TestReconcile(t *testing.T) {
 						CABundle: []byte("present"),
 					},
 					// Rules are fixed.
-					Rules: expectedRules,
+					Rules:             expectedRules,
+					NamespaceSelector: namespaceSelector,
 				}},
 			},
 		}},
@@ -304,7 +315,8 @@ func TestReconcile(t *testing.T) {
 						CABundle: []byte("present"),
 					},
 					// Rules are fine.
-					Rules: expectedRules,
+					Rules:             expectedRules,
+					NamespaceSelector: namespaceSelector,
 				}},
 			},
 		},

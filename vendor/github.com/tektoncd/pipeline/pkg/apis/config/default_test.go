@@ -14,37 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package config
+package config_test
 
 import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	test "github.com/tektoncd/pipeline/pkg/reconciler/testing"
+	"github.com/tektoncd/pipeline/test/diff"
 )
 
 func TestNewDefaultsFromConfigMap(t *testing.T) {
 	type testCase struct {
-		expectedConfig *Defaults
+		expectedConfig *config.Defaults
 		expectedError  bool
 		fileName       string
 	}
 
 	testCases := []testCase{
 		{
-			expectedConfig: &Defaults{
+			expectedConfig: &config.Defaults{
 				DefaultTimeoutMinutes:      50,
 				DefaultServiceAccount:      "tekton",
 				DefaultManagedByLabelValue: "something-else",
 			},
-			fileName: DefaultsConfigName,
+			fileName: config.GetDefaultsConfigName(),
 		},
 		{
-			expectedConfig: &Defaults{
+			expectedConfig: &config.Defaults{
 				DefaultTimeoutMinutes:      50,
 				DefaultServiceAccount:      "tekton",
-				DefaultManagedByLabelValue: DefaultManagedByLabelValue,
+				DefaultManagedByLabelValue: config.DefaultManagedByLabelValue,
 				DefaultPodTemplate: &pod.Template{
 					NodeSelector: map[string]string{
 						"label": "value",
@@ -76,7 +78,7 @@ func TestNewDefaultsFromConfigMap(t *testing.T) {
 
 func TestNewDefaultsFromEmptyConfigMap(t *testing.T) {
 	DefaultsConfigEmptyName := "config-defaults-empty"
-	expectedConfig := &Defaults{
+	expectedConfig := &config.Defaults{
 		DefaultTimeoutMinutes:      60,
 		DefaultManagedByLabelValue: "tekton-pipelines",
 	}
@@ -86,8 +88,8 @@ func TestNewDefaultsFromEmptyConfigMap(t *testing.T) {
 func TestEquals(t *testing.T) {
 	testCases := []struct {
 		name     string
-		left     *Defaults
-		right    *Defaults
+		left     *config.Defaults
+		right    *config.Defaults
 		expected bool
 	}{
 		{
@@ -99,51 +101,51 @@ func TestEquals(t *testing.T) {
 		{
 			name:     "left nil",
 			left:     nil,
-			right:    &Defaults{},
+			right:    &config.Defaults{},
 			expected: false,
 		},
 		{
 			name:     "right nil",
-			left:     &Defaults{},
+			left:     &config.Defaults{},
 			right:    nil,
 			expected: false,
 		},
 		{
 			name:     "right and right default",
-			left:     &Defaults{},
-			right:    &Defaults{},
+			left:     &config.Defaults{},
+			right:    &config.Defaults{},
 			expected: true,
 		},
 		{
 			name: "different default timeout",
-			left: &Defaults{
+			left: &config.Defaults{
 				DefaultTimeoutMinutes: 10,
 			},
-			right: &Defaults{
+			right: &config.Defaults{
 				DefaultTimeoutMinutes: 20,
 			},
 			expected: false,
 		},
 		{
 			name: "same default timeout",
-			left: &Defaults{
+			left: &config.Defaults{
 				DefaultTimeoutMinutes: 20,
 			},
-			right: &Defaults{
+			right: &config.Defaults{
 				DefaultTimeoutMinutes: 20,
 			},
 			expected: true,
 		},
 		{
 			name: "different default pod template",
-			left: &Defaults{
+			left: &config.Defaults{
 				DefaultPodTemplate: &pod.Template{
 					NodeSelector: map[string]string{
 						"label": "value",
 					},
 				},
 			},
-			right: &Defaults{
+			right: &config.Defaults{
 				DefaultPodTemplate: &pod.Template{
 					NodeSelector: map[string]string{
 						"label2": "value",
@@ -154,14 +156,14 @@ func TestEquals(t *testing.T) {
 		},
 		{
 			name: "same default pod template",
-			left: &Defaults{
+			left: &config.Defaults{
 				DefaultPodTemplate: &pod.Template{
 					NodeSelector: map[string]string{
 						"label": "value",
 					},
 				},
 			},
-			right: &Defaults{
+			right: &config.Defaults{
 				DefaultPodTemplate: &pod.Template{
 					NodeSelector: map[string]string{
 						"label": "value",
@@ -182,11 +184,11 @@ func TestEquals(t *testing.T) {
 	}
 }
 
-func verifyConfigFileWithExpectedConfig(t *testing.T, fileName string, expectedConfig *Defaults) {
+func verifyConfigFileWithExpectedConfig(t *testing.T, fileName string, expectedConfig *config.Defaults) {
 	cm := test.ConfigMapFromTestFile(t, fileName)
-	if Defaults, err := NewDefaultsFromConfigMap(cm); err == nil {
+	if Defaults, err := config.NewDefaultsFromConfigMap(cm); err == nil {
 		if d := cmp.Diff(Defaults, expectedConfig); d != "" {
-			t.Errorf("Diff:\n%s", d)
+			t.Errorf("Diff:\n%s", diff.PrintWantGot(d))
 		}
 	} else {
 		t.Errorf("NewDefaultsFromConfigMap(actual) = %v", err)
@@ -195,7 +197,7 @@ func verifyConfigFileWithExpectedConfig(t *testing.T, fileName string, expectedC
 
 func verifyConfigFileWithExpectedError(t *testing.T, fileName string) {
 	cm := test.ConfigMapFromTestFile(t, fileName)
-	if _, err := NewDefaultsFromConfigMap(cm); err == nil {
+	if _, err := config.NewDefaultsFromConfigMap(cm); err == nil {
 		t.Errorf("NewDefaultsFromConfigMap(actual) was expected to return an error")
 	}
 }
