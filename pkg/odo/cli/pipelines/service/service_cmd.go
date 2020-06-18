@@ -13,7 +13,7 @@ type options struct {
 	gitRepoURL               string
 	imageRepo                string
 	internalRegistryHostname string
-	PipelinesFilePath        string
+	pipelinesFilePath        string
 	serviceName              string
 	webhookSecret            string
 
@@ -40,7 +40,7 @@ func (o *options) setFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.envName, "env-name", "", "the name of the environment where the service will be added")
 	cmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "used to push built images")
 	cmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
-	cmd.Flags().StringVar(&o.PipelinesFilePath, "pipelines-file", "pipelines.yaml", "path to pipelines file")
+	cmd.Flags().StringVar(&o.pipelinesFilePath, "pipelines-file", "pipelines.yaml", "path to pipelines file")
 
 	// required flags
 	_ = cmd.MarkFlagRequired("service-name")
