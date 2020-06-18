@@ -26,17 +26,7 @@ var (
 
 // AddOptions encapsulates the parameters for service add command
 type AddOptions struct {
-	appName                  string
-	envName                  string
-	gitRepoURL               string
-	imageRepo                string
-	internalRegistryHostname string
-	PipelinesFilePath        string
-	serviceName              string
-	webhookSecret            string
-
-	// generic context options common to all commands
-	*genericclioptions.Context
+	options
 }
 
 // Complete is called when the command is completed
@@ -84,18 +74,6 @@ func newCmdAdd(name, fullName string) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&o.gitRepoURL, "git-repo-url", "", "source Git repository URL")
-	cmd.Flags().StringVar(&o.webhookSecret, "webhook-secret", "", "source Git repository webhook secret")
-	cmd.Flags().StringVar(&o.appName, "app-name", "", "the name of the application where the service will be added")
-	cmd.Flags().StringVar(&o.serviceName, "service-name", "", "the name of the service to be added")
-	cmd.Flags().StringVar(&o.envName, "env-name", "", "the name of the environment where the service will be added")
-	cmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "used to push built images")
-	cmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
-	cmd.Flags().StringVar(&o.PipelinesFilePath, "pipelines-file", "pipelines.yaml", "path to pipelines file")
-
-	// required flags
-	_ = cmd.MarkFlagRequired("service-name")
-	_ = cmd.MarkFlagRequired("app-name")
-	_ = cmd.MarkFlagRequired("env-name")
+	o.setFlags(cmd)
 	return cmd
 }
