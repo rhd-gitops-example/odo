@@ -28,14 +28,14 @@ var (
 )
 
 // AddEnvParameters encapsulates the parameters for the odo pipelines init command.
-type AddEnvParameters struct {
-	envName       string
-	output        string
-	pipelinesFile string
-	cluster       string
-	// generic context options common to all commands
-	*genericclioptions.Context
-}
+// type AddEnvParameters struct {
+// 	envName       string
+// 	output        string
+// 	pipelinesFile string
+// 	cluster       string
+// 	// generic context options common to all commands
+// 	*genericclioptions.Context
+// }
 
 // NewAddEnvParameters bootstraps a AddEnvParameters instance.
 func NewAddEnvParameters() *AddEnvParameters {
@@ -71,8 +71,7 @@ func (eo *AddEnvParameters) Run() error {
 }
 
 // NewCmdAddEnv creates the project add environment command.
-func NewCmdAddEnv(name, fullName string) *cobra.Command {
-	o := NewAddEnvParameters()
+func NewCmdAddEnv(name, fullName string, o *AddEnvParameters) *cobra.Command {
 
 	addEnvCmd := &cobra.Command{
 		Use:     name,
@@ -81,12 +80,10 @@ func NewCmdAddEnv(name, fullName string) *cobra.Command {
 		Example: fmt.Sprintf(addEnvExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			genericclioptions.GenericRun(o, cmd, args)
+			fmt.Println("These are the pipelines and env-name", o.pipelinesFile, o.envName)
 		},
 	}
 
-	addEnvCmd.Flags().StringVar(&o.envName, "env-name", "", "name of the environment/namespace")
-	addEnvCmd.MarkFlagRequired("env-name")
-	addEnvCmd.Flags().StringVar(&o.pipelinesFile, "pipelines-file", "pipelines.yaml", "path to pipelines file")
 	addEnvCmd.Flags().StringVar(&o.cluster, "cluster", "", "deployment cluster e.g. https://kubernetes.local.svc")
 	return addEnvCmd
 }
