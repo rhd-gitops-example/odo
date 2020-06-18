@@ -24,11 +24,6 @@ var (
 	addShortDesc = `Add a new service`
 )
 
-// AddOptions encapsulates the parameters for service add command
-type AddOptions struct {
-	options
-}
-
 // Complete is called when the command is completed
 func (o *AddOptions) Complete(name string, cmd *cobra.Command, args []string) error {
 	return nil
@@ -74,6 +69,14 @@ func newCmdAdd(name, fullName string) *cobra.Command {
 		},
 	}
 
-	o.setFlags(cmd)
+	cmd.Flags().StringVar(&o.gitRepoURL, "git-repo-url", "", "source Git repository URL")
+	cmd.Flags().StringVar(&o.webhookSecret, "webhook-secret", "", "source Git repository webhook secret")
+	cmd.Flags().StringVar(&o.appName, "app-name", "", "the name of the application where the service will be added")
+	cmd.Flags().StringVar(&o.serviceName, "service-name", "", "the name of the service to be added")
+	cmd.Flags().StringVar(&o.envName, "env-name", "", "the name of the environment where the service will be added")
+	cmd.Flags().StringVar(&o.imageRepo, "image-repo", "", "used to push built images")
+	cmd.Flags().StringVar(&o.internalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
+	cmd.Flags().StringVar(&o.pipelinesFilePath, "pipelines-file", "pipelines.yaml", "path to pipelines file")
+
 	return cmd
 }
