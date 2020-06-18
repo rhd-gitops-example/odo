@@ -48,7 +48,7 @@ func (o *AddOptions) Run() error {
 		GitRepoURL:               o.gitRepoURL,
 		ImageRepo:                o.imageRepo,
 		InternalRegistryHostname: o.internalRegistryHostname,
-		PipelinesFilePath:        o.PipelinesFilePath,
+		PipelinesFilePath:        o.pipelinesFilePath,
 		ServiceName:              o.serviceName,
 		WebhookSecret:            o.webhookSecret,
 	}, ioutils.NewFilesystem())
