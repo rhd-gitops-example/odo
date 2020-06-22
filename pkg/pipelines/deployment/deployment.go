@@ -50,14 +50,14 @@ func ContainerPort(p int32) podSpecFunc {
 }
 
 // Create creates and returns a Deployment with the specified configuration.
-func Create(partOfLabel, ns, name, image string, opts ...podSpecFunc) *appsv1.Deployment {
+func Create(partOf, ns, name, image string, opts ...podSpecFunc) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, name)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
-			Selector: LabelSelector(name, partOfLabel),
-			Template: podTemplate(partOfLabel, name, image, opts...),
+			Selector: LabelSelector(name, partOf),
+			Template: podTemplate(partOf, name, image, opts...),
 		},
 	}
 }
