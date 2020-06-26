@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"encoding/json"
+
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	// This is a hack because we need a newer version to avoid the Ingress
@@ -17,8 +19,26 @@ var (
 	routeTypeMeta = meta.TypeMeta("Route", "route.openshift.io/v1")
 )
 
-// Generate generates routes
-func Generate(ns string) routev1.Route {
+// Generate generates an OpenShift route.
+//
+// It strips out the Status field from the route as this causes issues when
+// being created in a cluster.
+func Generate(ns string) (interface{}, error) {
+	r := createRoute(ns)
+	b, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]interface{}{}
+	err = json.Unmarshal(b, &result)
+	if err != nil {
+		return nil, err
+	}
+	delete(result, "status")
+	return result, nil
+}
+
+func createRoute(ns string) routev1.Route {
 	return routev1.Route{
 		TypeMeta:   routeTypeMeta,
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, GitOpsWebhookEventListenerRouteName)),

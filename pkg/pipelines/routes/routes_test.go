@@ -12,6 +12,35 @@ import (
 )
 
 func TestGenerateRoute(t *testing.T) {
+	want := map[string]interface{}{
+		"apiVersion": "route.openshift.io/v1",
+		"kind":       "Route",
+		"metadata": map[string]interface{}{
+			"creationTimestamp": nil,
+			"name":              "gitops-webhook-event-listener-route",
+			"namespace":         "cicd-environment",
+		},
+		"spec": map[string]interface{}{
+			"port": map[string]interface{}{"targetPort": float64(8080)},
+			"to": map[string]interface{}{
+				"kind":   "Service",
+				"name":   "el-cicd-event-listener",
+				"weight": float64(100),
+			},
+			"wildcardPolicy": "None",
+		},
+	}
+
+	route, err := Generate("cicd-environment")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(want, route); diff != "" {
+		t.Fatalf("Generate() failed:\n%s", diff)
+	}
+}
+
+func TestCreateRoute(t *testing.T) {
 	weight := int32(100)
 	validRoute := routev1.Route{
 		TypeMeta: routeTypeMeta,
@@ -33,9 +62,9 @@ func TestGenerateRoute(t *testing.T) {
 			WildcardPolicy: routev1.WildcardPolicyNone,
 		},
 	}
-	route := Generate("cicd-environment")
+	route := createRoute("cicd-environment")
 	if diff := cmp.Diff(validRoute, route); diff != "" {
-		t.Fatalf("Generate() failed:\n%s", diff)
+		t.Fatalf("createRoute() failed:\n%s", diff)
 	}
 }
 
