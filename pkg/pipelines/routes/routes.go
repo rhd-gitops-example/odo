@@ -5,10 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	// This is a hack because we need a newer version to avoid the Ingress
-	// issue.
-	routev1 "github.com/openshift/odo/pkg/pipelines/routes/v1"
-
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/odo/pkg/pipelines/meta"
 )
 
