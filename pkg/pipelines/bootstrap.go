@@ -104,7 +104,8 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	}
 
 	ns := namespaces.NamesWithPrefix(o.Prefix)
-	serviceName := repoToServiceName(repoName)
+	appName := repoToAppName(repoName)
+	serviceName := repoName
 	secretName := secrets.MakeServiceWebhookSecretName(ns["dev"], serviceName)
 	envs, configEnv, err := bootstrapEnvironments(appRepo, o.Prefix, secretName, ns)
 	if err != nil {
@@ -116,7 +117,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	if devEnv == nil {
 		return nil, errors.New("unable to bootstrap without dev environment")
 	}
-	svcFiles, err := bootstrapServiceDeployment(devEnv, repoName)
+	svcFiles, err := bootstrapServiceDeployment(devEnv, appName)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +215,7 @@ func serviceFromRepo(repoURL, secretName, secretNS string) (*config.Service, err
 		return nil, err
 	}
 	return &config.Service{
-		Name:      repoToServiceName(repo),
+		Name:      repo,
 		SourceURL: repoURL,
 		Webhook: &config.Webhook{
 			Secret: &config.Secret{
@@ -231,7 +232,7 @@ func applicationFromRepo(repoURL, serviceName string) (*config.Application, erro
 		return nil, err
 	}
 	return &config.Application{
-		Name:        repo,
+		Name:        repoToAppName(repo),
 		ServiceRefs: []string{serviceName},
 	}, nil
 }
@@ -278,8 +279,8 @@ func createBootstrapService(appName, ns, name string) *corev1.Service {
 	return svc
 }
 
-func repoToServiceName(repoName string) string {
-	return repoName + "-svc"
+func repoToAppName(repoName string) string {
+	return "app-" + repoName
 }
 
 func defaultPipelines(r scm.Repository) *config.Pipelines {
