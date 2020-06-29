@@ -35,12 +35,12 @@ func TestBootstrapManifest(t *testing.T) {
 	}
 
 	params := &BootstrapOptions{
-		Prefix:              "tst-",
-		GitOpsRepoURL:       testGitOpsRepo,
-		GitOpsWebhookSecret: "123",
-		AppRepoURL:          testSvcRepo,
-		ImageRepo:           "image/repo",
-		AppWebhookSecret:    "456",
+		Prefix:               "tst-",
+		GitOpsRepoURL:        testGitOpsRepo,
+		GitOpsWebhookSecret:  "123",
+		ServiceRepoURL:       testSvcRepo,
+		ImageRepo:            "image/repo",
+		ServiceWebhookSecret: "456",
 	}
 
 	r, err := bootstrapResources(params, ioutils.NewMapFilesystem())
