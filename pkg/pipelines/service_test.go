@@ -42,10 +42,10 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 	assertNoError(t, err)
 
 	want := res.Resources{
-		"config/cicd/base/pipelines/03-secrets/webhook-secret-test-dev-test.yaml": hookSecret,
-		"environments/test-dev/apps/test-app/base/kustomization.yaml":             &res.Kustomization{Bases: []string{"../../../services/test-svc", "../../../services/test"}},
-		"environments/test-dev/apps/test-app/kustomization.yaml":                  &res.Kustomization{Bases: []string{"overlays"}},
-		"environments/test-dev/apps/test-app/overlays/kustomization.yaml":         &res.Kustomization{Bases: []string{"../base"}},
+		"config/cicd/base/03-secrets/webhook-secret-test-dev-test.yaml":   hookSecret,
+		"environments/test-dev/apps/test-app/base/kustomization.yaml":     &res.Kustomization{Bases: []string{"../../../services/test-svc", "../../../services/test"}},
+		"environments/test-dev/apps/test-app/kustomization.yaml":          &res.Kustomization{Bases: []string{"overlays"}},
+		"environments/test-dev/apps/test-app/overlays/kustomization.yaml": &res.Kustomization{Bases: []string{"../base"}},
 		"pipelines.yaml": &config.Manifest{
 			Config: &config.Config{
 				Pipelines: &config.PipelinesConfig{
@@ -316,11 +316,11 @@ func TestAddService(t *testing.T) {
 		"environments/test-dev/services/test/base/kustomization.yaml",
 		"environments/test-dev/services/test/overlays/kustomization.yaml",
 		"environments/test-dev/services/test/kustomization.yaml",
-		"config/cicd/base/pipelines/03-secrets/webhook-secret-test-dev-test.yaml",
-		"config/cicd/base/pipelines/kustomization.yaml",
+		"config/cicd/base/03-secrets/webhook-secret-test-dev-test.yaml",
+		"config/cicd/base/kustomization.yaml",
 		"pipelines.yaml",
-		"config/argocd/config/test-dev-test-app-app.yaml",
-		"config/argocd/config/test-dev-new-app-app.yaml",
+		"config/argocd/test-dev-test-app-app.yaml",
+		"config/argocd/test-dev-new-app-app.yaml",
 	}
 	err = AddService(&AddServiceParameters{
 		AppName:           "new-app",
@@ -512,7 +512,7 @@ func TestCreateSvcImageBinding(t *testing.T) {
 		},
 	}
 
-	wantResources := res.Resources{"config/cicd/base/pipelines/06-bindings/new-env-new-svc-binding.yaml": triggerBinding}
+	wantResources := res.Resources{"config/cicd/base/06-bindings/new-env-new-svc-binding.yaml": triggerBinding}
 	if diff := cmp.Diff(resources, wantResources); diff != "" {
 		t.Errorf("resources failed: %v", diff)
 	}
