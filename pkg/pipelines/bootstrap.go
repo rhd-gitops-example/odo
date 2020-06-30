@@ -35,8 +35,8 @@ const (
 type BootstrapOptions struct {
 	GitOpsRepoURL            string // This is where the pipelines and configuration are.
 	GitOpsWebhookSecret      string // This is the secret for authenticating hooks from your GitOps repo.
-	ServiceRepoURL           string // This is the full URL to your GitHub repository for your app source.
-	ServiceWebhookSecret     string // This is the secret for authenticating hooks from your app source.
+	ServiceRepoURL           string // This is the full URL to your GitHub repository for your service source.
+	ServiceWebhookSecret     string // This is the secret for authenticating hooks from your service source.
 	InternalRegistryHostname string // This is the internal registry hostname used for pushing images.
 	ImageRepo                string // This is where built images are pushed to.
 	Prefix                   string // Used to prefix generated environment names in a shared cluster.
