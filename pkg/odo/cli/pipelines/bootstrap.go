@@ -109,8 +109,8 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.Flags().StringVarP(&o.SealedSecretsNamespace, "sealed-secrets-ns", "", "kube-system", "namespace in which the Sealed Secrets operator is installed, automatically generated secrets are encrypted with this operator")
 	bootstrapCmd.MarkFlagRequired("gitops-repo-url")
 	bootstrapCmd.MarkFlagRequired("service-repo-url")
-	bootstrapCmd.MarkFlagRequired("dockercfgjson")
 	bootstrapCmd.MarkFlagRequired("image-repo")
+	bootstrapCmd.MarkFlagRequired("sealed-secrets-ns")
 
 	return bootstrapCmd
 }
