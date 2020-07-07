@@ -28,9 +28,8 @@ var (
 )
 
 const (
-	defaultServer   = "https://kubernetes.default.svc"
-	defaultProject  = "default"
-	ArgoCDNamespace = "argocd"
+	defaultServer  = "https://kubernetes.default.svc"
+	defaultProject = "default"
 )
 
 func Build(argoNS, repoURL string, m *config.Manifest) (res.Resources, error) {
@@ -65,7 +64,7 @@ type argocdBuilder struct {
 }
 
 func (b *argocdBuilder) Application(env *config.Environment, app *config.Application) error {
-	basePath := filepath.Join(config.PathForArgoCD())
+	basePath := filepath.Join(config.PathForArgoCD(b.argoNS))
 	argoFiles := res.Resources{}
 	filename := filepath.Join(basePath, env.Name+"-"+app.Name+"-app.yaml")
 
@@ -82,7 +81,7 @@ func argoCDConfigResources(argoCDConfig *config.ArgoCDConfig, files res.Resource
 	if argoCDConfig.Namespace == "" {
 		return nil
 	}
-	basePath := filepath.Join(config.PathForArgoCD())
+	basePath := filepath.Join(config.PathForArgoCD(argoCDConfig.Namespace))
 	filename := filepath.Join(basePath, "kustomization.yaml")
 	resourceNames := []string{}
 	for k := range files {

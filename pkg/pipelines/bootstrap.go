@@ -94,7 +94,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 
 	bootstrapped, err := createInitialFiles(
 		appFs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret,
-		o.DockerConfigJSONFilename, o.SealedSecretsNamespace)
+		o.DockerConfigJSONFilename, o.SealedSecretsNamespace, o.ArgoCDNamespace)
 	if err != nil {
 		return nil, err
 	}

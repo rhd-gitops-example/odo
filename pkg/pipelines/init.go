@@ -125,7 +125,7 @@ func Init(o *InitOptions, fs afero.Fs) error {
 		return err
 	}
 
-	outputs, err := createInitialFiles(fs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, o.SealedSecretsNamespace)
+	outputs, err := createInitialFiles(fs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, o.SealedSecretsNamespace, "")
 	if err != nil {
 		return err
 	}
@@ -133,14 +133,14 @@ func Init(o *InitOptions, fs afero.Fs) error {
 	return err
 }
 
-func createInitialFiles(fs afero.Fs, repo scm.Repository, prefix, gitOpsWebhookSecret, dockerConfigPath, sealedSecretsNS string) (res.Resources, error) {
+func createInitialFiles(fs afero.Fs, repo scm.Repository, prefix, gitOpsWebhookSecret, dockerConfigPath, sealedSecretsNS, argoCDNS string) (res.Resources, error) {
 	cicd := &config.PipelinesConfig{Name: prefix + "cicd"}
 	pipelineConfig := &config.Config{Pipelines: cicd}
 	pipelines := createManifest(repo.URL(), pipelineConfig)
 	initialFiles := res.Resources{
 		pipelinesFile: pipelines,
 	}
-	resources, err := createCICDResources(fs, repo, cicd, gitOpsWebhookSecret, dockerConfigPath, sealedSecretsNS)
+	resources, err := createCICDResources(fs, repo, cicd, gitOpsWebhookSecret, dockerConfigPath, sealedSecretsNS, argoCDNS)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func createDockerSecret(fs afero.Fs, dockerConfigJSONFilename, secretNS, sealedS
 }
 
 // createCICDResources creates resources assocated to pipelines.
-func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *config.PipelinesConfig, gitOpsWebhookSecret, dockerConfigJSONPath, sealedSecretsNS string) (res.Resources, error) {
+func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *config.PipelinesConfig, gitOpsWebhookSecret, dockerConfigJSONPath, sealedSecretsNS, argoCDNS string) (res.Resources, error) {
 	cicdNamespace := pipelineConfig.Name
 	// key: path of the resource
 	// value: YAML content of the resource
@@ -211,7 +211,7 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *confi
 	}
 
 	outputs[rolebindingsPath] = roles.CreateClusterRoleBinding(meta.NamespacedName("", roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
-	script, err := dryrun.MakeScript("kubectl", cicdNamespace)
+	script, err := dryrun.MakeScript("kubectl", cicdNamespace, argoCDNS)
 	if err != nil {
 		return nil, err
 	}
