@@ -40,6 +40,7 @@ type InitOptions struct {
 	ImageRepo                string // This is where built images are pushed to.
 	OutputPath               string // Where to write the bootstrapped files to?
 	SealedSecretsNamespace   string // Where do we find the SealedSecrets service?
+	ArgoCDNamespace          string //where we find web address (host/port) of ArgoCD web console by looking up OpenShift Route
 }
 
 // PolicyRules to be bound to service account
