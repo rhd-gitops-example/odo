@@ -46,6 +46,7 @@ func TestBootstrapManifest(t *testing.T) {
 	}
 
 	r, err := bootstrapResources(params, ioutils.NewMapFilesystem())
+
 	if err != nil {
 		t.Fatal(err)
 	}

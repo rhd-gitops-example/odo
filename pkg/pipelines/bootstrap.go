@@ -107,6 +107,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	if err != nil {
 		return nil, err
 	}
+	sort.SliceStable(envs, func(i, j int) bool { return envs[i].Name < envs[j].Name })
 	m := createManifest(gitOpsRepo.URL(), configEnv, envs...)
 
 	devEnv := m.GetEnvironment(ns["dev"])
