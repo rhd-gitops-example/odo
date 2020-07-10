@@ -107,7 +107,6 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	if err != nil {
 		return nil, err
 	}
-	sort.SliceStable(envs, func(i, j int) bool { return envs[i].Name < envs[j].Name })
 	m := createManifest(gitOpsRepo.URL(), configEnv, envs...)
 
 	devEnv := m.GetEnvironment(ns["dev"])
@@ -181,7 +180,8 @@ func bootstrapServiceDeployment(dev *config.Environment, appName string) (res.Re
 func bootstrapEnvironments(repo scm.Repository, prefix, secretName string, ns map[string]string) ([]*config.Environment, *config.Config, error) {
 	envs := []*config.Environment{}
 	var pipelinesConfig *config.PipelinesConfig
-	for k, v := range ns {
+	for _, k := range []string{"cicd", "dev", "stage"} {
+		v := ns[k]
 		if k == "cicd" {
 			pipelinesConfig = &config.PipelinesConfig{Name: prefix + "cicd"}
 		} else {
