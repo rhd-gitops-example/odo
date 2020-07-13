@@ -29,6 +29,8 @@ type AddServiceOptions struct {
 	ServiceName              string
 	WebhookSecret            string
 	SealedSecretsNamespace   string // Where do we find the SealedSecrets service?
+	SealedSecretsController  string // Sealed Secrets Controller name
+
 }
 
 func AddService(p *AddServiceOptions, fs afero.Fs) error {
@@ -84,7 +86,7 @@ func serviceResources(m *config.Manifest, fs afero.Fs, o *AddServiceOptions) (re
 		secretName := secrets.MakeServiceWebhookSecretName(o.EnvName, svc.Name)
 		hookSecret, err := secrets.CreateSealedSecret(
 			meta.NamespacedName(cfg.Name, secretName), o.WebhookSecret,
-			eventlisteners.WebhookSecretKey, o.SealedSecretsNamespace)
+			eventlisteners.WebhookSecretKey, o.SealedSecretsNamespace, o.SealedSecretsController)
 		if err != nil {
 			return nil, err
 		}

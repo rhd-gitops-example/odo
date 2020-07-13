@@ -94,7 +94,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 
 	bootstrapped, err := createInitialFiles(
 		appFs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret,
-		o.DockerConfigJSONFilename, o.SealedSecretsNamespace)
+		o.DockerConfigJSONFilename, o.SealedSecretsNamespace, o.SealedSecretsController)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	hookSecret, err := secrets.CreateSealedSecret(
 		meta.NamespacedName(ns["cicd"], secretName),
 		o.ServiceWebhookSecret,
-		eventlisteners.WebhookSecretKey, o.SealedSecretsNamespace)
+		eventlisteners.WebhookSecretKey, o.SealedSecretsNamespace, o.SealedSecretsController)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %v", err)
 	}

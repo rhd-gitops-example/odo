@@ -36,7 +36,7 @@ func TestInitialFiles(t *testing.T) {
 	fakeFs := ioutils.NewMapFilesystem()
 	repo, err := scm.NewRepository(gitOpsURL)
 	assertNoError(t, err)
-	got, err := createInitialFiles(fakeFs, repo, prefix, gitOpsWebhook, "", "test-ns")
+	got, err := createInitialFiles(fakeFs, repo, prefix, gitOpsWebhook, "", "test-ns", "controller")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestInitialFiles(t *testing.T) {
 	want := res.Resources{
 		pipelinesFile: createManifest(gitOpsURL, &config.Config{Pipelines: testpipelineConfig}),
 	}
-	resources, err := createCICDResources(fakeFs, repo, testpipelineConfig, gitOpsWebhook, "", "test-ns")
+	resources, err := createCICDResources(fakeFs, repo, testpipelineConfig, gitOpsWebhook, "", "test-ns", "controller")
 	if err != nil {
 		t.Fatalf("CreatePipelineResources() failed due to :%s\n", err)
 	}

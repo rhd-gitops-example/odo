@@ -39,7 +39,8 @@ type InitOptions struct {
 	InternalRegistryHostname string // This is the internal registry hostname used for pushing images.
 	ImageRepo                string // This is where built images are pushed to.
 	OutputPath               string // Where to write the bootstrapped files to?
-	SealedSecretsNamespace   string // Where do we find the SealedSecrets service?
+	SealedSecretsNamespace   string // SealedSecret Controller Namespace
+	SealedSecretsController  string // SealedSecret Controller Name
 }
 
 // PolicyRules to be bound to service account
@@ -124,7 +125,7 @@ func Init(o *InitOptions, fs afero.Fs) error {
 		return err
 	}
 
-	outputs, err := createInitialFiles(fs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, o.SealedSecretsNamespace)
+	outputs, err := createInitialFiles(fs, gitOpsRepo, o.Prefix, o.GitOpsWebhookSecret, o.DockerConfigJSONFilename, o.SealedSecretsNamespace, o.SealedSecretsController)
 	if err != nil {
 		return err
 	}
@@ -132,14 +133,14 @@ func Init(o *InitOptions, fs afero.Fs) error {
 	return err
 }
 
-func createInitialFiles(fs afero.Fs, repo scm.Repository, prefix, gitOpsWebhookSecret, dockerConfigPath, sealedSecretsNS string) (res.Resources, error) {
+func createInitialFiles(fs afero.Fs, repo scm.Repository, prefix, gitOpsWebhookSecret, dockerConfigPath, sealedSecretsNS, sealedSecretsController string) (res.Resources, error) {
 	cicd := &config.PipelinesConfig{Name: prefix + "cicd"}
 	pipelineConfig := &config.Config{Pipelines: cicd}
 	pipelines := createManifest(repo.URL(), pipelineConfig)
 	initialFiles := res.Resources{
 		pipelinesFile: pipelines,
 	}
-	resources, err := createCICDResources(fs, repo, cicd, gitOpsWebhookSecret, dockerConfigPath, sealedSecretsNS)
+	resources, err := createCICDResources(fs, repo, cicd, gitOpsWebhookSecret, dockerConfigPath, sealedSecretsNS, sealedSecretsController)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func createInitialFiles(fs afero.Fs, repo scm.Repository, prefix, gitOpsWebhookS
 
 // createDockerSecret creates a secret that allows pushing images to upstream
 // repositories.
-func createDockerSecret(fs afero.Fs, dockerConfigJSONFilename, secretNS, sealedSecretsNS string) (*ssv1alpha1.SealedSecret, error) {
+func createDockerSecret(fs afero.Fs, dockerConfigJSONFilename, secretNS, sealedSecretsNS, sealedSecretsController string) (*ssv1alpha1.SealedSecret, error) {
 	if dockerConfigJSONFilename == "" {
 		return nil, errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")
 	}
@@ -172,7 +173,7 @@ func createDockerSecret(fs afero.Fs, dockerConfigJSONFilename, secretNS, sealedS
 	}
 	defer f.Close()
 
-	dockerSecret, err := secrets.CreateSealedDockerConfigSecret(meta.NamespacedName(secretNS, dockerSecretName), f, sealedSecretsNS)
+	dockerSecret, err := secrets.CreateSealedDockerConfigSecret(meta.NamespacedName(secretNS, dockerSecretName), f, sealedSecretsNS, sealedSecretsController)
 	if err != nil {
 		return nil, err
 	}
@@ -181,13 +182,13 @@ func createDockerSecret(fs afero.Fs, dockerConfigJSONFilename, secretNS, sealedS
 }
 
 // createCICDResources creates resources assocated to pipelines.
-func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *config.PipelinesConfig, gitOpsWebhookSecret, dockerConfigJSONPath, sealedSecretsNS string) (res.Resources, error) {
+func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *config.PipelinesConfig, gitOpsWebhookSecret, dockerConfigJSONPath, sealedSecretsNS, sealedSecretsController string) (res.Resources, error) {
 	cicdNamespace := pipelineConfig.Name
 	// key: path of the resource
 	// value: YAML content of the resource
 	outputs := map[string]interface{}{}
 	githubSecret, err := secrets.CreateSealedSecret(meta.NamespacedName(cicdNamespace, eventlisteners.GitOpsWebhookSecret),
-		gitOpsWebhookSecret, eventlisteners.WebhookSecretKey, sealedSecretsNS)
+		gitOpsWebhookSecret, eventlisteners.WebhookSecretKey, sealedSecretsNS, sealedSecretsController)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate GitHub Webhook Secret: %v", err)
 	}
@@ -199,7 +200,7 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *confi
 	sa := roles.CreateServiceAccount(meta.NamespacedName(cicdNamespace, saName))
 
 	if dockerConfigJSONPath != "" {
-		dockerSecret, err := createDockerSecret(fs, dockerConfigJSONPath, cicdNamespace, sealedSecretsNS)
+		dockerSecret, err := createDockerSecret(fs, dockerConfigJSONPath, cicdNamespace, sealedSecretsNS, sealedSecretsController)
 		if err != nil {
 			return nil, err
 		}
