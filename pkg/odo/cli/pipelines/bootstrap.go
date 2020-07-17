@@ -95,27 +95,12 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 			genericclioptions.GenericRun(o, cmd, args)
 		},
 	}
+	addInitCommands(bootstrapCmd, o.BootstrapOptions.InitOptions)
 
-	bootstrapCmd.Flags().StringVar(&o.GitOpsRepoURL, "gitops-repo-url", "", "GitOps repository e.g. https://github.com/organisation/repository")
-	bootstrapCmd.Flags().StringVar(&o.GitOpsWebhookSecret, "gitops-webhook-secret", "", "provide the GitHub webhook secret for GitOps repository (if not provided, it will be auto-generated)")
-
-	bootstrapCmd.Flags().StringVar(&o.ServiceRepoURL, "service-repo-url", "", "service source e.g. https://github.com/organisation/service")
+	bootstrapCmd.Flags().StringVar(&o.ServiceRepoURL, "service-repo-url", "", "Service source e.g. https://github.com/organisation/service")
 	bootstrapCmd.Flags().StringVar(&o.ServiceWebhookSecret, "service-webhook-secret", "", "Provide the GitHub webhook secret for Service repository (if not provided, it will be auto-generated)")
-
-	bootstrapCmd.Flags().StringVar(&o.DockerConfigJSONFilename, "dockercfgjson", "~/.docker/config.json", "authenticates the image push to the desired image registry, path to config.json")
-	bootstrapCmd.Flags().StringVar(&o.InternalRegistryHostname, "internal-registry-hostname", "image-registry.openshift-image-registry.svc:5000", "internal image registry hostname")
-
-	bootstrapCmd.Flags().StringVar(&o.OutputPath, "output", ".", "folder path to add Gitops resources")
-	bootstrapCmd.Flags().StringVarP(&o.Prefix, "prefix", "p", "", "add a prefix to the environment names")
-	bootstrapCmd.Flags().StringVarP(&o.ImageRepo, "image-repo", "", "", "used to push built images")
-
-	bootstrapCmd.Flags().StringVar(&o.SealedSecretsService.Namespace, "sealed-secrets-ns", "sealed-secrets", "namespace in which the Sealed Secrets operator is installed, automatically generated secrets are encrypted with this operator")
-	bootstrapCmd.Flags().StringVar(&o.SealedSecretsService.Name, "sealed-secrets-svc", "sealedsecretcontroller-sealed-secrets", "name of the Sealed Secrets services that encrypts secrets")
-	bootstrapCmd.Flags().StringVarP(&o.StatusTrackerAccessToken, "status-tracker-access-token", "", "", "used to authenticate requests to push commit-statuses to your Git hosting service")
 
 	bootstrapCmd.MarkFlagRequired("gitops-repo-url")
 	bootstrapCmd.MarkFlagRequired("service-repo-url")
-	bootstrapCmd.MarkFlagRequired("image-repo")
-
 	return bootstrapCmd
 }
