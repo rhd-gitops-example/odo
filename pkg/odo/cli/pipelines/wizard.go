@@ -180,12 +180,10 @@ func (io *WizardParameters) Validate() error {
 	if err != nil {
 		return fmt.Errorf("failed to parse url %s: %w", io.GitOpsRepoURL, err)
 	}
-
 	// TODO: this won't work with GitLab as the repo can have more path elements.
 	if len(utility.RemoveEmptyStrings(strings.Split(gr.Path, "/"))) != 2 {
 		return fmt.Errorf("repo must be org/repo: %s", strings.Trim(gr.Path, ".git"))
 	}
-
 	return nil
 }
 
@@ -214,6 +212,11 @@ func NewCmdWizard(name, fullName string) *cobra.Command {
 			genericclioptions.GenericRun(o, cmd, args)
 		},
 	}
+	addInitCommands(wizardCmd, o.BootstrapOptions.InitOptions)
+	wizardCmd.Flags().StringVar(&o.ServiceRepoURL, "service-repo-url", "", "Provide the URL for your Service repository e.g. https://github.com/organisation/service.git")
+	wizardCmd.Flags().StringVar(&o.ServiceWebhookSecret, "service-webhook-secret", "", "Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)")
+	// wizardCmd.MarkFlagRequired("gitops-repo-url")
+
 	return wizardCmd
 }
 
