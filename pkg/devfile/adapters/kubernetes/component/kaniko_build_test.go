@@ -1,7 +1,6 @@
 package component
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -116,10 +115,8 @@ func TestGetServiceAccountSecret(t *testing.T) {
 		Type:       corev1.SecretTypeDockercfg,
 	}
 
-	testSaSecretPorted := corev1.Secret{}
-
 	fkclient, fkclientset := kclient.FakeNew()
-	fkclientset.Kubernetes.PrependReactor("get", "serviceAccounts", func(action ktesting.Action) (bool, runtime.Object, error) {
+	fkclientset.Kubernetes.PrependReactor("get", "serviceaccounts", func(action ktesting.Action) (bool, runtime.Object, error) {
 		return true, testSa, nil
 	})
 	fkclientset.Kubernetes.PrependReactor("get", "secrets", func(action ktesting.Action) (bool, runtime.Object, error) {
@@ -132,15 +129,12 @@ func TestGetServiceAccountSecret(t *testing.T) {
 	want := testSaSecret
 	got, err := testAdapter.getServiceAccountSecret(testNs, testSaName, corev1.SecretTypeDockercfg)
 
-	fmt.Printf("got: %v", got)
-
 	if err != nil {
 		t.Error(err)
 		t.Errorf("Error retrieving sa secret")
 	}
-	testSaSecretPorted = *got
 
-	if !reflect.DeepEqual(testSaSecretPorted, want) {
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Secrets don't match")
 	}
 

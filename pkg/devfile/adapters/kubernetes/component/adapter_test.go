@@ -30,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtimeUnstructured "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+
+	dynamicfakeclient "k8s.io/client-go/dynamic/fake"
 )
 
 func NewFilesystem() afero.Fs {
@@ -587,7 +589,7 @@ func TestCreateDockerConfigSecret(t *testing.T) {
 		Namespace: testNs,
 	}
 
-	testSecret := corev1.Secret{
+	testSecret := &corev1.Secret{
 
 		TypeMeta:   TypeMeta("Secret", "v1"),
 		ObjectMeta: SecretObjectMeta(testNamespacedName),
@@ -597,7 +599,7 @@ func TestCreateDockerConfigSecret(t *testing.T) {
 		},
 	}
 
-	testSecretData, err := runtimeUnstructured.DefaultUnstructuredConverter.ToUnstructured(&testSecret)
+	testSecretData, err := runtimeUnstructured.DefaultUnstructuredConverter.ToUnstructured(testSecret)
 	if err != nil {
 		t.Error(err)
 		t.Errorf("error making map")
@@ -618,11 +620,20 @@ func TestCreateDockerConfigSecret(t *testing.T) {
 	want := testSecretUnstructured
 
 	fkclient, _ := kclient.FakeNew()
+
+	scheme := runtime.NewScheme()
+	fkclient.DynamicClient = dynamicfakeclient.NewSimpleDynamicClient(scheme)
+
+	if err != nil {
+		t.Errorf("error generating fake dynamic client")
+	}
+
 	testAdapter := Adapter{
 		Client: *fkclient,
 	}
 
-	got, err := testAdapter.createDockerConfigSecret(testNs, testDockerConfigData)
+	got, err := testAdapter.createDockerConfigSecret(testSecretName, testNs, testDockerConfigData)
+
 	if err != nil {
 		t.Error(err)
 		t.Errorf("failed to get secret")

@@ -188,7 +188,7 @@ func (a Adapter) Build(parameters common.BuildParameters) (err error) {
 			return err
 		}
 
-		if _, err := a.createDockerConfigSecret(parameters.EnvSpecificInfo.GetNamespace(), dockerConfigSecretBytes); err != nil {
+		if _, err := a.createDockerConfigSecret(regcredName, parameters.EnvSpecificInfo.GetNamespace(), dockerConfigSecretBytes); err != nil {
 			return errors.Wrap(err, "failed to create dockerconfig secret")
 		}
 	}
@@ -1035,9 +1035,9 @@ func (a Adapter) createDockerConfigSecretBytes(DockerConfigJSONFilename string) 
 	return data, nil
 }
 
-func (a Adapter) createDockerConfigSecret(nameSpace string, dockerConfigSecretBytes []byte) (*unstructured.Unstructured, error) {
+func (a Adapter) createDockerConfigSecret(secretName string, nameSpace string, dockerConfigSecretBytes []byte) (*unstructured.Unstructured, error) {
 
-	secretUnstructured, err := utils.CreateSecret(regcredName, nameSpace, dockerConfigSecretBytes)
+	secretUnstructured, err := utils.CreateSecret(secretName, nameSpace, dockerConfigSecretBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert created secret to unstructured format")
 	}

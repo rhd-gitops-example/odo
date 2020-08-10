@@ -184,7 +184,7 @@ func (a Adapter) createDockerConfigSecretBytesFrom(source *corev1.Secret) ([]byt
 }
 
 func (a Adapter) createDockerConfigSecretFrom(namespace string, dockerConfigSecretBytes []byte) (*unstructured.Unstructured, error) {
-	createdSecret, err := a.createDockerConfigSecret(namespace, dockerConfigSecretBytes)
+	createdSecret, err := a.createDockerConfigSecret(regcredName, namespace, dockerConfigSecretBytes)
 	if err != nil {
 		return nil, err
 	}
