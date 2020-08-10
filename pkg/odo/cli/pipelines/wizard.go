@@ -80,18 +80,16 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	if err != nil {
 		return err
 	}
-	if io.GitOpsRepoURL == "" || len(args) > 0 || cmd.HasFlags() {
-
-	} else {
+	mandatoryFlags := map[string]string{io.GitOpsRepoURL: "Git-repo-url", io.ServiceRepoURL: "service-repo-url"}
+	flagset := cmd.Flags()
+	if flagset.NFlag() == 0 {
 		// ask for sealed secrets only when default is absent
 		if io.SealedSecretsService == (types.NamespacedName{}) {
 			io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
 
 		}
 
-	mandatoryFlags := map[string]string{io.GitOpsRepoURL: "Git-repo-url", io.ServiceRepoURL: "service-repo-url"}
-	flagset := cmd.Flags()
-	if flagset.NFlag() == 0 {
+	
 		io.GitOpsRepoURL = ui.EnterGitRepo()
 		io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
 		_, err = sc.NewRepository(io.GitOpsRepoURL)
@@ -124,8 +122,18 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 		}
 		io.OutputPath = ui.EnterOutputPath()
 		io.Overwrite = true
-		return nil
+		
+		
 	}
+	else {
+		for key, value := range mandatoryFlags {
+			if key == "" {
+				return fmt.Errorf("Please enter the value of the flag %s", value)
+			}
+		}
+
+	}
+	return nil
 }
 
 func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Interface, spinner status) error {
@@ -196,13 +204,12 @@ func (io *WizardParameters) Validate() error {
 
 // Run runs the project Wizard command.
 func (io *WizardParameters) Run() error {
-	if io.ServiceRepoURL != "" {
-		err := pipelines.Bootstrap(io.BootstrapOptions, ioutils.NewFilesystem())
-		if err != nil {
-			return err
-		}
-		log.Success("Bootstrapped GitOps sucessfully.")
+	err := pipelines.Bootstrap(io.BootstrapOptions, ioutils.NewFilesystem())
+	if err != nil {
+		return err
 	}
+	log.Success("Bootstrapped GitOps sucessfully.")
+
 	return nil
 }
 
