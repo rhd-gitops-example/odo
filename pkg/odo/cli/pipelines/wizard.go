@@ -89,6 +89,9 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 
 		}
 
+	mandatoryFlags := map[string]string{io.GitOpsRepoURL: "Git-repo-url", io.ServiceRepoURL: "service-repo-url"}
+	flagset := cmd.Flags()
+	if flagset.NFlag() == 0 {
 		io.GitOpsRepoURL = ui.EnterGitRepo()
 		io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
 		_, err = sc.NewRepository(io.GitOpsRepoURL)
