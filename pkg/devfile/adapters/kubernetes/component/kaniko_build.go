@@ -68,6 +68,15 @@ func (a Adapter) runKaniko(parameters common.BuildParameters, isImageRegistryInt
 		return errors.Wrapf(err, "error while waiting for pod %s", podSelector)
 	}
 
+	defer func() {
+		// This will clean up the builder pod after build is complete
+		derr := a.Client.KubeClient.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{})
+
+		if err == nil {
+			err = derr
+		}
+	}()
+
 	// Sync files to volume
 	log.Infof("\nSyncing to component %s", a.ComponentName)
 	// Get a sync adapter. Check if project files have changed and sync accordingly
