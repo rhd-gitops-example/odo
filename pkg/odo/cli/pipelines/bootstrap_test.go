@@ -1,12 +1,19 @@
 package pipelines
 
 import (
+	"bytes"
+	"regexp"
 	"testing"
 
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/spf13/cobra"
 )
+
+type keyValuePair struct {
+	key   string
+	value string
+}
 
 func TestCompleteBootstrapParameters(t *testing.T) {
 	completeTests := []struct {
@@ -21,7 +28,7 @@ func TestCompleteBootstrapParameters(t *testing.T) {
 
 	for _, tt := range completeTests {
 		o := BootstrapParameters{
-			&pipelines.BootstrapOptions{InitOptions: &pipelines.InitOptions{Prefix: tt.prefix}},
+			&pipelines.BootstrapOptions{Prefix: tt.prefix},
 			&genericclioptions.Context{},
 		}
 
@@ -56,7 +63,7 @@ func TestAddSuffixWithBootstrap(t *testing.T) {
 		t.Run(test.name, func(rt *testing.T) {
 			o := BootstrapParameters{
 				&pipelines.BootstrapOptions{
-					InitOptions:    &pipelines.InitOptions{GitOpsRepoURL: test.gitOpsURL},
+					GitOpsRepoURL:  test.gitOpsURL,
 					ServiceRepoURL: test.appURL},
 				&genericclioptions.Context{}}
 
@@ -88,7 +95,8 @@ func TestValidateBootstrapParameters(t *testing.T) {
 	for _, tt := range optionTests {
 		o := BootstrapParameters{
 			&pipelines.BootstrapOptions{
-				InitOptions: &pipelines.InitOptions{GitOpsRepoURL: tt.gitRepo, Prefix: "test"}},
+				GitOpsRepoURL: tt.gitRepo,
+				Prefix:        "test"},
 			&genericclioptions.Context{},
 		}
 		err := o.Validate()
@@ -101,5 +109,61 @@ func TestValidateBootstrapParameters(t *testing.T) {
 		if !matchError(t, tt.errMsg, err) {
 			t.Errorf("Validate() %#v failed to match error: got %s, want %s", tt.name, err, tt.errMsg)
 		}
+	}
+}
+
+func TestBootstrapCommandWithMissingParams(t *testing.T) {
+	cmdTests := []struct {
+		desc    string
+		flags   []keyValuePair
+		wantErr string
+	}{
+		{"Missing gitops-repo-url flag",
+			[]keyValuePair{flag("output", "~/output"), flag("service-repo-url", "sample/repo")},
+			`required flag(s) "gitops-repo-url" not set`},
+		{"Missing service-repo-url flag",
+			[]keyValuePair{flag("output", "~/output"),
+				flag("gitops-repo-url", "sample/repo")},
+			`required flag(s) "service-repo-url" not set`},
+	}
+	for _, tt := range cmdTests {
+		t.Run(tt.desc, func(t *testing.T) {
+			_, _, err := executeCommand(NewCmdBootstrap("bootstrap", "odo pipelines bootstrap"), tt.flags...)
+			if err.Error() != tt.wantErr {
+				t.Errorf("got %s, want %s", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func executeCommand(cmd *cobra.Command, flags ...keyValuePair) (c *cobra.Command, output string, err error) {
+	buf := new(bytes.Buffer)
+	cmd.SetOutput(buf)
+	for _, flag := range flags {
+		cmd.Flags().Set(flag.key, flag.value)
+	}
+	c, err = cmd.ExecuteC()
+	return c, buf.String(), err
+}
+
+func matchError(t *testing.T, s string, e error) bool {
+	t.Helper()
+	if s == "" && e == nil {
+		return true
+	}
+	if s != "" && e == nil {
+		return false
+	}
+	match, err := regexp.MatchString(s, e.Error())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return match
+}
+
+func flag(k, v string) keyValuePair {
+	return keyValuePair{
+		key:   k,
+		value: v,
 	}
 }

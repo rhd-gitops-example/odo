@@ -42,9 +42,7 @@ type WizardParameters struct {
 // NewWizardParameters Wizards a WizardParameters instance.
 func NewWizardParameters() *WizardParameters {
 	return &WizardParameters{
-		BootstrapOptions: &pipelines.BootstrapOptions{
-			InitOptions: &pipelines.InitOptions{},
-		},
+		BootstrapOptions: &pipelines.BootstrapOptions{},
 	}
 }
 
@@ -115,12 +113,6 @@ func (io *WizardParameters) Run() error {
 			return err
 		}
 		log.Success("Bootstrapped GitOps sucessfully.")
-	} else {
-		err := pipelines.Init(io.InitOptions, ioutils.NewFilesystem())
-		if err != nil {
-			return err
-		}
-		log.Success("Initialized GitOps sucessfully.")
 	}
 	return nil
 }
