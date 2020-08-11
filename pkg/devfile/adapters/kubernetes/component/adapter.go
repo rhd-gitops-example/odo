@@ -211,10 +211,6 @@ func (a Adapter) Build(parameters common.BuildParameters) (err error) {
 	}
 
 	if !isImageRegistryInternal {
-		// dockerConfigSecretBytes, err := a.createDockerConfigSecretBytes(parameters.DockerConfigJSONFilename)
-		// if err != nil {
-		// 	return err
-		// }
 
 		if err := a.createDockerConfigSecret(parameters.DockerConfigJSONFilename, regcredName, parameters.EnvSpecificInfo.GetNamespace()); err != nil {
 			return errors.Wrap(err, "failed to create dockerconfig secret")
@@ -911,14 +907,6 @@ func (a Adapter) Exec(command []string) error {
 
 	return a.ExecuteCommand(componentInfo, command, true, nil, nil)
 }
-
-// func (a Adapter) createDockerConfigSecretBytes(DockerConfigJSONFilename string) ([]byte, error) {
-// 	data, err := utils.CreateDockerConfigDataFromFilepath(DockerConfigJSONFilename, nil)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "Error retriving docker config secret bytes")
-// 	}
-// 	return data, nil
-// }
 
 func (a Adapter) createDockerConfigSecret(DockerConfigJSONFilename string, secretName string, nameSpace string) error {
 
