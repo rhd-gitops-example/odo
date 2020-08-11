@@ -19,7 +19,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 )
@@ -54,7 +53,7 @@ func (a Adapter) runKaniko(parameters common.BuildParameters, isImageRegistryInt
 		"component": a.ComponentName,
 	}
 
-	if _, err := a.createKanikoBuilderPod(labels, initContainer(initContainerName), builderContainer(containerName, parameters.Tag, isImageRegistryInternal), regcredName); err != nil {
+	if err := a.createKanikoBuilderPod(labels, initContainer(initContainerName), builderContainer(containerName, parameters.Tag, isImageRegistryInternal), regcredName); err != nil {
 		return errors.Wrap(err, "error while creating kaniko builder pod")
 	}
 
@@ -70,10 +69,8 @@ func (a Adapter) runKaniko(parameters common.BuildParameters, isImageRegistryInt
 
 	defer func() {
 		// This will clean up the builder pod after build is complete
-		derr := a.Client.KubeClient.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{})
-
-		if err == nil {
-			err = derr
+		if err := a.Client.KubeClient.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{}); err != nil {
+			log.Errorf("Failed to delete pod '%s': %v", pod.Name, err)
 		}
 	}()
 
@@ -143,11 +140,11 @@ func (a Adapter) createDockerCfgSecretForInternalRegistry(ns string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to retrieve service account credentials")
 	}
-	saSecretBytes, err := a.createDockerConfigSecretBytesFrom(secret)
-	if err != nil {
-		return err
-	}
-	if _, err := a.createDockerConfigSecretFrom(secret.GetNamespace(), saSecretBytes); err != nil {
+	// saSecretBytes, err := a.createDockerConfigSecretBytesFrom(secret)
+	// if err != nil {
+	// 	return err
+	// }
+	if err := a.createDockerConfigSecretFrom(secret, secret.GetNamespace()); err != nil {
 		return errors.Wrap(err, "failed to create docker secret from service account credentials")
 	}
 	return nil
@@ -174,34 +171,54 @@ type dockerCfg struct {
 	Auths map[string]*types.AuthConfig `json:"auths,omitempty"`
 }
 
-func (a Adapter) createDockerConfigSecretBytesFrom(source *corev1.Secret) ([]byte, error) {
+// func (a Adapter) createDockerConfigSecretBytesFrom(source *corev1.Secret) ([]byte, error) {
+// 	token, err := getAuthTokenFromDockerCfgSecret(source)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "failed to extract auth token from service account secret")
+// 	}
+// 	outCfg := &dockerCfg{
+// 		Auths: map[string]*types.AuthConfig{
+// 			internalRegistryHost: {Auth: token},
+// 		},
+// 	}
+// 	outBytes, err := json.Marshal(&outCfg)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "failed to convert created dockerconfig to byte format")
+// 	}
+
+// 	return outBytes, nil
+// }
+
+func (a Adapter) createDockerConfigSecretFrom(source *corev1.Secret, namespace string) error {
+
 	token, err := getAuthTokenFromDockerCfgSecret(source)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to extract auth token from service account secret")
+		return errors.Wrap(err, "failed to extract auth token from service account secret")
 	}
 	outCfg := &dockerCfg{
 		Auths: map[string]*types.AuthConfig{
 			internalRegistryHost: {Auth: token},
 		},
 	}
-	outBytes, err := json.Marshal(&outCfg)
+	dockerConfigSecretBytes, err := json.Marshal(&outCfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert created dockerconfig to byte format")
+		return errors.Wrap(err, "failed to convert created dockerconfig to byte format")
 	}
 
-	return outBytes, nil
-}
-
-func (a Adapter) createDockerConfigSecretFrom(namespace string, dockerConfigSecretBytes []byte) (*unstructured.Unstructured, error) {
-	createdSecret, err := a.createDockerConfigSecret(regcredName, namespace, dockerConfigSecretBytes)
+	secretUnstructured, err := utils.CreateSecret(regcredName, namespace, dockerConfigSecretBytes)
 	if err != nil {
-		return nil, err
+		return errors.Wrap(err, "failed to convert created secret to unstructured format")
 	}
-
-	return createdSecret, nil
+	_, err = a.Client.DynamicClient.Resource(secretGroupVersionResource).
+		Namespace(namespace).
+		Create(secretUnstructured, metav1.CreateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create secret on cluster")
+	}
+	return nil
 }
 
-func (a Adapter) createKanikoBuilderPod(labels map[string]string, init, builder *corev1.Container, secretName string) (*corev1.Pod, error) {
+func (a Adapter) createKanikoBuilderPod(labels map[string]string, init, builder *corev1.Container, secretName string) error {
 	objectMeta := kclient.CreateObjectMeta(a.ComponentName+"-build", a.Client.Namespace, labels, nil)
 	pod := &corev1.Pod{
 		ObjectMeta: objectMeta,
@@ -238,10 +255,10 @@ func (a Adapter) createKanikoBuilderPod(labels map[string]string, init, builder 
 	klog.V(3).Infof("Creating build pod %v", pod.GetName())
 	p, err := a.Client.KubeClient.CoreV1().Pods(a.Client.Namespace).Create(pod)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	klog.V(5).Infof("Successfully created pod %v", p.GetName())
-	return p, nil
+	return nil
 }
 
 func builderContainer(name, imageTag string, isImageRegistryInternal bool) *corev1.Container {

@@ -1,13 +1,13 @@
 package component
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/openshift/odo/pkg/envinfo"
 	"github.com/openshift/odo/pkg/util"
 	"github.com/pkg/errors"
 
+	"github.com/google/go-cmp/cmp"
 	adaptersCommon "github.com/openshift/odo/pkg/devfile/adapters/common"
 	devfileParser "github.com/openshift/odo/pkg/devfile/parser"
 	"github.com/openshift/odo/pkg/devfile/parser/data/common"
@@ -569,37 +569,10 @@ func TestAdapterDelete(t *testing.T) {
 	}
 }
 
-func TestCreateDockerConfigSecretBytes(t *testing.T) {
-
-	testConfigJsonString := "{ \"auths\" : { \"https://index.docker.io/v1/\": { \"auth\": \"test-auth-token\", \"email\": \"test-email\"} },\"HttpHeaders\": {	\"User-Agent\": \"Docker-Client/19.03.8 (darwin)\"},\"experimental\": \"disabled\"}"
-	testFs := NewFilesystem()
-	testFilename := "test-config-json"
-	testConfigJsonBytes := []byte(testConfigJsonString)
-
-	defer testFs.Remove(testFilename)
-
-	afero.WriteFile(testFs, testFilename, []byte(testConfigJsonString), 0777)
-
-	fkclient, _ := kclient.FakeNew()
-	testAdapter := Adapter{
-		Client: *fkclient,
-	}
-
-	want := testConfigJsonBytes
-	got, err := testAdapter.createDockerConfigSecretBytes(testFilename)
-	if err != nil {
-		t.Error(err)
-		t.Errorf("failed to retrieve dockerconfig secret bytes")
-	}
-
-	if !reflect.DeepEqual(want, got) {
-		t.Errorf("secret bytes don't match")
-	}
-}
-
 func TestCreateDockerConfigSecret(t *testing.T) {
 	testConfigJsonString := "{ \"auths\" : { \"https://index.docker.io/v1/\": { \"auth\": \"test-auth-token\", \"email\": \"test-email\"} },\"HttpHeaders\": {	\"User-Agent\": \"Docker-Client/19.03.8 (darwin)\"},\"experimental\": \"disabled\"}"
 	testDockerConfigData := []byte(testConfigJsonString)
+	testFilename := "test-data/test-config-json"
 	testSecretName := "test-secret"
 	testNs := "test-namespace"
 
@@ -651,15 +624,22 @@ func TestCreateDockerConfigSecret(t *testing.T) {
 		Client: *fkclient,
 	}
 
-	got, err := testAdapter.createDockerConfigSecret(testSecretName, testNs, testDockerConfigData)
+	err = testAdapter.createDockerConfigSecret(testFilename, testSecretName, testNs)
+	if err != nil {
+		t.Error(err)
+	}
+	got, err := testAdapter.Client.DynamicClient.Resource(secretGroupVersionResource).
+		Namespace(testNs).
+		Get(testSecretName, metav1.GetOptions{})
 
 	if err != nil {
 		t.Error(err)
 		t.Errorf("failed to get secret")
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("secrets don't match")
+	diff := cmp.Diff(got, want)
+	if diff != "" {
+		t.Errorf("unexpected response: %s", diff)
 	}
 }
 

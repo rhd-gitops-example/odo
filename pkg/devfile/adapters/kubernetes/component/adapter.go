@@ -211,12 +211,12 @@ func (a Adapter) Build(parameters common.BuildParameters) (err error) {
 	}
 
 	if !isImageRegistryInternal {
-		dockerConfigSecretBytes, err := a.createDockerConfigSecretBytes(parameters.DockerConfigJSONFilename)
-		if err != nil {
-			return err
-		}
+		// dockerConfigSecretBytes, err := a.createDockerConfigSecretBytes(parameters.DockerConfigJSONFilename)
+		// if err != nil {
+		// 	return err
+		// }
 
-		if _, err := a.createDockerConfigSecret(regcredName, parameters.EnvSpecificInfo.GetNamespace(), dockerConfigSecretBytes); err != nil {
+		if err := a.createDockerConfigSecret(parameters.DockerConfigJSONFilename, regcredName, parameters.EnvSpecificInfo.GetNamespace()); err != nil {
 			return errors.Wrap(err, "failed to create dockerconfig secret")
 		}
 	}
@@ -912,27 +912,32 @@ func (a Adapter) Exec(command []string) error {
 	return a.ExecuteCommand(componentInfo, command, true, nil, nil)
 }
 
-func (a Adapter) createDockerConfigSecretBytes(DockerConfigJSONFilename string) ([]byte, error) {
-	data, err := utils.CreateDockerConfigDataFromFilepath(DockerConfigJSONFilename, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "Error retriving docker config secret bytes")
-	}
-	return data, nil
-}
+// func (a Adapter) createDockerConfigSecretBytes(DockerConfigJSONFilename string) ([]byte, error) {
+// 	data, err := utils.CreateDockerConfigDataFromFilepath(DockerConfigJSONFilename, nil)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "Error retriving docker config secret bytes")
+// 	}
+// 	return data, nil
+// }
 
-func (a Adapter) createDockerConfigSecret(secretName string, nameSpace string, dockerConfigSecretBytes []byte) (*unstructured.Unstructured, error) {
+func (a Adapter) createDockerConfigSecret(DockerConfigJSONFilename string, secretName string, nameSpace string) error {
+
+	dockerConfigSecretBytes, err := utils.CreateDockerConfigDataFromFilepath(DockerConfigJSONFilename)
+	if err != nil {
+		return errors.Wrap(err, "Error retriving docker config secret bytes")
+	}
 
 	secretUnstructured, err := utils.CreateSecret(secretName, nameSpace, dockerConfigSecretBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert created secret to unstructured format")
+		return errors.Wrap(err, "failed to convert created secret to unstructured format")
 	}
-	createdSecret, err := a.Client.DynamicClient.Resource(secretGroupVersionResource).
+	_, err = a.Client.DynamicClient.Resource(secretGroupVersionResource).
 		Namespace(nameSpace).
 		Create(secretUnstructured, metav1.CreateOptions{})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create secret on cluster")
+		return errors.Wrap(err, "failed to create secret on cluster")
 	}
-	return createdSecret, nil
+	return nil
 }
 
 // NOTE: we assume internal registry host is: image-registry.openshift-image-registry.svc:5000

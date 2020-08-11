@@ -4,13 +4,21 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/odo/pkg/devfile/adapters/common"
 	adaptersCommon "github.com/openshift/odo/pkg/devfile/adapters/common"
 	"github.com/openshift/odo/pkg/kclient"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	dynamicfakeclient "k8s.io/client-go/dynamic/fake"
 	ktesting "k8s.io/client-go/testing"
+
+	"encoding/json"
+
+	"github.com/google/go-cmp/cmp"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	runtimeUnstructured "k8s.io/apimachinery/pkg/runtime"
 )
 
 func getTestInitContainer() corev1.Container {
@@ -134,13 +142,14 @@ func TestGetServiceAccountSecret(t *testing.T) {
 		t.Errorf("Error retrieving sa secret")
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Secrets don't match")
+	diff := cmp.Diff(got, want)
+	if diff != "" {
+		t.Errorf("unexpected response: %s", diff)
 	}
 
 }
 
-func TestCreateDockerConfigSecretBytesFrom(t *testing.T) {
+func TestCreateDockerConfigSecretFrom(t *testing.T) {
 	testConfigJsonString := "{\"auths\":{\"image-registry.openshift-image-registry.svc:5000\":{\"auth\":\"test-auth-token\"}}}"
 	testConfigJsonData := []byte(testConfigJsonString)
 
@@ -154,7 +163,7 @@ func TestCreateDockerConfigSecretBytesFrom(t *testing.T) {
 		Namespace: testNs,
 	}
 
-	testSecret := &corev1.Secret{
+	testSaSecret := &corev1.Secret{
 		TypeMeta:   TypeMeta("Secret", "v1"),
 		ObjectMeta: SecretObjectMeta(testNamespacedName),
 		Type:       corev1.SecretTypeDockerConfigJson,
@@ -163,20 +172,54 @@ func TestCreateDockerConfigSecretBytesFrom(t *testing.T) {
 		},
 	}
 
+	testSecret := &corev1.Secret{
+		TypeMeta:   TypeMeta("Secret", "v1"),
+		ObjectMeta: SecretObjectMeta(testNamespacedName),
+		Type:       corev1.SecretTypeDockerConfigJson,
+		Data: map[string][]byte{
+			corev1.DockerConfigJsonKey: testConfigJsonData,
+		},
+	}
+
+	testSecretData, err := runtimeUnstructured.DefaultUnstructuredConverter.ToUnstructured(testSecret)
+	if err != nil {
+		t.Error(err)
+		t.Errorf("error making map")
+	}
+
+	testSecretBytes, err := json.Marshal(testSecretData)
+	if err != nil {
+		t.Error(err)
+		t.Errorf("error while marshalling")
+	}
+
+	var testSecretUnstructured *unstructured.Unstructured
+	if err := json.Unmarshal(testSecretBytes, &testSecretUnstructured); err != nil {
+		t.Error(err)
+		t.Errorf("error unmarshalling into unstructured")
+	}
+
+	want := testSecretUnstructured
 	fkclient, _ := kclient.FakeNew()
+	scheme := runtime.NewScheme()
+	fkclient.DynamicClient = dynamicfakeclient.NewSimpleDynamicClient(scheme)
 	testAdapter := Adapter{
 		Client: *fkclient,
 	}
 
-	want := testConfigJsonData
-	got, err := testAdapter.createDockerConfigSecretBytesFrom(testSecret)
+	err = testAdapter.createDockerConfigSecretFrom(testSaSecret, testNs)
 	if err != nil {
 		t.Error(err)
 		t.Errorf("failed to retrieve dockerconfig secret bytes")
 	}
 
-	if !reflect.DeepEqual(want, got) {
-		t.Errorf("secret bytes don't match")
+	got, err := testAdapter.Client.DynamicClient.Resource(secretGroupVersionResource).
+		Namespace(testNs).
+		Get(testSecretName, metav1.GetOptions{})
+
+	diff := cmp.Diff(got, want)
+	if diff != "" {
+		t.Errorf("unexpected response: %s", diff)
 	}
 }
 
@@ -191,11 +234,12 @@ func TestCreateKanikoBuilderPod(t *testing.T) {
 	}
 
 	fkclient, _ := kclient.FakeNew()
-
-	testAdapter := Adapter{
-		Client: *fkclient,
+	adapterContext := common.AdapterContext{
+		ComponentName: "test-component-name",
 	}
-	testAdapter.ComponentName = "test-component-name"
+
+	testAdapter := New(adapterContext, *fkclient)
+
 	testAdapter.Client.Namespace = "test-namespace"
 	kanikoBuilderPodPorted := corev1.Pod{}
 
@@ -240,10 +284,15 @@ func TestCreateKanikoBuilderPod(t *testing.T) {
 
 	want := testPod
 
-	got, err := testAdapter.createKanikoBuilderPod(labels, &testInitContainer, &testBuiderContainer, testSecretName)
+	err := testAdapter.createKanikoBuilderPod(labels, &testInitContainer, &testBuiderContainer, testSecretName)
 	if err != nil {
 		t.Errorf("failed to deploy pod using fake client")
 	}
+	got, err := testAdapter.Client.KubeClient.CoreV1().Pods(testAdapter.Client.Namespace).Get("test-component-name-build", metav1.GetOptions{})
+	if err != nil {
+		t.Errorf("failed to deploy pod using fake client")
+	}
+
 	kanikoBuilderPodPorted = *got
 	if !reflect.DeepEqual(kanikoBuilderPodPorted.ObjectMeta, want.ObjectMeta) {
 		t.Errorf("Objectmeta does not match")
@@ -335,8 +384,10 @@ func TestBuilderContainer(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			BuilderContainer := builderContainer(tt.containerName, tt.imageTag, tt.isInternalRegistry)
 			buildContainerPorted = *BuilderContainer
-			if !reflect.DeepEqual(buildContainerPorted, tt.testBuilderContainer) {
-				t.Errorf("containers do not match")
+
+			diff := cmp.Diff(buildContainerPorted, tt.testBuilderContainer)
+			if diff != "" {
+				t.Errorf("unexpected response: %s", diff)
 			}
 		})
 	}
@@ -363,8 +414,9 @@ func TestInitContainer(t *testing.T) {
 	got := initContainer("test-container")
 	initContainerPorted = *got
 
-	if !reflect.DeepEqual(initContainerPorted, *want) {
-		t.Errorf("Container parameters do not match")
+	diff := cmp.Diff(initContainerPorted, *want)
+	if diff != "" {
+		t.Errorf("unexpected response: %s", diff)
 	}
 }
 
@@ -396,7 +448,8 @@ func TestGetAuthTokenFromDockerCfgSecret(t *testing.T) {
 		t.Error(err)
 		t.Errorf("failed to retrieve auth token")
 	}
-	if got != want {
-		t.Errorf("retrieved auth token doesn't match")
+	diff := cmp.Diff(got, want)
+	if diff != "" {
+		t.Errorf("unexpected response: %s", diff)
 	}
 }

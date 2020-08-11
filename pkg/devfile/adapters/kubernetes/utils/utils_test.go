@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/odo/pkg/testingutil"
 	"github.com/pkg/errors"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -653,20 +654,18 @@ func TestUpdateContainersWithSupervisord(t *testing.T) {
 
 func TestCreateDockerConfigDataFromFilepath(t *testing.T) {
 	testConfigJsonString := "{ \"auths\" : { \"https://index.docker.io/v1/\": { \"auth\": \"test-auth-token\", \"email\": \"test-email\"} },\"HttpHeaders\": {	\"User-Agent\": \"Docker-Client/19.03.8 (darwin)\"},\"experimental\": \"disabled\"}"
-	testFs := NewFilesystem()
-	testFilename := "test-config-json"
-	afero.WriteFile(testFs, testFilename, []byte(testConfigJsonString), 0777)
+	testFilename := "test-data/test-config-json"
 
-	defer testFs.Remove(testFilename)
-	got, err := CreateDockerConfigDataFromFilepath(testFilename, testFs)
+	got, err := CreateDockerConfigDataFromFilepath(testFilename)
 	if err != nil {
 		t.Error(err)
 		t.Errorf("unable to get dockeconfigdata from filepath")
 	}
 
 	want := []byte(testConfigJsonString)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("dockerconfigdata does not match")
+	diff := cmp.Diff(got, want)
+	if diff != "" {
+		t.Errorf("unexpected response: %s", diff)
 	}
 
 }
@@ -716,8 +715,9 @@ func TestCreateSecret(t *testing.T) {
 		t.Errorf("failed to get secret")
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("secrets don't match")
+	diff := cmp.Diff(got, want)
+	if diff != "" {
+		t.Errorf("unexpected response: %s", diff)
 	}
 
 }
