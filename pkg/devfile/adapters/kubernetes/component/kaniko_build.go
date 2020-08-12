@@ -72,6 +72,12 @@ func (a Adapter) runKaniko(parameters common.BuildParameters, isImageRegistryInt
 		if err := a.Client.KubeClient.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{}); err != nil {
 			log.Errorf("Failed to delete pod '%s': %v", pod.Name, err)
 		}
+
+		// This will clean up the created secret after build is complete
+		if err := a.Client.KubeClient.CoreV1().Secrets(parameters.EnvSpecificInfo.GetNamespace()).Delete(regcredName, &metav1.DeleteOptions{}); err != nil {
+			log.Errorf("Failed to delete pod '%s': %v", pod.Name, err)
+		}
+
 	}()
 
 	// Sync files to volume
