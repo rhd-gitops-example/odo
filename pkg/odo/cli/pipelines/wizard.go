@@ -87,6 +87,7 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	}
 
 	io.GitOpsRepoURL = ui.EnterGitRepo()
+	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
 	option := ui.SelectOptionImageRepository()
 	if option == "Openshift Internal repository" {
 		io.InternalRegistryHostname = ui.EnterInternalRegistry()
@@ -94,21 +95,30 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 
 	} else {
 		io.DockerConfigJSONFilename = ui.EnterDockercfg()
+		fs := ioutils.NewFilesystem()
+		_, err := pipelines.CheckFileExists(fs, io.DockerConfigJSONFilename)
+		if err != nil {
+			return err
+		}
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
+	if ui.CheckSercretLength(io.GitOpsWebhookSecret) {
+		return fmt.Errorf("The GitOps Webhook Secret length should 16 or more ")
+	}
+	io.SealedSecretsService.Name = ui.EnterSealedSecretService()
+	io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
+	io.Prefix = ui.EnterPrefix()
+	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
+	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
+	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
+	if ui.CheckSercretLength(io.ServiceWebhookSecret) {
+		return fmt.Errorf("The GitOps Webhook Secret length should 16 or more ")
+	}
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
 	if commitStatusTrackerCheck == "yes" {
 		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
 	}
-	io.Prefix = ui.EnterPrefix()
-	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
-	io.ServiceRepoURL = ui.EnterServiceRepoURL()
-	if io.ServiceRepoURL != "" {
-		io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
-		io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
-	}
-
 	io.OutputPath = ui.EnterOutputPath(io.GitOpsRepoURL)
 	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(io.OutputPath, "pipelines.yaml"))
 	if exists {
@@ -119,7 +129,7 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 		}
 	}
 	io.Overwrite = true
-	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+
 	return nil
 }
 

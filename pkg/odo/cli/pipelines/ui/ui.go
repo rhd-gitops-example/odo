@@ -105,7 +105,7 @@ func EnterGitWebhookSecret() string {
 	var gitWebhookSecret string
 	var prompt *survey.Input
 	prompt = &survey.Input{
-		Message: "Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the GitOps repository. (if not provided, it will be auto-generated)",
+		Message: "Provide a secret whose length should be 16 or more characters that we can use to authenticate incoming hooks from your Git hosting service for the GitOps repository. (if not provided, it will be auto-generated)",
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
 
@@ -185,7 +185,7 @@ func EnterServiceRepoURL() string {
 func EnterServiceWebhookSecret() string {
 	var serviceWebhookSecret string
 	prompt := &survey.Input{
-		Message: " Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)",
+		Message: "Provide a secret whose length should be 16 or more characters that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)",
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
 	err := survey.AskOne(prompt, &serviceWebhookSecret, nil)
