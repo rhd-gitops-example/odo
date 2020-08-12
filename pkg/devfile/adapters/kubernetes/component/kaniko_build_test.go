@@ -155,7 +155,13 @@ func TestCreateDockerConfigSecretFrom(t *testing.T) {
 	testSaSecretString := "{ \"image-registry.openshift-image-registry.svc:5000\": { \"auth\": \"test-auth-token\" } }"
 	testSaSecretData := []byte(testSaSecretString)
 	testSecretName := "test-secret"
+	testSaSecretName := "test-sa-secret"
 	testNs := "test-namespace"
+
+	testNamespacedNameSa := types.NamespacedName{
+		Name:      testSaSecretName,
+		Namespace: testNs,
+	}
 
 	testNamespacedName := types.NamespacedName{
 		Name:      testSecretName,
@@ -164,7 +170,7 @@ func TestCreateDockerConfigSecretFrom(t *testing.T) {
 
 	testSaSecret := &corev1.Secret{
 		TypeMeta:   TypeMeta("Secret", "v1"),
-		ObjectMeta: SecretObjectMeta(testNamespacedName),
+		ObjectMeta: SecretObjectMeta(testNamespacedNameSa),
 		Type:       corev1.SecretTypeDockerConfigJson,
 		Data: map[string][]byte{
 			corev1.DockerConfigKey: testSaSecretData,
@@ -183,7 +189,6 @@ func TestCreateDockerConfigSecretFrom(t *testing.T) {
 	testSecretData, err := runtimeUnstructured.DefaultUnstructuredConverter.ToUnstructured(testSecret)
 	if err != nil {
 		t.Error(err)
-		t.Errorf("error making map")
 	}
 
 	testSecretBytes, err := json.Marshal(testSecretData)
@@ -206,7 +211,7 @@ func TestCreateDockerConfigSecretFrom(t *testing.T) {
 		Client: *fkclient,
 	}
 
-	err = testAdapter.createDockerConfigSecretFrom(testSaSecret)
+	err = testAdapter.createDockerConfigSecretFrom(testSaSecret, testSecretName)
 	if err != nil {
 		t.Error(err)
 		t.Errorf("failed to retrieve dockerconfig secret bytes")

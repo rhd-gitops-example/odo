@@ -141,7 +141,7 @@ func (a Adapter) createDockerCfgSecretForInternalRegistry(ns string) error {
 		return errors.Wrap(err, "failed to retrieve service account credentials")
 	}
 
-	if err := a.createDockerConfigSecretFrom(secret); err != nil {
+	if err := a.createDockerConfigSecretFrom(secret, regcredName); err != nil {
 		return errors.Wrap(err, "failed to create docker secret from service account credentials")
 	}
 	return nil
@@ -168,7 +168,7 @@ type dockerCfg struct {
 	Auths map[string]*types.AuthConfig `json:"auths,omitempty"`
 }
 
-func (a Adapter) createDockerConfigSecretFrom(source *corev1.Secret) error {
+func (a Adapter) createDockerConfigSecretFrom(source *corev1.Secret, newSecretName string) error {
 
 	token, err := getAuthTokenFromDockerCfgSecret(source)
 	if err != nil {
@@ -184,7 +184,7 @@ func (a Adapter) createDockerConfigSecretFrom(source *corev1.Secret) error {
 		return errors.Wrap(err, "failed to convert created dockerconfig to byte format")
 	}
 
-	secretUnstructured, err := utils.CreateSecret(regcredName, source.GetNamespace(), dockerConfigSecretBytes)
+	secretUnstructured, err := utils.CreateSecret(newSecretName, source.GetNamespace(), dockerConfigSecretBytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert created secret to unstructured format")
 	}

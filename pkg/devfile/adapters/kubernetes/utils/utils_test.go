@@ -692,7 +692,6 @@ func TestCreateSecret(t *testing.T) {
 	testSecretData, err := runtimeUnstructured.DefaultUnstructuredConverter.ToUnstructured(&testSecret)
 	if err != nil {
 		t.Error(err)
-		t.Errorf("error making map")
 	}
 
 	testSecretBytes, err := json.Marshal(testSecretData)
