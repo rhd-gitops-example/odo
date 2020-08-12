@@ -114,6 +114,7 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	io.SealedSecretsService.Name = ui.EnterSealedSecretService()
 	io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
 	io.Prefix = ui.EnterPrefix()
+	io.ServiceRepoURL = ui.EnterServiceRepoURL()
 	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
 	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
 	_, err = scm.NewRepository(io.ServiceRepoURL)

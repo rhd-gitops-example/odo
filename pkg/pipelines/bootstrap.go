@@ -537,6 +537,8 @@ func getResourceFiles(res res.Resources) []string {
 	}
 	sort.Strings(files)
 	return files
+}
+
 //check if the file exists or not
 func CheckFileExists(fs afero.Fs, dockerConfigJSONFilename string) (string, error) {
 	if dockerConfigJSONFilename == "" {
