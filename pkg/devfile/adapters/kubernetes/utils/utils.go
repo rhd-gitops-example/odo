@@ -362,7 +362,7 @@ func PipeStdOutput(cmdOutput string, reader *io.PipeReader, controlC chan os.Sig
 }
 
 func CreateDockerConfigDataFromFilepath(DockerConfigJSONFilename string) ([]byte, error) {
-	var filePointer io.Reader
+
 	filename, err := homedir.Expand(DockerConfigJSONFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate path to file for %s: %v", DockerConfigJSONFilename, err)
@@ -371,9 +371,9 @@ func CreateDockerConfigDataFromFilepath(DockerConfigJSONFilename string) ([]byte
 	if err != nil {
 		return nil, fmt.Errorf("failed to read Docker config %#v : %s", filename, err)
 	}
-	filePointer = f
+
 	defer f.Close()
-	data, err := ioutil.ReadAll(filePointer)
+	data, err := ioutil.ReadAll(f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read secret data: %v", err)
 	}

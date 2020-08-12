@@ -908,19 +908,19 @@ func (a Adapter) Exec(command []string) error {
 	return a.ExecuteCommand(componentInfo, command, true, nil, nil)
 }
 
-func (a Adapter) createDockerConfigSecret(DockerConfigJSONFilename string, secretName string, nameSpace string) error {
+func (a Adapter) createDockerConfigSecret(dockerConfigJSONFilename, secretName, namespace string) error {
 
-	dockerConfigSecretBytes, err := utils.CreateDockerConfigDataFromFilepath(DockerConfigJSONFilename)
+	dockerConfigSecretBytes, err := utils.CreateDockerConfigDataFromFilepath(dockerConfigJSONFilename)
 	if err != nil {
 		return errors.Wrap(err, "Error retriving docker config secret bytes")
 	}
 
-	secretUnstructured, err := utils.CreateSecret(secretName, nameSpace, dockerConfigSecretBytes)
+	secretUnstructured, err := utils.CreateSecret(secretName, namespace, dockerConfigSecretBytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert created secret to unstructured format")
 	}
 	_, err = a.Client.DynamicClient.Resource(secretGroupVersionResource).
-		Namespace(nameSpace).
+		Namespace(namespace).
 		Create(secretUnstructured, metav1.CreateOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to create secret on cluster")

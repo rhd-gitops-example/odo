@@ -658,7 +658,6 @@ func TestCreateDockerConfigDataFromFilepath(t *testing.T) {
 
 	got, err := CreateDockerConfigDataFromFilepath(testFilename)
 	if err != nil {
-		t.Error(err)
 		t.Errorf("unable to get dockeconfigdata from filepath")
 	}
 

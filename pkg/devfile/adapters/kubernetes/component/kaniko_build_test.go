@@ -1,7 +1,6 @@
 package component
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/openshift/odo/pkg/devfile/adapters/common"
@@ -207,7 +206,7 @@ func TestCreateDockerConfigSecretFrom(t *testing.T) {
 		Client: *fkclient,
 	}
 
-	err = testAdapter.createDockerConfigSecretFrom(testSaSecret, testNs)
+	err = testAdapter.createDockerConfigSecretFrom(testSaSecret)
 	if err != nil {
 		t.Error(err)
 		t.Errorf("failed to retrieve dockerconfig secret bytes")
@@ -294,18 +293,18 @@ func TestCreateKanikoBuilderPod(t *testing.T) {
 	}
 
 	kanikoBuilderPodPorted = *got
-	if !reflect.DeepEqual(kanikoBuilderPodPorted.ObjectMeta, want.ObjectMeta) {
-		t.Errorf("Objectmeta does not match")
-	} else if kanikoBuilderPodPorted.Spec.RestartPolicy != want.Spec.RestartPolicy {
-		t.Errorf("restart policies don't match")
-	} else if !reflect.DeepEqual(kanikoBuilderPodPorted.Spec.SecurityContext, want.Spec.SecurityContext) {
-		t.Errorf("Security contexts don't match")
-	} else if !reflect.DeepEqual(kanikoBuilderPodPorted.Spec.InitContainers, want.Spec.InitContainers) {
-		t.Errorf("Init containers don't match")
-	} else if !reflect.DeepEqual(kanikoBuilderPodPorted.Spec.Containers, want.Spec.Containers) {
-		t.Errorf("Containers don't match")
-	} else if !reflect.DeepEqual(kanikoBuilderPodPorted.Spec.Volumes, want.Spec.Volumes) {
-		t.Errorf("Volumes don't match")
+	if diff := cmp.Diff(kanikoBuilderPodPorted.ObjectMeta, want.ObjectMeta); diff != "" {
+		t.Errorf("unexpected response: %s", diff)
+	} else if diff := cmp.Diff(kanikoBuilderPodPorted.Spec.RestartPolicy, want.Spec.RestartPolicy); diff != "" {
+		t.Errorf("unexpected response: %s", diff)
+	} else if diff := cmp.Diff(kanikoBuilderPodPorted.Spec.SecurityContext, want.Spec.SecurityContext); diff != "" {
+		t.Errorf("unexpected response: %s", diff)
+	} else if diff := cmp.Diff(kanikoBuilderPodPorted.Spec.InitContainers, want.Spec.InitContainers); diff != "" {
+		t.Errorf("unexpected response: %s", diff)
+	} else if diff := cmp.Diff(kanikoBuilderPodPorted.Spec.Containers, want.Spec.Containers); diff != "" {
+		t.Errorf("unexpected response: %s", diff)
+	} else if diff := cmp.Diff(kanikoBuilderPodPorted.Spec.Volumes, want.Spec.Volumes); diff != "" {
+		t.Errorf("unexpected response: %s", diff)
 	}
 
 }

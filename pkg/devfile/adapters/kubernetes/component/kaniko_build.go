@@ -141,7 +141,7 @@ func (a Adapter) createDockerCfgSecretForInternalRegistry(ns string) error {
 		return errors.Wrap(err, "failed to retrieve service account credentials")
 	}
 
-	if err := a.createDockerConfigSecretFrom(secret, secret.GetNamespace()); err != nil {
+	if err := a.createDockerConfigSecretFrom(secret); err != nil {
 		return errors.Wrap(err, "failed to create docker secret from service account credentials")
 	}
 	return nil
@@ -168,7 +168,7 @@ type dockerCfg struct {
 	Auths map[string]*types.AuthConfig `json:"auths,omitempty"`
 }
 
-func (a Adapter) createDockerConfigSecretFrom(source *corev1.Secret, namespace string) error {
+func (a Adapter) createDockerConfigSecretFrom(source *corev1.Secret) error {
 
 	token, err := getAuthTokenFromDockerCfgSecret(source)
 	if err != nil {
@@ -184,12 +184,12 @@ func (a Adapter) createDockerConfigSecretFrom(source *corev1.Secret, namespace s
 		return errors.Wrap(err, "failed to convert created dockerconfig to byte format")
 	}
 
-	secretUnstructured, err := utils.CreateSecret(regcredName, namespace, dockerConfigSecretBytes)
+	secretUnstructured, err := utils.CreateSecret(regcredName, source.GetNamespace(), dockerConfigSecretBytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert created secret to unstructured format")
 	}
 	_, err = a.Client.DynamicClient.Resource(secretGroupVersionResource).
-		Namespace(namespace).
+		Namespace(source.GetNamespace()).
 		Create(secretUnstructured, metav1.CreateOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to create secret on cluster")
