@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -88,6 +89,10 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 
 	io.GitOpsRepoURL = ui.EnterGitRepo()
 	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+	_, err := scm.NewRepository(io.GitOpsRepoURL)
+	if err != nil {
+		return err
+	}
 	option := ui.SelectOptionImageRepository()
 	if option == "Openshift Internal repository" {
 		io.InternalRegistryHostname = ui.EnterInternalRegistry()
@@ -96,14 +101,14 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	} else {
 		io.DockerConfigJSONFilename = ui.EnterDockercfg()
 		fs := ioutils.NewFilesystem()
-		_, err := pipelines.CheckFileExists(fs, io.DockerConfigJSONFilename)
+		_, err = pipelines.CheckFileExists(fs, io.DockerConfigJSONFilename)
 		if err != nil {
 			return err
 		}
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-	if ui.CheckSercretLength(io.GitOpsWebhookSecret) {
+	if ui.CheckSecretLength(io.GitOpsWebhookSecret) {
 		return fmt.Errorf("The GitOps Webhook Secret length should 16 or more ")
 	}
 	io.SealedSecretsService.Name = ui.EnterSealedSecretService()
@@ -111,8 +116,12 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	io.Prefix = ui.EnterPrefix()
 	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
 	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
+	_, err = scm.NewRepository(io.ServiceRepoURL)
+	if err != nil {
+		return err
+	}
 	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
-	if ui.CheckSercretLength(io.ServiceWebhookSecret) {
+	if ui.CheckSecretLength(io.ServiceWebhookSecret) {
 		return fmt.Errorf("The GitOps Webhook Secret length should 16 or more ")
 	}
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
