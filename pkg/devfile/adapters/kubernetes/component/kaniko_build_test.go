@@ -193,14 +193,12 @@ func TestCreateDockerConfigSecretFrom(t *testing.T) {
 
 	testSecretBytes, err := json.Marshal(testSecretData)
 	if err != nil {
-		t.Error(err)
-		t.Errorf("error while marshalling")
+		t.Errorf("error while marshalling: %v", err)
 	}
 
 	var testSecretUnstructured *unstructured.Unstructured
 	if err := json.Unmarshal(testSecretBytes, &testSecretUnstructured); err != nil {
-		t.Error(err)
-		t.Errorf("error unmarshalling into unstructured")
+		t.Errorf("error unmarshalling into unstructured: %v", err)
 	}
 
 	want := testSecretUnstructured
@@ -449,8 +447,7 @@ func TestGetAuthTokenFromDockerCfgSecret(t *testing.T) {
 
 	got, err := getAuthTokenFromDockerCfgSecret(testSecret)
 	if err != nil {
-		t.Error(err)
-		t.Errorf("failed to retrieve auth token")
+		t.Errorf("failed to retrieve auth token: %v", err)
 	}
 	diff := cmp.Diff(got, want)
 	if diff != "" {

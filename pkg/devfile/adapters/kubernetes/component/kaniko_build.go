@@ -194,10 +194,9 @@ func (a Adapter) createDockerConfigSecretFrom(source *corev1.Secret, newSecretNa
 	if err != nil {
 		return errors.Wrap(err, "failed to convert created secret to unstructured format")
 	}
-	_, err = a.Client.DynamicClient.Resource(secretGroupVersionResource).
+	if _, err := a.Client.DynamicClient.Resource(secretGroupVersionResource).
 		Namespace(source.GetNamespace()).
-		Create(secretUnstructured, metav1.CreateOptions{})
-	if err != nil {
+		Create(secretUnstructured, metav1.CreateOptions{}); err != nil {
 		return errors.Wrap(err, "failed to create secret on cluster")
 	}
 	return nil
