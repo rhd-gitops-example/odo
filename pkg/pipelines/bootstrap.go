@@ -80,9 +80,10 @@ type BootstrapOptions struct {
 	OutputPath               string               // Where to write the bootstrapped files to?
 	SealedSecretsService     types.NamespacedName // SealedSecrets Services name
 	StatusTrackerAccessToken string               // The auth token to use to send commit-status notifications.
-	Overwrite                bool                 //This allows to overwrite if there is an exixting gitops repository
+	Overwrite                bool                 // This allows to overwrite if there is an exixting gitops repository
 	ServiceRepoURL           string               // This is the full URL to your GitHub repository for your app source.
 	ServiceWebhookSecret     string               // This is the secret for authenticating hooks from your app source.
+	PrivateRepoDriver        string               // Records the type of the GitOpsRepoURL driver if not a well-known host.
 }
 
 // PolicyRules to be bound to service account
@@ -192,6 +193,13 @@ func bootstrapResources(o *BootstrapOptions, appFs afero.Fs) (res.Resources, err
 	envs, configEnv, err := bootstrapEnvironments(appRepo, o.Prefix, secretName, ns)
 	if err != nil {
 		return nil, err
+	}
+	if o.PrivateRepoDriver != "" {
+		host, err := scm.HostnameFromURL(o.GitOpsRepoURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get hostname from URL %q: %w", o.GitOpsRepoURL, err)
+		}
+		configEnv.Git = &config.GitConfig{Drivers: map[string]string{host: o.PrivateRepoDriver}}
 	}
 	m := createManifest(gitOpsRepo.URL(), configEnv, envs...)
 
@@ -388,7 +396,7 @@ func defaultPipelines(r scm.Repository) *config.Pipelines {
 func checkPipelinesFileExists(appFs afero.Fs, outputPath string, overWrite bool) error {
 	exists, _ := ioutils.IsExisting(appFs, filepath.Join(outputPath, pipelinesFile))
 	if exists && !overWrite {
-		return fmt.Errorf("pipelines.yaml in output path already exists. If you want replace your existing files, please rerun with --overwrite")
+		return fmt.Errorf("pipelines.yaml in output path already exists. If you want to replace your existing files, please rerun with --overwrite.")
 	}
 	return nil
 }
@@ -464,13 +472,13 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *confi
 			return nil, err
 		}
 		outputs[dockerConfigPath] = dockerSecret
-
-		// add secret and sa to outputs
 		outputs[serviceAccountPath] = roles.AddSecretToSA(sa, dockerSecretName)
 	}
 
 	if o.StatusTrackerAccessToken != "" {
-		trackerResources, err := statustracker.Resources(cicdNamespace, o.StatusTrackerAccessToken, o.SealedSecretsService)
+		trackerResources, err := statustracker.Resources(cicdNamespace, o.StatusTrackerAccessToken, o.SealedSecretsService,
+			o.GitOpsRepoURL, o.PrivateRepoDriver)
+
 		if err != nil {
 			return nil, err
 		}

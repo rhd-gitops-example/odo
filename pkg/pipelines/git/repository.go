@@ -19,37 +19,28 @@ type Repository struct {
 	name string
 }
 
-// NewRepository creates a new Git reposiory object
+// NewRepository creates a new Git repository object
 func NewRepository(rawURL, token string) (*Repository, error) {
-
-	parsedURL, err := url.Parse(rawURL)
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse repository URL %q: %w", rawURL, err)
+	}
+	parsed.User = url.UserPassword("", token)
+	client, err := factory.FromRepoURL(parsed.String())
 	if err != nil {
 		return nil, err
 	}
 
-	driverName, err := getDriverName(parsedURL)
+	repoName, err := GetRepoName(parsed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get the repo name from %q: %w", rawURL, err)
 	}
-
-	client, err := factory.NewClient(driverName, "", token)
-	if err != nil {
-		return nil, err
-	}
-
-	repoName, err := GetRepoName(parsedURL)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Repository{name: repoName, Client: client}, nil
 }
 
 // ListWebhooks returns a list of webhook IDs of the given listener in this repository
 func (r *Repository) ListWebhooks(listenerURL string) ([]string, error) {
-
 	hooks, _, err := r.Client.Repositories.ListHooks(context.Background(), r.name, scm.ListOptions{})
-	fmt.Printf("The value if the r.name is", r.name)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +57,6 @@ func (r *Repository) ListWebhooks(listenerURL string) ([]string, error) {
 
 // DeleteWebhooks deletes all webhooks that associate with the given listener in this repository
 func (r *Repository) DeleteWebhooks(ids []string) ([]string, error) {
-
 	deleted := []string{}
 	for _, id := range ids {
 		_, err := r.Client.Repositories.DeleteHook(context.Background(), r.name, id)
@@ -82,7 +72,6 @@ func (r *Repository) DeleteWebhooks(ids []string) ([]string, error) {
 // CreateWebhook creates a new webhook in the repository
 // It returns ID of the created webhook
 func (r *Repository) CreateWebhook(listenerURL, secret string) (string, error) {
-
 	in := &scm.HookInput{
 		Target: listenerURL,
 		Secret: secret,
@@ -109,27 +98,23 @@ func getDriverName(u *url.URL) (string, error) {
 	return "", errors.New("unknown Git server: " + u.Host)
 }
 
+// TODO: this likely won't work for GitLab projects because it assumes that the
+// path is always composed of two elements.
 func GetRepoName(u *url.URL) (string, error) {
-
 	var components []string
-
 	for _, s := range strings.Split(u.Path, "/") {
 		if s != "" {
 			components = append(components, s)
 		}
 	}
-
 	if len(components) != 2 {
 		return "", errors.New("failed to get Git repo: " + u.Path)
 	}
-
 	components[1] = strings.TrimSuffix(components[1], ".git")
-
 	for _, s := range components {
 		if strings.Contains(s, ".") {
 			return "", errors.New("failed to get Git repo: " + u.Path)
 		}
 	}
-
 	return components[0] + "/" + components[1], nil
 }

@@ -1,7 +1,12 @@
 aliases:
   pkg-approvers:
+  - dprotaso
   - evankanderson
+  - grantr
+  - markusthoemmes
   - mattmoor
+  - tcnghia
+  - vagababov
   - vaikas
 
   apis-approvers:
@@ -37,6 +42,10 @@ aliases:
   controller-reviewers:
   - whaught
 
+  kflag-approvers:
+  - mattmoor
+  - vagababov
+
   kmeta-approvers:
   - mattmoor
   - vagababov
@@ -63,7 +72,6 @@ aliases:
   - coryrc
   - chizhg
   - steuhs
-  - yt3liu
 
   source-approvers:
   - n3wscott

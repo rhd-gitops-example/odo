@@ -16,7 +16,7 @@ import (
 const testGitOpsRepoURL = "https://github.com/example/example.git"
 
 func TestBuildEnvironmentFilesWithAppsToEnvironment(t *testing.T) {
-	var appFs = ioutils.NewMapFilesystem()
+	var appFs = ioutils.NewMemoryFilesystem()
 	m := buildManifestWithCICD()
 
 	files, err := Build(appFs, m, "pipelines", AppsToEnvironments)
@@ -49,7 +49,7 @@ func TestBuildEnvironmentFilesWithAppsToEnvironment(t *testing.T) {
 }
 
 func TestBuildEnvironmentFilesWithEnvironmentsToApps(t *testing.T) {
-	var appFs = ioutils.NewMapFilesystem()
+	var appFs = ioutils.NewMemoryFilesystem()
 	m := buildManifestWithCICD()
 
 	files, err := Build(appFs, m, "pipelines", EnvironmentsToApps)
@@ -86,7 +86,7 @@ func TestBuildEnvironmentFilesWithEnvironmentsToApps(t *testing.T) {
 }
 
 func TestBuildEnvironmentsDoesNotOutputCIorArgo(t *testing.T) {
-	var appFs = ioutils.NewMapFilesystem()
+	var appFs = ioutils.NewMemoryFilesystem()
 	m := &config.Manifest{
 		Config: &config.Config{
 			Pipelines: &config.PipelinesConfig{
@@ -118,7 +118,7 @@ func mustWriteFile(t *testing.T, fs afero.Fs, path string, data []byte, perm os.
 }
 
 func TestBuildEnvironmentsAddsKustomizedFiles(t *testing.T) {
-	var appFs = ioutils.NewMapFilesystem()
+	var appFs = ioutils.NewMemoryFilesystem()
 	err := appFs.MkdirAll("environments/test-dev/base", 0755)
 	if err != nil {
 		t.Fatal(err)
@@ -156,7 +156,7 @@ func TestBuildEnvironmentsAddsKustomizedFiles(t *testing.T) {
 }
 
 func TestBuildEnvironmentFilesWithNoCICDEnv(t *testing.T) {
-	var appFs = ioutils.NewMapFilesystem()
+	var appFs = ioutils.NewMemoryFilesystem()
 	m := buildManifest()
 
 	files, err := Build(appFs, m, "pipelines", AppsToEnvironments)

@@ -35,8 +35,7 @@ import (
 var (
 	images = pipeline.Images{
 		EntrypointImage:          "override-with-entrypoint:latest",
-		NopImage:                 "tianon/true",
-		AffinityAssistantImage:   "nginx",
+		NopImage:                 "override-with-nop:latest",
 		GitImage:                 "override-with-git:latest",
 		CredsImage:               "override-with-creds:latest",
 		KubeconfigWriterImage:    "override-with-kubeconfig-writer-image:latest",
@@ -144,6 +143,10 @@ var (
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: "$(inputs.params.FOO)",
 					},
+					Items: []corev1.KeyToPath{{
+						Key:  "$(inputs.params.FOO)",
+						Path: "$(inputs.params.FOO)",
+					}},
 				},
 			},
 		}, {
@@ -151,6 +154,10 @@ var (
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: "$(inputs.params.FOO)",
+					Items: []corev1.KeyToPath{{
+						Key:  "$(inputs.params.FOO)",
+						Path: "$(inputs.params.FOO)",
+					}},
 				},
 			},
 		}, {
@@ -179,6 +186,18 @@ var (
 							Audience: "$(inputs.params.FOO)",
 						},
 					}},
+				},
+			},
+		}, {
+			Name: "some-csi",
+			VolumeSource: corev1.VolumeSource{
+				CSI: &corev1.CSIVolumeSource{
+					VolumeAttributes: map[string]string{
+						"secretProviderClass": "$(inputs.params.FOO)",
+					},
+					NodePublishSecretRef: &corev1.LocalObjectReference{
+						Name: "$(inputs.params.FOO)",
+					},
 				},
 			},
 		}},
@@ -535,11 +554,17 @@ func TestApplyParameters(t *testing.T) {
 
 		spec.Volumes[0].Name = "world"
 		spec.Volumes[0].VolumeSource.ConfigMap.LocalObjectReference.Name = "world"
+		spec.Volumes[0].VolumeSource.ConfigMap.Items[0].Key = "world"
+		spec.Volumes[0].VolumeSource.ConfigMap.Items[0].Path = "world"
 		spec.Volumes[1].VolumeSource.Secret.SecretName = "world"
+		spec.Volumes[1].VolumeSource.Secret.Items[0].Key = "world"
+		spec.Volumes[1].VolumeSource.Secret.Items[0].Path = "world"
 		spec.Volumes[2].VolumeSource.PersistentVolumeClaim.ClaimName = "world"
 		spec.Volumes[3].VolumeSource.Projected.Sources[0].ConfigMap.Name = "world"
 		spec.Volumes[3].VolumeSource.Projected.Sources[0].Secret.Name = "world"
 		spec.Volumes[3].VolumeSource.Projected.Sources[0].ServiceAccountToken.Audience = "world"
+		spec.Volumes[4].VolumeSource.CSI.VolumeAttributes["secretProviderClass"] = "world"
+		spec.Volumes[4].VolumeSource.CSI.NodePublishSecretRef.Name = "world"
 
 		spec.Sidecars[0].Container.Image = "bar"
 		spec.Sidecars[0].Container.Env[0].Value = "world"
@@ -740,6 +765,214 @@ func TestApplyWorkspaces(t *testing.T) {
 	got := resources.ApplyWorkspaces(ts, w, wb)
 	if d := cmp.Diff(want, got); d != "" {
 		t.Errorf("TestApplyWorkspaces() got diff %s", diff.PrintWantGot(d))
+	}
+}
+
+func TestContext(t *testing.T) {
+	for _, tc := range []struct {
+		description string
+		rtr         resources.ResolvedTaskResources
+		tr          v1beta1.TaskRun
+		spec        v1beta1.TaskSpec
+		want        v1beta1.TaskSpec
+	}{{
+		description: "context taskName replacement without taskRun in spec container",
+		rtr: resources.ResolvedTaskResources{
+			TaskName: "Task1",
+		},
+		tr: v1beta1.TaskRun{},
+		spec: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "$(context.task.name)-1",
+				},
+			}},
+		},
+		want: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "Task1-1",
+				},
+			}},
+		},
+	}, {
+		description: "context taskName replacement with taskRun in spec container",
+		rtr: resources.ResolvedTaskResources{
+			TaskName: "Task1",
+		},
+		tr: v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "taskrunName",
+			},
+		},
+		spec: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "$(context.task.name)-1",
+				},
+			}},
+		},
+		want: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "Task1-1",
+				},
+			}},
+		},
+	}, {
+		description: "context taskRunName replacement with defined taskRun in spec container",
+		rtr: resources.ResolvedTaskResources{
+			TaskName: "Task1",
+		},
+		tr: v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "taskrunName",
+			},
+		},
+		spec: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "$(context.taskRun.name)-1",
+				},
+			}},
+		},
+		want: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "taskrunName-1",
+				},
+			}},
+		},
+	}, {
+		description: "context taskRunName replacement with no defined taskRun name in spec container",
+		rtr: resources.ResolvedTaskResources{
+			TaskName: "Task1",
+		},
+		tr: v1beta1.TaskRun{},
+		spec: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "$(context.taskRun.name)-1",
+				},
+			}},
+		},
+		want: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "-1",
+				},
+			}},
+		},
+	}, {
+		description: "context taskRun namespace replacement with no defined namepsace in spec container",
+		rtr: resources.ResolvedTaskResources{
+			TaskName: "Task1",
+		},
+		tr: v1beta1.TaskRun{},
+		spec: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "$(context.taskRun.namespace)-1",
+				},
+			}},
+		},
+		want: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "-1",
+				},
+			}},
+		},
+	}, {
+		description: "context taskRun namespace replacement with defined namepsace in spec container",
+		rtr: resources.ResolvedTaskResources{
+			TaskName: "Task1",
+		},
+		tr: v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "taskrunName",
+				Namespace: "trNamespace",
+			},
+		},
+		spec: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "$(context.taskRun.namespace)-1",
+				},
+			}},
+		},
+		want: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "trNamespace-1",
+				},
+			}},
+		},
+	}, {
+		description: "context taskRunName replacement with no defined taskName in spec container",
+		rtr:         resources.ResolvedTaskResources{},
+		tr:          v1beta1.TaskRun{},
+		spec: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "$(context.task.name)-1",
+				},
+			}},
+		},
+		want: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "-1",
+				},
+			}},
+		},
+	}, {
+		description: "context UID replacement",
+		rtr: resources.ResolvedTaskResources{
+			TaskName: "Task1",
+		},
+		tr: v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				UID: "UID-1",
+			},
+		},
+		spec: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "$(context.taskRun.uid)",
+				},
+			}},
+		},
+		want: v1beta1.TaskSpec{
+			Steps: []v1beta1.Step{{
+				Container: corev1.Container{
+					Name:  "ImageName",
+					Image: "UID-1",
+				},
+			}},
+		},
+	}} {
+		t.Run(tc.description, func(t *testing.T) {
+			got := resources.ApplyContexts(&tc.spec, &tc.rtr, &tc.tr)
+			if d := cmp.Diff(&tc.want, got); d != "" {
+				t.Errorf(diff.PrintWantGot(d))
+			}
+		})
 	}
 }
 

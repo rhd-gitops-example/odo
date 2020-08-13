@@ -43,6 +43,7 @@ func NewRepository(url string) (Repository, error) {
 	return git(url)
 }
 
+// CreatePushBinding implements the Repository interface.
 func (r *repository) CreatePushBinding(ns string) (triggersv1.TriggerBinding, string) {
 	return triggersv1.TriggerBinding{
 		TypeMeta:   triggers.TriggerBindingTypeMeta,
@@ -53,6 +54,7 @@ func (r *repository) CreatePushBinding(ns string) (triggersv1.TriggerBinding, st
 	}, r.spec.pushBindingName()
 }
 
+// CreatePushTrigger implements the Repository interface.
 func (r *repository) CreatePushTrigger(name, secretName, secretNS, template string, bindings []string) triggersv1.EventListenerTrigger {
 	return r.createTrigger(name, r.spec.pushEventFilters(),
 		template, bindings,
@@ -75,7 +77,7 @@ func (r *repository) PushBindingName() string {
 	return r.spec.pushBindingName()
 }
 
-// URL returns the URL of the GitHub repository
+// URL implements the Repository interface.
 func (r *repository) URL() string {
 	return r.url
 }

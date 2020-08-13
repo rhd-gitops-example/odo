@@ -431,6 +431,45 @@ func TestRepositoryCreate(t *testing.T) {
 	t.Run("Rate", testRate(res))
 }
 
+func TestRepositoryFork(t *testing.T) {
+	defer gock.Off()
+
+	gock.New("https://api.github.com").
+		Post("/repos/something/Hello-World/forks").
+		File("testdata/repo_fork_input.json").
+		Reply(202).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/repo_create.json")
+
+	in := &scm.RepositoryInput{
+		Namespace: "octocat",
+	}
+
+	client := NewDefault()
+	got, res, err := client.Repositories.Fork(context.Background(), in, "something/Hello-World")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	want := new(scm.Repository)
+	raw, _ := ioutil.ReadFile("testdata/repo_create.json.golden")
+	json.Unmarshal(raw, want)
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("Unexpected Results")
+		t.Log(diff)
+
+		data, _ := json.Marshal(got)
+		t.Log("got JSON:")
+		t.Log(string(data))
+	}
+
+	t.Run("Request", testRequest(res))
+	t.Run("Rate", testRate(res))
+}
+
 func TestConvertState(t *testing.T) {
 	tests := []struct {
 		src string
@@ -555,6 +594,60 @@ func TestHookEvents(t *testing.T) {
 			t.Log(diff)
 		}
 	}
+}
+func TestAddCollaborator(t *testing.T) {
+	defer gock.Off()
+
+	gock.New("https://api.github.com").
+		Put("/repos/octocat/hello-world/collaborators/someuser").
+		Reply(201).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/add_collaborator.json")
+
+	client := NewDefault()
+	got, alreadyCollaborator, res, err := client.Repositories.AddCollaborator(context.Background(), "octocat/hello-world", "someuser", "admin")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if !got {
+		t.Errorf("Expected collaborator to be added")
+	}
+	if alreadyCollaborator {
+		t.Errorf("Expected collaborator to not already exist")
+	}
+
+	t.Run("Request", testRequest(res))
+	t.Run("Rate", testRate(res))
+}
+
+func TestAddCollaboratorAlreadyExists(t *testing.T) {
+	defer gock.Off()
+
+	gock.New("https://api.github.com").
+		Put("/repos/octocat/hello-world/collaborators/someuser").
+		Reply(204).
+		Type("application/json").
+		SetHeaders(mockHeaders)
+
+	client := NewDefault()
+	got, alreadyCollaborator, res, err := client.Repositories.AddCollaborator(context.Background(), "octocat/hello-world", "someuser", "admin")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if got {
+		t.Errorf("Expected collaborator to not be added")
+	}
+	if !alreadyCollaborator {
+		t.Errorf("Expected collaborator already exist")
+	}
+
+	t.Run("Request", testRequest(res))
+	t.Run("Rate", testRate(res))
 }
 
 func TestRepositoryService_IsCollaborator_False(t *testing.T) {

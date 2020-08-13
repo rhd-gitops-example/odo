@@ -94,8 +94,14 @@ func (s *pullService) ListComments(ctx context.Context, repo string, number int,
 
 func (s *pullService) Merge(ctx context.Context, repo string, number int, options *scm.PullRequestMergeOptions) (*scm.Response, error) {
 	namespace, name := scm.Split(repo)
-	path := fmt.Sprintf("rest/api/1.0/projects/%s/repos/%s/pull-requests/%d/merge", namespace, name, number)
-	res, err := s.client.do(ctx, "POST", path, nil, nil)
+	getPath := fmt.Sprintf("rest/api/1.0/projects/%s/repos/%s/pull-requests/%d", namespace, name, number)
+	getOut := new(pullRequest)
+	res, err := s.client.do(ctx, "GET", getPath, nil, getOut)
+	if err != nil {
+		return res, err
+	}
+	path := fmt.Sprintf("rest/api/1.0/projects/%s/repos/%s/pull-requests/%d/merge?version=%d", namespace, name, number, getOut.Version)
+	res, err = s.client.do(ctx, "POST", path, nil, nil)
 	return res, err
 }
 
@@ -303,6 +309,8 @@ func convertPullRequest(from *pullRequest) *scm.PullRequest {
 		from.FromRef.Repository.Project.Key,
 		from.FromRef.Repository.Slug,
 	)
+	toRepo := convertRepository(&from.ToRef.Repository)
+	fromRepo := convertRepository(&from.FromRef.Repository)
 	return &scm.PullRequest{
 		Number: from.ID,
 		Title:  from.Title,
@@ -313,10 +321,14 @@ func convertPullRequest(from *pullRequest) *scm.PullRequest {
 		Target: from.ToRef.DisplayID,
 		Fork:   fork,
 		Base: scm.PullRequestBranch{
-			Sha: from.FromRef.LatestCommit,
+			Ref:  from.ToRef.DisplayID,
+			Sha:  from.ToRef.LatestCommit,
+			Repo: *toRepo,
 		},
 		Head: scm.PullRequestBranch{
-			Sha: from.FromRef.LatestCommit,
+			Ref:  from.FromRef.DisplayID,
+			Sha:  from.FromRef.LatestCommit,
+			Repo: *fromRepo,
 		},
 		Link:      extractSelfLink(from.Links.Self),
 		State:     strings.ToLower(from.State),

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -32,11 +33,12 @@ import (
 	resourcev1alpha1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	podconvert "github.com/tektoncd/pipeline/pkg/pod"
-	"github.com/tektoncd/pipeline/pkg/reconciler"
 	"github.com/tektoncd/pipeline/pkg/reconciler/events/cloudevent"
 	ttesting "github.com/tektoncd/pipeline/pkg/reconciler/testing"
 	"github.com/tektoncd/pipeline/pkg/reconciler/volumeclaim"
 	"github.com/tektoncd/pipeline/pkg/system"
+	"github.com/tektoncd/pipeline/pkg/timeout"
+	"github.com/tektoncd/pipeline/pkg/workspace"
 	test "github.com/tektoncd/pipeline/test"
 	"github.com/tektoncd/pipeline/test/diff"
 	"github.com/tektoncd/pipeline/test/names"
@@ -46,6 +48,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sruntimeschema "k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	fakekubeclientset "k8s.io/client-go/kubernetes/fake"
 	ktesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
@@ -54,6 +57,7 @@ import (
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+	pkgreconciler "knative.dev/pkg/reconciler"
 )
 
 const (
@@ -69,8 +73,7 @@ var (
 	namespace = "" // all namespaces
 	images    = pipeline.Images{
 		EntrypointImage:          "override-with-entrypoint:latest",
-		NopImage:                 "tianon/true",
-		AffinityAssistantImage:   "nginx",
+		NopImage:                 "override-with-nop:latest",
 		GitImage:                 "override-with-git:latest",
 		CredsImage:               "override-with-creds:latest",
 		KubeconfigWriterImage:    "override-with-kubeconfig-writer:latest",
@@ -140,6 +143,8 @@ var (
 			"--my-arg-with-default=$(inputs.params.myarghasdefault)",
 			"--my-arg-with-default2=$(inputs.params.myarghasdefault2)",
 			"--my-additional-arg=$(outputs.resources.myimage.url)",
+			"--my-taskname-arg=$(context.task.name)",
+			"--my-taskrun-arg=$(context.taskRun.name)",
 		)),
 		tb.Step("myotherimage", tb.StepName("myothercontainer"), tb.StepCommand("/mycmd"), tb.StepArgs(
 			"--my-other-arg=$(inputs.resources.workspace.url)",
@@ -213,42 +218,6 @@ var (
 			},
 		},
 	}
-	credsVolume = corev1.Volume{
-		Name: "tekton-creds-init-home",
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory},
-		},
-	}
-
-	getMkdirResourceContainer = func(name, dir, suffix string, ops ...tb.ContainerOp) tb.PodSpecOp {
-		actualOps := []tb.ContainerOp{
-			tb.Command("/tekton/tools/entrypoint"),
-			tb.Args("-wait_file",
-				"/tekton/downward/ready",
-				"-wait_file_content",
-				"-post_file",
-				"/tekton/tools/0",
-				"-termination_path",
-				"/tekton/termination",
-				"-entrypoint",
-				"mkdir",
-				"--",
-				"-p",
-				dir),
-			tb.WorkingDir(workspaceDir),
-			tb.EnvVar("HOME", "/tekton/home"),
-			tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
-			tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
-			tb.VolumeMount("tekton-internal-workspace", workspaceDir),
-			tb.VolumeMount("tekton-internal-home", "/tekton/home"),
-			tb.VolumeMount("tekton-internal-results", "/tekton/results"),
-			tb.TerminationMessagePath("/tekton/termination"),
-		}
-
-		actualOps = append(actualOps, ops...)
-
-		return tb.PodContainer(fmt.Sprintf("step-create-dir-%s-%s", name, suffix), "busybox", actualOps...)
-	}
 
 	getPlaceToolsInitContainer = func(ops ...tb.ContainerOp) tb.PodSpecOp {
 		actualOps := []tb.ContainerOp{
@@ -266,13 +235,19 @@ func getRunName(tr *v1beta1.TaskRun) string {
 }
 
 func ensureConfigurationConfigMapsExist(d *test.Data) {
-	var defaultsExists, featureFlagsExists bool
+	var defaultsExists, featureFlagsExists, artifactBucketExists, artifactPVCExists bool
 	for _, cm := range d.ConfigMaps {
 		if cm.Name == config.GetDefaultsConfigName() {
 			defaultsExists = true
 		}
 		if cm.Name == config.GetFeatureFlagsConfigName() {
 			featureFlagsExists = true
+		}
+		if cm.Name == config.GetArtifactBucketConfigName() {
+			artifactBucketExists = true
+		}
+		if cm.Name == config.GetArtifactPVCConfigName() {
+			artifactPVCExists = true
 		}
 	}
 	if !defaultsExists {
@@ -284,6 +259,18 @@ func ensureConfigurationConfigMapsExist(d *test.Data) {
 	if !featureFlagsExists {
 		d.ConfigMaps = append(d.ConfigMaps, &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: config.GetFeatureFlagsConfigName(), Namespace: system.GetNamespace()},
+			Data:       map[string]string{},
+		})
+	}
+	if !artifactBucketExists {
+		d.ConfigMaps = append(d.ConfigMaps, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: config.GetArtifactBucketConfigName(), Namespace: system.GetNamespace()},
+			Data:       map[string]string{},
+		})
+	}
+	if !artifactPVCExists {
+		d.ConfigMaps = append(d.ConfigMaps, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: config.GetArtifactPVCConfigName(), Namespace: system.GetNamespace()},
 			Data:       map[string]string{},
 		})
 	}
@@ -304,6 +291,10 @@ func getTaskRunController(t *testing.T, d test.Data) (test.Assets, func()) {
 		t.Fatalf("error starting configmap watcher: %v", err)
 	}
 
+	if la, ok := ctl.Reconciler.(pkgreconciler.LeaderAware); ok {
+		la.Promote(pkgreconciler.UniversalBucket(), func(pkgreconciler.Bucket, types.NamespacedName) {})
+	}
+
 	return test.Assets{
 		Logger:     logging.FromContext(ctx),
 		Controller: ctl,
@@ -313,8 +304,18 @@ func getTaskRunController(t *testing.T, d test.Data) (test.Assets, func()) {
 	}, cancel
 }
 
-func checkEvents(fr *record.FakeRecorder, testName string, wantEvents []string) error {
-	// The fake recorder runs in a go routine, so the timeout is here to avoid waiting
+func checkEvents(t *testing.T, fr *record.FakeRecorder, testName string, wantEvents []string) error {
+	t.Helper()
+	return eventFromChannel(fr.Events, testName, wantEvents)
+}
+
+func checkCloudEvents(t *testing.T, fce *cloudevent.FakeClient, testName string, wantEvents []string) error {
+	t.Helper()
+	return eventFromChannel(fce.Events, testName, wantEvents)
+}
+
+func eventFromChannel(c chan string, testName string, wantEvents []string) error {
+	// We get events from a channel, so the timeout is here to avoid waiting
 	// on the channel forever if fewer than expected events are received.
 	// We only hit the timeout in case of failure of the test, so the actual value
 	// of the timeout is not so relevant, it's only used when tests are going to fail.
@@ -326,18 +327,23 @@ func checkEvents(fr *record.FakeRecorder, testName string, wantEvents []string) 
 		// we exit the loop. If we never receive enough events, the timeout takes us
 		// out of the loop.
 		select {
-		case event := <-fr.Events:
+		case event := <-c:
 			foundEvents = append(foundEvents, event)
 			if ii > len(wantEvents)-1 {
-				return fmt.Errorf("Received event \"%s\" for %s but not more expected", event, testName)
+				return fmt.Errorf("received event \"%s\" for %s but not more expected", event, testName)
 			}
 			wantEvent := wantEvents[ii]
-			if !(strings.HasPrefix(event, wantEvent)) {
-				return fmt.Errorf("Expected event \"%s\" but got \"%s\" instead for %s", wantEvent, event, testName)
+			matching, err := regexp.MatchString(wantEvent, event)
+			if err == nil {
+				if !matching {
+					return fmt.Errorf("expected event \"%s\" but got \"%s\" instead for %s", wantEvent, event, testName)
+				}
+			} else {
+				return fmt.Errorf("something went wrong matching the event: %s", err)
 			}
 		case <-timer.C:
 			if len(foundEvents) > len(wantEvents) {
-				return fmt.Errorf("Received %d events for %s but %d expected. Found events: %#v", len(foundEvents), testName, len(wantEvents), foundEvents)
+				return fmt.Errorf("received %d events for %s but %d expected. Found events: %#v", len(foundEvents), testName, len(wantEvents), foundEvents)
 			}
 		}
 	}
@@ -385,7 +391,10 @@ func TestReconcile_ExplicitDefaultSA(t *testing.T) {
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
 				tb.PodServiceAccountName(defaultSAName),
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-simple-step", "foo",
@@ -405,6 +414,7 @@ func TestReconcile_ExplicitDefaultSA(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -425,7 +435,10 @@ func TestReconcile_ExplicitDefaultSA(t *testing.T) {
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
 				tb.PodServiceAccountName("test-sa"),
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-sa-step", "foo",
@@ -445,6 +458,7 @@ func TestReconcile_ExplicitDefaultSA(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -555,7 +569,10 @@ func TestReconcile_FeatureFlags(t *testing.T) {
 			tb.PodOwnerReference("TaskRun", "test-taskrun-run-home-env",
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, credsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-simple-step", "foo",
@@ -575,10 +592,10 @@ func TestReconcile_FeatureFlags(t *testing.T) {
 					tb.EnvVar("foo", "bar"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
-					tb.VolumeMount("tekton-creds-init-home", "/tekton/creds"),
 					tb.TerminationMessagePath("/tekton/termination"),
 				),
 			),
@@ -596,7 +613,10 @@ func TestReconcile_FeatureFlags(t *testing.T) {
 			tb.PodOwnerReference("TaskRun", "test-taskrun-run-working-dir",
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-simple-step", "foo",
@@ -615,6 +635,7 @@ func TestReconcile_FeatureFlags(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -690,6 +711,89 @@ func TestReconcile_FeatureFlags(t *testing.T) {
 		})
 	}
 }
+
+// TestReconcile_CloudEvents runs reconcile with a cloud event sink configured
+// to ensure that events are sent in different cases
+func TestReconcile_CloudEvents(t *testing.T) {
+	simpleTask := tb.Task("test-task",
+		tb.TaskSpec(tb.Step("foo",
+			tb.StepName("simple-step"), tb.StepCommand("/mycmd"), tb.StepEnvVar("foo", "bar"),
+		)),
+		tb.TaskNamespace("foo"),
+	)
+	taskRun := tb.TaskRun("test-taskrun-not-started",
+		tb.TaskRunSelfLink("/test/taskrun1"),
+		tb.TaskRunNamespace("foo"),
+		tb.TaskRunSpec(tb.TaskRunTaskRef(simpleTask.Name)),
+	)
+	d := test.Data{
+		TaskRuns: []*v1beta1.TaskRun{taskRun},
+		Tasks:    []*v1beta1.Task{simpleTask},
+	}
+
+	names.TestingSeed()
+	d.ConfigMaps = []*corev1.ConfigMap{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: config.GetDefaultsConfigName(), Namespace: system.GetNamespace()},
+			Data: map[string]string{
+				"default-cloud-events-sink": "http://synk:8080",
+			},
+		},
+	}
+
+	testAssets, cancel := getTaskRunController(t, d)
+	defer cancel()
+	c := testAssets.Controller
+	clients := testAssets.Clients
+	saName := "default"
+	if _, err := clients.Kube.CoreV1().ServiceAccounts(taskRun.Namespace).Create(&corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      saName,
+			Namespace: taskRun.Namespace,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := c.Reconciler.Reconcile(context.Background(), getRunName(taskRun)); err != nil {
+		t.Errorf("expected no error. Got error %v", err)
+	}
+	if len(clients.Kube.Actions()) == 0 {
+		t.Errorf("Expected actions to be logged in the kubeclient, got none")
+	}
+
+	tr, err := clients.Pipeline.TektonV1beta1().TaskRuns(taskRun.Namespace).Get(taskRun.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("getting updated taskrun: %v", err)
+	}
+	condition := tr.Status.GetCondition(apis.ConditionSucceeded)
+	if condition == nil || condition.Status != corev1.ConditionUnknown {
+		t.Errorf("Expected fresh TaskRun to have in progress status, but had %v", condition)
+	}
+	if condition != nil && condition.Reason != v1beta1.TaskRunReasonRunning.String() {
+		t.Errorf("Expected reason %q but was %s", v1beta1.TaskRunReasonRunning.String(), condition.Reason)
+	}
+
+	wantEvents := []string{
+		"Normal Start",
+		"Normal Running",
+	}
+	err = checkEvents(t, testAssets.Recorder, "reconcile-cloud-events", wantEvents)
+	if !(err == nil) {
+		t.Errorf(err.Error())
+	}
+
+	wantCloudEvents := []string{
+		`(?s)dev.tekton.event.taskrun.started.v1.*test-taskrun-not-started`,
+		`(?s)dev.tekton.event.taskrun.running.v1.*test-taskrun-not-started`,
+	}
+	ceClient := clients.CloudEvents.(cloudevent.FakeClient)
+	err = checkCloudEvents(t, &ceClient, "reconcile-cloud-events", wantCloudEvents)
+	if !(err == nil) {
+		t.Errorf(err.Error())
+	}
+}
+
 func TestReconcile(t *testing.T) {
 	taskRunSuccess := tb.TaskRun("test-taskrun-run-success", tb.TaskRunNamespace("foo"), tb.TaskRunSpec(
 		tb.TaskRunTaskRef(simpleTask.Name, tb.TaskRefAPIVersion("a1")),
@@ -833,7 +937,10 @@ func TestReconcile(t *testing.T) {
 			tb.PodOwnerReference("TaskRun", "test-taskrun-run-success",
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-simple-step", "foo",
@@ -853,6 +960,7 @@ func TestReconcile(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -877,7 +985,10 @@ func TestReconcile(t *testing.T) {
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
 				tb.PodServiceAccountName("test-sa"),
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-sa-step", "foo",
@@ -897,6 +1008,7 @@ func TestReconcile(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -921,7 +1033,26 @@ func TestReconcile(t *testing.T) {
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
 				tb.PodVolumes(
-					workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume,
+					workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+						Name:         "tekton-creds-init-home-78c5n",
+						VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+					},
+					corev1.Volume{
+						Name:         "tekton-creds-init-home-6nl7g",
+						VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+					},
+					corev1.Volume{
+						Name:         "tekton-creds-init-home-j2tds",
+						VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+					},
+					corev1.Volume{
+						Name:         "tekton-creds-init-home-vr6ds",
+						VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+					},
+					corev1.Volume{
+						Name:         "tekton-creds-init-home-l22wn",
+						VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+					},
 					corev1.Volume{
 						Name: "volume-configmap",
 						VolumeSource: corev1.VolumeSource{
@@ -935,7 +1066,30 @@ func TestReconcile(t *testing.T) {
 				),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
-				getMkdirResourceContainer("myimage", "/workspace/output/myimage", "mssqb"),
+				tb.PodContainer("step-create-dir-myimage-mssqb", "busybox",
+					tb.Command("/tekton/tools/entrypoint"),
+					tb.Args("-wait_file",
+						"/tekton/downward/ready",
+						"-wait_file_content",
+						"-post_file",
+						"/tekton/tools/0",
+						"-termination_path",
+						"/tekton/termination",
+						"-entrypoint",
+						"mkdir",
+						"--",
+						"-p",
+						"/workspace/output/myimage"),
+					tb.WorkingDir(workspaceDir),
+					tb.EnvVar("HOME", "/tekton/home"),
+					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
+					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-78c5n", "/tekton/creds"),
+					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
+					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
+					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
+					tb.TerminationMessagePath("/tekton/termination"),
+				),
 				tb.PodContainer("step-git-source-workspace-mz4c7", "override-with-git:latest",
 					tb.Command(entrypointLocation),
 					tb.Args("-wait_file", "/tekton/tools/0", "-post_file", "/tekton/tools/1", "-termination_path",
@@ -946,6 +1100,7 @@ func TestReconcile(t *testing.T) {
 					tb.EnvVar("TEKTON_RESOURCE_NAME", "workspace"),
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
+					tb.VolumeMount("tekton-creds-init-home-6nl7g", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -955,10 +1110,12 @@ func TestReconcile(t *testing.T) {
 					tb.Command(entrypointLocation),
 					tb.Args("-wait_file", "/tekton/tools/1", "-post_file", "/tekton/tools/2", "-termination_path",
 						"/tekton/termination", "-entrypoint", "/mycmd", "--", "--my-arg=foo", "--my-arg-with-default=bar",
-						"--my-arg-with-default2=thedefault", "--my-additional-arg=gcr.io/kristoff/sven"),
+						"--my-arg-with-default2=thedefault", "--my-additional-arg=gcr.io/kristoff/sven", "--my-taskname-arg=test-task-with-substitution",
+						"--my-taskrun-arg=test-taskrun-substitution"),
 					tb.WorkingDir(workspaceDir),
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
+					tb.VolumeMount("tekton-creds-init-home-j2tds", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -971,6 +1128,7 @@ func TestReconcile(t *testing.T) {
 					tb.WorkingDir(workspaceDir),
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
+					tb.VolumeMount("tekton-creds-init-home-vr6ds", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -984,6 +1142,7 @@ func TestReconcile(t *testing.T) {
 					tb.WorkingDir(workspaceDir),
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
+					tb.VolumeMount("tekton-creds-init-home-l22wn", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -1006,7 +1165,13 @@ func TestReconcile(t *testing.T) {
 			tb.PodOwnerReference("TaskRun", "test-taskrun-with-taskspec",
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-mz4c7",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}, corev1.Volume{
+					Name:         "tekton-creds-init-home-mssqb",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-git-source-workspace-9l9zj", "override-with-git:latest",
@@ -1035,6 +1200,7 @@ func TestReconcile(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-mz4c7", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -1047,6 +1213,7 @@ func TestReconcile(t *testing.T) {
 						"/tekton/termination", "-entrypoint", "/mycmd", "--", "--my-arg=foo"),
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
+					tb.VolumeMount("tekton-creds-init-home-mssqb", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -1071,7 +1238,10 @@ func TestReconcile(t *testing.T) {
 			tb.PodOwnerReference("TaskRun", "test-taskrun-with-cluster-task",
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-simple-step", "foo",
@@ -1091,6 +1261,7 @@ func TestReconcile(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -1113,7 +1284,13 @@ func TestReconcile(t *testing.T) {
 			tb.PodOwnerReference("TaskRun", "test-taskrun-with-resource-spec",
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-mz4c7",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}, corev1.Volume{
+					Name:         "tekton-creds-init-home-mssqb",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-git-source-workspace-9l9zj", "override-with-git:latest",
@@ -1143,6 +1320,7 @@ func TestReconcile(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-mz4c7", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -1155,6 +1333,7 @@ func TestReconcile(t *testing.T) {
 					tb.WorkingDir(workspaceDir),
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
+					tb.VolumeMount("tekton-creds-init-home-mssqb", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -1178,7 +1357,10 @@ func TestReconcile(t *testing.T) {
 			tb.PodOwnerReference("TaskRun", "test-taskrun-with-pod",
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-simple-step", "foo",
@@ -1197,6 +1379,7 @@ func TestReconcile(t *testing.T) {
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -1205,7 +1388,7 @@ func TestReconcile(t *testing.T) {
 			),
 		),
 	}, {
-		name:    "taskrun-with-credentials-variable-default-tekton-home",
+		name:    "taskrun-with-credentials-variable-default-tekton-creds",
 		taskRun: taskRunWithCredentialsVariable,
 		wantEvents: []string{
 			"Normal Started ",
@@ -1219,7 +1402,10 @@ func TestReconcile(t *testing.T) {
 			tb.PodOwnerReference("TaskRun", "test-taskrun-with-credentials-variable",
 				tb.OwnerReferenceAPIVersion(currentAPIVersion)),
 			tb.PodSpec(
-				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume),
+				tb.PodVolumes(workspaceVolume, homeVolume, resultsVolume, toolsVolume, downwardVolume, corev1.Volume{
+					Name:         "tekton-creds-init-home-9l9zj",
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory}},
+				}),
 				tb.PodRestartPolicy(corev1.RestartPolicyNever),
 				getPlaceToolsInitContainer(),
 				tb.PodContainer("step-mycontainer", "myimage",
@@ -1232,13 +1418,14 @@ func TestReconcile(t *testing.T) {
 						"-termination_path",
 						"/tekton/termination",
 						"-entrypoint",
-						// Important bit here: /tekton/home
-						"/mycmd /tekton/home",
+						// Important bit here: /tekton/creds
+						"/mycmd /tekton/creds",
 						"--"),
 					tb.WorkingDir(workspaceDir),
 					tb.EnvVar("HOME", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-tools", "/tekton/tools"),
 					tb.VolumeMount("tekton-internal-downward", "/tekton/downward"),
+					tb.VolumeMount("tekton-creds-init-home-9l9zj", "/tekton/creds"),
 					tb.VolumeMount("tekton-internal-workspace", workspaceDir),
 					tb.VolumeMount("tekton-internal-home", "/tekton/home"),
 					tb.VolumeMount("tekton-internal-results", "/tekton/results"),
@@ -1306,7 +1493,7 @@ func TestReconcile(t *testing.T) {
 				t.Fatalf("Expected actions to be logged in the kubeclient, got none")
 			}
 
-			err = checkEvents(testAssets.Recorder, tc.name, tc.wantEvents)
+			err = checkEvents(t, testAssets.Recorder, tc.name, tc.wantEvents)
 			if !(err == nil) {
 				t.Errorf(err.Error())
 			}
@@ -1524,7 +1711,7 @@ func TestReconcileInvalidTaskRuns(t *testing.T) {
 				t.Errorf("expected 3 actions (first: list namespaces) created by the reconciler, got %d. Actions: %#v", len(actions), actions)
 			}
 
-			err := checkEvents(testAssets.Recorder, tc.name, tc.wantEvents)
+			err := checkEvents(t, testAssets.Recorder, tc.name, tc.wantEvents)
 			if !(err == nil) {
 				t.Errorf(err.Error())
 			}
@@ -1591,11 +1778,18 @@ func makePod(taskRun *v1beta1.TaskRun, task *v1beta1.Task) (*corev1.Pod, error) 
 		return nil, err
 	}
 
-	return podconvert.MakePod(context.Background(), images, taskRun, task.Spec, kubeclient, entrypointCache, true)
+	builder := podconvert.Builder{
+		Images:          images,
+		KubeClient:      kubeclient,
+		EntrypointCache: entrypointCache,
+		OverrideHomeEnv: true,
+	}
+	return builder.Build(context.Background(), taskRun, task.Spec)
 }
 
 func TestReconcilePodUpdateStatus(t *testing.T) {
-	taskRun := tb.TaskRun("test-taskrun-run-success", tb.TaskRunNamespace("foo"), tb.TaskRunSpec(tb.TaskRunTaskRef("test-task")))
+	const taskLabel = "test-task"
+	taskRun := tb.TaskRun("test-taskrun-run-success", tb.TaskRunNamespace("foo"), tb.TaskRunSpec(tb.TaskRunTaskRef(taskLabel)))
 
 	pod, err := makePod(taskRun, simpleTask)
 	if err != nil {
@@ -1633,6 +1827,14 @@ func TestReconcilePodUpdateStatus(t *testing.T) {
 		t.Fatalf("Did not get expected condition %s", diff.PrintWantGot(d))
 	}
 
+	trLabel, ok := newTr.ObjectMeta.Labels[taskNameLabelKey]
+	if !ok {
+		t.Errorf("Labels were not added to task run")
+	}
+	if ld := cmp.Diff(taskLabel, trLabel); ld != "" {
+		t.Errorf("Did not get expected label %s", diff.PrintWantGot(ld))
+	}
+
 	// update pod status and trigger reconcile : build is completed
 	pod.Status = corev1.PodStatus{
 		Phase: corev1.PodSucceeded,
@@ -1667,7 +1869,7 @@ func TestReconcilePodUpdateStatus(t *testing.T) {
 		"Normal Running Not all Steps",
 		"Normal Succeeded",
 	}
-	err = checkEvents(testAssets.Recorder, "test-reconcile-pod-updateStatus", wantEvents)
+	err = checkEvents(t, testAssets.Recorder, "test-reconcile-pod-updateStatus", wantEvents)
 	if !(err == nil) {
 		t.Errorf(err.Error())
 	}
@@ -1749,7 +1951,7 @@ func TestReconcileOnCancelledTaskRun(t *testing.T) {
 		"Normal Started",
 		"Warning Failed TaskRun \"test-taskrun-run-cancelled\" was cancelled",
 	}
-	err = checkEvents(testAssets.Recorder, "test-reconcile-on-cancelled-taskrun", wantEvents)
+	err = checkEvents(t, testAssets.Recorder, "test-reconcile-on-cancelled-taskrun", wantEvents)
 	if !(err == nil) {
 		t.Errorf(err.Error())
 	}
@@ -1757,6 +1959,7 @@ func TestReconcileOnCancelledTaskRun(t *testing.T) {
 
 func TestReconcileTimeouts(t *testing.T) {
 	type testCase struct {
+		name           string
 		taskRun        *v1beta1.TaskRun
 		expectedStatus *apis.Condition
 		wantEvents     []string
@@ -1764,6 +1967,7 @@ func TestReconcileTimeouts(t *testing.T) {
 
 	testcases := []testCase{
 		{
+			name: "taskrun with timeout",
 			taskRun: tb.TaskRun("test-taskrun-timeout",
 				tb.TaskRunNamespace("foo"),
 				tb.TaskRunSpec(
@@ -1785,6 +1989,7 @@ func TestReconcileTimeouts(t *testing.T) {
 				"Warning Failed ",
 			},
 		}, {
+			name: "taskrun with default timeout",
 			taskRun: tb.TaskRun("test-taskrun-default-timeout-60-minutes",
 				tb.TaskRunNamespace("foo"),
 				tb.TaskRunSpec(
@@ -1805,6 +2010,7 @@ func TestReconcileTimeouts(t *testing.T) {
 				"Warning Failed ",
 			},
 		}, {
+			name: "task run with nil timeout uses default",
 			taskRun: tb.TaskRun("test-taskrun-nil-timeout-default-60-minutes",
 				tb.TaskRunNamespace("foo"),
 				tb.TaskRunSpec(
@@ -1828,30 +2034,32 @@ func TestReconcileTimeouts(t *testing.T) {
 		}}
 
 	for _, tc := range testcases {
-		d := test.Data{
-			TaskRuns: []*v1beta1.TaskRun{tc.taskRun},
-			Tasks:    []*v1beta1.Task{simpleTask},
-		}
-		testAssets, cancel := getTaskRunController(t, d)
-		defer cancel()
-		c := testAssets.Controller
-		clients := testAssets.Clients
+		t.Run(tc.name, func(t *testing.T) {
+			d := test.Data{
+				TaskRuns: []*v1beta1.TaskRun{tc.taskRun},
+				Tasks:    []*v1beta1.Task{simpleTask},
+			}
+			testAssets, cancel := getTaskRunController(t, d)
+			defer cancel()
+			c := testAssets.Controller
+			clients := testAssets.Clients
 
-		if err := c.Reconciler.Reconcile(context.Background(), getRunName(tc.taskRun)); err != nil {
-			t.Fatalf("Unexpected error when reconciling completed TaskRun : %v", err)
-		}
-		newTr, err := clients.Pipeline.TektonV1beta1().TaskRuns(tc.taskRun.Namespace).Get(tc.taskRun.Name, metav1.GetOptions{})
-		if err != nil {
-			t.Fatalf("Expected completed TaskRun %s to exist but instead got error when getting it: %v", tc.taskRun.Name, err)
-		}
-		condition := newTr.Status.GetCondition(apis.ConditionSucceeded)
-		if d := cmp.Diff(tc.expectedStatus, condition, ignoreLastTransitionTime); d != "" {
-			t.Fatalf("Did not get expected condition %s", diff.PrintWantGot(d))
-		}
-		err = checkEvents(testAssets.Recorder, tc.taskRun.Name, tc.wantEvents)
-		if !(err == nil) {
-			t.Errorf(err.Error())
-		}
+			if err := c.Reconciler.Reconcile(context.Background(), getRunName(tc.taskRun)); err != nil {
+				t.Fatalf("Unexpected error when reconciling completed TaskRun : %v", err)
+			}
+			newTr, err := clients.Pipeline.TektonV1beta1().TaskRuns(tc.taskRun.Namespace).Get(tc.taskRun.Name, metav1.GetOptions{})
+			if err != nil {
+				t.Fatalf("Expected completed TaskRun %s to exist but instead got error when getting it: %v", tc.taskRun.Name, err)
+			}
+			condition := newTr.Status.GetCondition(apis.ConditionSucceeded)
+			if d := cmp.Diff(tc.expectedStatus, condition, ignoreLastTransitionTime); d != "" {
+				t.Fatalf("Did not get expected condition %s", diff.PrintWantGot(d))
+			}
+			err = checkEvents(t, testAssets.Recorder, tc.taskRun.Name, tc.wantEvents)
+			if !(err == nil) {
+				t.Errorf(err.Error())
+			}
+		})
 	}
 }
 
@@ -1883,7 +2091,7 @@ func TestHandlePodCreationError(t *testing.T) {
 		taskLister:        testAssets.Informers.Task.Lister(),
 		clusterTaskLister: testAssets.Informers.ClusterTask.Lister(),
 		resourceLister:    testAssets.Informers.PipelineResource.Lister(),
-		timeoutHandler:    reconciler.NewTimeoutHandler(ctx.Done(), testAssets.Logger),
+		timeoutHandler:    timeout.NewHandler(ctx.Done(), testAssets.Logger),
 		cloudEventClient:  testAssets.Clients.CloudEvents,
 		metrics:           nil, // Not used
 		entrypointCache:   nil, // Not used
@@ -2543,6 +2751,106 @@ func TestReconcileWorkspaceMissing(t *testing.T) {
 	}
 }
 
+// TestReconcileValidDefaultWorkspace tests a reconcile of a TaskRun that does
+// not include a Workspace that the Task is expecting and it uses the default Workspace instead.
+func TestReconcileValidDefaultWorkspace(t *testing.T) {
+	taskWithWorkspace := tb.Task("test-task-with-workspace", tb.TaskNamespace("foo"),
+		tb.TaskSpec(
+			tb.TaskWorkspace("ws1", "a test task workspace", "", true),
+			tb.Step("foo", tb.StepName("simple-step"), tb.StepCommand("/mycmd")),
+		))
+	taskRun := tb.TaskRun("test-taskrun-default-workspace", tb.TaskRunNamespace("foo"), tb.TaskRunSpec(
+		tb.TaskRunTaskRef(taskWithWorkspace.Name, tb.TaskRefAPIVersion("a1")),
+	))
+	d := test.Data{
+		Tasks:             []*v1beta1.Task{taskWithWorkspace},
+		TaskRuns:          []*v1beta1.TaskRun{taskRun},
+		ClusterTasks:      nil,
+		PipelineResources: nil,
+	}
+
+	d.ConfigMaps = append(d.ConfigMaps, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: config.GetDefaultsConfigName(), Namespace: system.GetNamespace()},
+		Data: map[string]string{
+			"default-task-run-workspace-binding": "emptyDir: {}",
+		},
+	})
+	names.TestingSeed()
+	testAssets, cancel := getTaskRunController(t, d)
+	defer cancel()
+	clients := testAssets.Clients
+
+	t.Logf("Creating SA %s in %s", "default", "foo")
+	if _, err := clients.Kube.CoreV1().ServiceAccounts("foo").Create(&corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "default",
+			Namespace: "foo",
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := testAssets.Controller.Reconciler.Reconcile(context.Background(), getRunName(taskRun)); err != nil {
+		t.Errorf("Expected no error reconciling valid TaskRun but got %v", err)
+	}
+
+	tr, err := clients.Pipeline.TektonV1beta1().TaskRuns(taskRun.Namespace).Get(taskRun.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Expected TaskRun %s to exist but instead got error when getting it: %v", taskRun.Name, err)
+	}
+
+	for _, c := range tr.Status.Conditions {
+		if c.Type == apis.ConditionSucceeded && c.Status == corev1.ConditionFalse && c.Reason == podconvert.ReasonFailedValidation {
+			t.Errorf("Expected TaskRun to pass Validation by using the default workspace but it did not. Final conditions were:\n%#v", tr.Status.Conditions)
+		}
+	}
+}
+
+// TestReconcileInvalidDefaultWorkspace tests a reconcile of a TaskRun that does
+// not include a Workspace that the Task is expecting, and gets an error updating
+// the TaskRun with an invalid default workspace.
+func TestReconcileInvalidDefaultWorkspace(t *testing.T) {
+	taskWithWorkspace := tb.Task("test-task-with-workspace", tb.TaskNamespace("foo"),
+		tb.TaskSpec(
+			tb.TaskWorkspace("ws1", "a test task workspace", "", true),
+			tb.Step("foo", tb.StepName("simple-step"), tb.StepCommand("/mycmd")),
+		))
+	taskRun := tb.TaskRun("test-taskrun-default-workspace", tb.TaskRunNamespace("foo"), tb.TaskRunSpec(
+		tb.TaskRunTaskRef(taskWithWorkspace.Name, tb.TaskRefAPIVersion("a1")),
+	))
+	d := test.Data{
+		Tasks:             []*v1beta1.Task{taskWithWorkspace},
+		TaskRuns:          []*v1beta1.TaskRun{taskRun},
+		ClusterTasks:      nil,
+		PipelineResources: nil,
+	}
+
+	d.ConfigMaps = append(d.ConfigMaps, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: config.GetDefaultsConfigName(), Namespace: system.GetNamespace()},
+		Data: map[string]string{
+			"default-task-run-workspace-binding": "emptyDir == {}",
+		},
+	})
+	names.TestingSeed()
+	testAssets, cancel := getTaskRunController(t, d)
+	defer cancel()
+	clients := testAssets.Clients
+
+	t.Logf("Creating SA %s in %s", "default", "foo")
+	if _, err := clients.Kube.CoreV1().ServiceAccounts("foo").Create(&corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "default",
+			Namespace: "foo",
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := testAssets.Controller.Reconciler.Reconcile(context.Background(), getRunName(taskRun)); err == nil {
+		t.Errorf("Expected error reconciling invalid TaskRun due to invalid workspace but got %v", err)
+	}
+}
+
 func TestReconcileTaskResourceResolutionAndValidation(t *testing.T) {
 	for _, tt := range []struct {
 		desc             string
@@ -2629,11 +2937,78 @@ func TestReconcileTaskResourceResolutionAndValidation(t *testing.T) {
 				}
 			}
 
-			err = checkEvents(testAssets.Recorder, tt.desc, tt.wantEvents)
+			err = checkEvents(t, testAssets.Recorder, tt.desc, tt.wantEvents)
 			if !(err == nil) {
 				t.Errorf(err.Error())
 			}
 		})
+	}
+}
+
+// TestReconcileWithWorkspacesIncompatibleWithAffinityAssistant tests that a TaskRun used with an associated
+// Affinity Assistant is validated and that the validation fails for a TaskRun that is incompatible with
+// Affinity Assistant; e.g. using more than one PVC-backed workspace.
+func TestReconcileWithWorkspacesIncompatibleWithAffinityAssistant(t *testing.T) {
+	taskWithTwoWorkspaces := tb.Task("test-task-two-workspaces", tb.TaskNamespace("foo"),
+		tb.TaskSpec(
+			tb.TaskWorkspace("ws1", "task workspace", "", true),
+			tb.TaskWorkspace("ws2", "another workspace", "", false),
+		))
+	taskRun := tb.TaskRun("taskrun-with-two-workspaces", tb.TaskRunNamespace("foo"), tb.TaskRunSpec(
+		tb.TaskRunTaskRef(taskWithTwoWorkspaces.Name, tb.TaskRefAPIVersion("a1")),
+		tb.TaskRunWorkspacePVC("ws1", "", "pvc1"),
+		tb.TaskRunWorkspaceVolumeClaimTemplate("ws2", "", &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "pvc2",
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{},
+		}),
+	))
+
+	// associate the TaskRun with a dummy Affinity Assistant
+	taskRun.Annotations[workspace.AnnotationAffinityAssistantName] = "dummy-affinity-assistant"
+
+	d := test.Data{
+		Tasks:             []*v1beta1.Task{taskWithTwoWorkspaces},
+		TaskRuns:          []*v1beta1.TaskRun{taskRun},
+		ClusterTasks:      nil,
+		PipelineResources: nil,
+	}
+	names.TestingSeed()
+	testAssets, cancel := getTaskRunController(t, d)
+	defer cancel()
+	clients := testAssets.Clients
+
+	t.Logf("Creating SA %s in %s", "default", "foo")
+	if _, err := clients.Kube.CoreV1().ServiceAccounts("foo").Create(&corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "default",
+			Namespace: "foo",
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	_ = testAssets.Controller.Reconciler.Reconcile(context.Background(), getRunName(taskRun))
+
+	_, err := clients.Pipeline.TektonV1beta1().Tasks(taskRun.Namespace).Get(taskWithTwoWorkspaces.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("krux: %v", err)
+	}
+
+	ttt, err := clients.Pipeline.TektonV1beta1().TaskRuns(taskRun.Namespace).Get(taskRun.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("expected TaskRun %s to exist but instead got error when getting it: %v", taskRun.Name, err)
+	}
+
+	if len(ttt.Status.Conditions) != 1 {
+		t.Errorf("unexpected number of Conditions, expected 1 Condition")
+	}
+
+	for _, cond := range ttt.Status.Conditions {
+		if cond.Reason != podconvert.ReasonFailedValidation {
+			t.Errorf("unexpected Reason on the Condition, expected: %s, got: %s", podconvert.ReasonFailedValidation, cond.Reason)
+		}
 	}
 }
 
@@ -2692,7 +3067,7 @@ func TestReconcileWorkspaceWithVolumeClaimTemplate(t *testing.T) {
 		}
 	}
 
-	expectedPVCName := fmt.Sprintf("%s-%s-%s", claimName, workspaceName, taskRun.Name)
+	expectedPVCName := fmt.Sprintf("%s-%s", claimName, "a521418087")
 	_, err = clients.Kube.CoreV1().PersistentVolumeClaims(taskRun.Namespace).Get(expectedPVCName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("expected PVC %s to exist but instead got error when getting it: %v", expectedPVCName, err)

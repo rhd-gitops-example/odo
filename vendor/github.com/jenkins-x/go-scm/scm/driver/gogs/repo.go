@@ -21,12 +21,20 @@ func (s *repositoryService) Create(context.Context, *scm.RepositoryInput) (*scm.
 	return nil, nil, scm.ErrNotSupported
 }
 
+func (s *repositoryService) Fork(context.Context, *scm.RepositoryInput, string) (*scm.Repository, *scm.Response, error) {
+	return nil, nil, scm.ErrNotSupported
+}
+
 func (s *repositoryService) FindCombinedStatus(ctx context.Context, repo, ref string) (*scm.CombinedStatus, *scm.Response, error) {
 	return nil, nil, scm.ErrNotSupported
 }
 
 func (s *repositoryService) FindUserPermission(ctx context.Context, repo string, user string) (string, *scm.Response, error) {
 	return "", nil, scm.ErrNotSupported
+}
+
+func (s *repositoryService) AddCollaborator(ctx context.Context, repo, user, permission string) (bool, bool, *scm.Response, error) {
+	return false, false, nil, scm.ErrNotSupported
 }
 
 func (s *repositoryService) IsCollaborator(ctx context.Context, repo, user string) (bool, *scm.Response, error) {
@@ -182,6 +190,7 @@ func convertRepository(src *repository) *scm.Repository {
 		ID:        strconv.Itoa(src.ID),
 		Namespace: userLogin(&src.Owner),
 		Name:      src.Name,
+		FullName:  src.FullName,
 		Perm:      convertPerm(src.Permissions),
 		Branch:    src.DefaultBranch,
 		Private:   src.Private,

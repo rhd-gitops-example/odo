@@ -16,8 +16,10 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/roles"
 )
 
+const testRepoURL = "https://github.com/testing/testing.git"
+
 func TestCreateStatusTrackerDeployment(t *testing.T) {
-	deploy := createStatusTrackerDeployment("dana-cicd")
+	deploy := createStatusTrackerDeployment("dana-cicd", testRepoURL, "")
 	want := &appsv1.Deployment{
 		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
 		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("dana-cicd", operatorName)),
@@ -84,7 +86,7 @@ func TestResource(t *testing.T) {
 	}
 
 	ns := "my-test-ns"
-	generated, err := Resources(ns, "test-token", meta.NamespacedName("sealed-secrets-ns", "sealed-secrets-svc"))
+	generated, err := Resources(ns, "test-token", meta.NamespacedName("sealed-secrets-ns", "sealed-secrets-svc"), testRepoURL, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,10 +97,43 @@ func TestResource(t *testing.T) {
 		"03-secrets/commit-status-tracker.yaml":                      testSecret,
 		"02-rolebindings/commit-status-tracker-role.yaml":            roles.CreateRole(name, roleRules),
 		"02-rolebindings/commit-status-tracker-rolebinding.yaml":     roles.CreateRoleBinding(name, sa, "Role", operatorName),
-		"10-commit-status-tracker/operator.yaml":                     createStatusTrackerDeployment(ns),
+		"10-commit-status-tracker/operator.yaml":                     createStatusTrackerDeployment(ns, "https://github.com/testing/testing.git", ""),
 	}
 
 	if diff := cmp.Diff(want, generated); diff != "" {
 		t.Fatalf("deployment diff: %s", diff)
+	}
+}
+
+func TestMakeEnvironmentWithCustomDriver(t *testing.T) {
+	want := []corev1.EnvVar{
+		{
+			Name: "WATCH_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name:  "OPERATOR_NAME",
+			Value: operatorName,
+		},
+		{
+			Name:  "GIT_DRIVERS",
+			Value: "gitlab.example.com=gitlab",
+		},
+	}
+	customRepoURL := "https://gitlab.example.com"
+	if diff := cmp.Diff(want, makeEnvironment(customRepoURL, "gitlab")); diff != "" {
+		t.Fatalf("custom environment:\n%s", diff)
 	}
 }

@@ -25,7 +25,7 @@ import (
 
 func TestServiceResourcesWithCICD(t *testing.T) {
 	defer stubDefaultPublicKeyFunc(t)()
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	m := buildManifest(true, false)
 	hookSecret, err := secrets.CreateSealedSecret(
 		meta.NamespacedName(
@@ -101,7 +101,7 @@ func TestServiceResourcesWithCICD(t *testing.T) {
 
 func TestServiceResourcesWithArgoCD(t *testing.T) {
 	defer stubDefaultPublicKeyFunc(t)()
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	m := buildManifest(false, true)
 
 	want := res.Resources{
@@ -156,7 +156,7 @@ func TestServiceResourcesWithArgoCD(t *testing.T) {
 }
 
 func TestServiceResourcesWithoutArgoCD(t *testing.T) {
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	m := buildManifest(false, false)
 	want := res.Resources{
 		"environments/test-dev/apps/test-app/base/kustomization.yaml":     &res.Kustomization{Bases: []string{"../services/test-svc", "../services/test"}},
@@ -206,7 +206,7 @@ func TestServiceResourcesWithoutArgoCD(t *testing.T) {
 }
 
 func TestAddServiceWithoutApp(t *testing.T) {
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	m := buildManifest(false, false)
 	want := res.Resources{
 		"environments/test-dev/apps/new-app/base/kustomization.yaml":                        &res.Kustomization{Bases: []string{"../services/test"}},
@@ -262,7 +262,7 @@ func TestAddServiceWithoutApp(t *testing.T) {
 func TestAddService(t *testing.T) {
 	defer stubDefaultPublicKeyFunc(t)()
 
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	outputPath := afero.GetTempDir(fakeFs, "test")
 	pipelinesPath := filepath.Join(outputPath, pipelinesFile)
 	m := buildManifest(true, true)
@@ -301,7 +301,7 @@ func TestAddService(t *testing.T) {
 
 func TestServiceWithArgoCD(t *testing.T) {
 	defer stubDefaultPublicKeyFunc(t)()
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	m := buildManifest(true, true)
 	want := res.Resources{
 		"pipelines.yaml": &config.Manifest{

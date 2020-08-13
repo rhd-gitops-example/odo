@@ -57,8 +57,42 @@ type hook struct {
 	} `json:"config"`
 }
 
+type collaboratorBody struct {
+	Permission string `json:"permission"`
+}
+
 type repositoryService struct {
 	client *wrapper
+}
+
+// AddCollaborator adds a collaborator to the repo.
+// See https://developer.github.com/v3/repos/collaborators/#add-user-as-a-collaborator
+func (s *repositoryService) AddCollaborator(ctx context.Context, repo, user, permission string) (bool, bool, *scm.Response, error) {
+	req := &scm.Request{
+		Method: http.MethodPut,
+		Path:   fmt.Sprintf("repos/%s/collaborators/%s", repo, user),
+		Header: map[string][]string{
+			// This accept header enables the nested teams preview.
+			// https://developer.github.com/changes/2017-08-30-preview-nested-teams/
+			"Accept": {"application/vnd.github.hellcat-preview+json"},
+		},
+	}
+	body := collaboratorBody{
+		Permission: permission,
+	}
+	res, err := s.client.doRequest(ctx, req, &body, nil)
+	if err != nil && res == nil {
+		return false, false, res, err
+	}
+	code := res.Status
+	if code == 201 {
+		return true, false, res, nil
+	} else if code == 204 {
+		return false, true, res, nil
+	} else if code == 404 {
+		return false, false, res, nil
+	}
+	return false, false, res, fmt.Errorf("unexpected status: %d", code)
 }
 
 // IsCollaborator returns whether or not the user is a collaborator of the repo.
@@ -153,9 +187,17 @@ func (s *repositoryService) FindUserPermission(ctx context.Context, repo string,
 
 // List returns the user repository list.
 func (s *repositoryService) List(ctx context.Context, opts scm.ListOptions) ([]*scm.Repository, *scm.Response, error) {
-	path := fmt.Sprintf("user/repos?%s", encodeListOptions(opts))
+	req := &scm.Request{
+		Method: http.MethodGet,
+		Path:   fmt.Sprintf("user/repos?visibility=all&affiliation=owner&%s", encodeListOptions(opts)),
+		Header: map[string][]string{
+			// This accept header enables the visibility parameter.
+			// https://developer.github.com/changes/2019-12-03-internal-visibility-changes/
+			"Accept": {"application/vnd.github.nebula-preview+json"},
+		},
+	}
 	out := []*repository{}
-	res, err := s.client.do(ctx, "GET", path, nil, &out)
+	res, err := s.client.doRequest(ctx, req, nil, &out)
 	return convertRepositoryList(out), res, err
 }
 
@@ -220,6 +262,23 @@ func (s *repositoryService) Create(ctx context.Context, input *scm.RepositoryInp
 	in.Description = input.Description
 	in.Homepage = input.Homepage
 	in.Private = input.Private
+	out := new(repository)
+	res, err := s.client.do(ctx, "POST", path, in, out)
+	return convertRepository(out), res, err
+}
+
+type forkInput struct {
+	Organization string `json:"organization,omitempty"`
+}
+
+func (s *repositoryService) Fork(ctx context.Context, input *scm.RepositoryInput, origRepo string) (*scm.Repository, *scm.Response, error) {
+	path := fmt.Sprintf("/repos/%s/forks", origRepo)
+
+	in := new(forkInput)
+	if input.Namespace != "" {
+		in.Organization = input.Namespace
+	}
+
 	out := new(repository)
 	res, err := s.client.do(ctx, "POST", path, in, out)
 	return convertRepository(out), res, err
@@ -348,6 +407,7 @@ type status struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	State       string    `json:"state"`
 	TargetURL   string    `json:"target_url"`
+	URL         string    `json:"url"`
 	Description string    `json:"description"`
 	Context     string    `json:"context"`
 }
@@ -384,6 +444,7 @@ func convertStatus(from *status) *scm.Status {
 		Label:  from.Context,
 		Desc:   from.Description,
 		Target: from.TargetURL,
+		Link:   from.URL,
 	}
 }
 

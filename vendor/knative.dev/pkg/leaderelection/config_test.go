@@ -17,40 +17,43 @@ limitations under the License.
 package leaderelection
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/kmeta"
+)
+
+const (
+	controllerOrdinalEnv = "STATEFUL_CONTROLLER_ORDINAL"
+	serviceNameEnv       = "STATEFUL_SERVICE_NAME"
+	servicePortEnv       = "STATEFUL_SERVICE_PORT"
+	serviceProtocolEnv   = "STATEFUL_SERVICE_PROTOCOL"
 )
 
 func okConfig() *Config {
 	return &Config{
-		ResourceLock:      "leases",
-		Buckets:           1,
-		LeaseDuration:     15 * time.Second,
-		RenewDeadline:     10 * time.Second,
-		RetryPeriod:       2 * time.Second,
-		EnabledComponents: sets.NewString(),
+		Buckets:       1,
+		LeaseDuration: 15 * time.Second,
+		RenewDeadline: 10 * time.Second,
+		RetryPeriod:   2 * time.Second,
 	}
 }
 
 func okData() map[string]string {
 	return map[string]string{
-		"resourceLock": "leases",
-		"buckets":      "1",
+		"buckets": "1",
 		// values in this data come from the defaults suggested in the
 		// code:
 		// https://github.com/kubernetes/client-go/blob/kubernetes-1.16.0/tools/leaderelection/leaderelection.go
-		"leaseDuration":     "15s",
-		"renewDeadline":     "10s",
-		"retryPeriod":       "2s",
-		"enabledComponents": "controller",
+		"leaseDuration": "15s",
+		"renewDeadline": "10s",
+		"retryPeriod":   "2s",
 	}
 }
 
@@ -59,23 +62,11 @@ func TestNewConfigMapFromData(t *testing.T) {
 		name     string
 		data     map[string]string
 		expected *Config
-		err      error
+		err      string
 	}{{
-		name: "disabled but OK config",
-		data: func() map[string]string {
-			data := okData()
-			delete(data, "enabledComponents")
-			return data
-		}(),
+		name:     "OK config - controller enabled",
+		data:     okData(),
 		expected: okConfig(),
-	}, {
-		name: "OK config - controller enabled",
-		data: okData(),
-		expected: func() *Config {
-			config := okConfig()
-			config.EnabledComponents.Insert("controller")
-			return config
-		}(),
 	}, {
 		name: "OK config - controller enabled with multiple buckets",
 		data: kmeta.UnionMaps(okData(), map[string]string{
@@ -83,52 +74,45 @@ func TestNewConfigMapFromData(t *testing.T) {
 		}),
 		expected: func() *Config {
 			config := okConfig()
-			config.EnabledComponents.Insert("controller")
 			config.Buckets = 5
 			return config
 		}(),
-	}, {
-		name: "invalid resourceLock",
-		data: kmeta.UnionMaps(okData(), map[string]string{
-			"resourceLock": "flarps",
-		}),
-		err: errors.New(`resourceLock: invalid value "flarps": valid values are "leases"`),
 	}, {
 		name: "invalid leaseDuration",
 		data: kmeta.UnionMaps(okData(), map[string]string{
 			"leaseDuration": "flops",
 		}),
-		err: errors.New(`failed to parse "leaseDuration": time: invalid duration flops`),
+		err: `failed to parse "leaseDuration": time: invalid duration`,
 	}, {
 		name: "invalid renewDeadline",
 		data: kmeta.UnionMaps(okData(), map[string]string{
 			"renewDeadline": "flops",
 		}),
-		err: errors.New(`failed to parse "renewDeadline": time: invalid duration flops`),
+		err: `failed to parse "renewDeadline": time: invalid duration`,
 	}, {
 		name: "invalid retryPeriod",
 		data: kmeta.UnionMaps(okData(), map[string]string{
 			"retryPeriod": "flops",
 		}),
-		err: errors.New(`failed to parse "retryPeriod": time: invalid duration flops`),
+		err: `failed to parse "retryPeriod": time: invalid duration`,
 	}, {
 		name: "invalid buckets - not an int",
 		data: kmeta.UnionMaps(okData(), map[string]string{
 			"buckets": "not-an-int",
 		}),
-		err: errors.New(`failed to parse "buckets": strconv.ParseUint: parsing "not-an-int": invalid syntax`),
+		err: `failed to parse "buckets": strconv.ParseUint: parsing "not-an-int": invalid syntax`,
 	}, {
 		name: "invalid buckets - too small",
 		data: kmeta.UnionMaps(okData(), map[string]string{
 			"buckets": "0",
 		}),
-		err: fmt.Errorf("buckets: value must be between 1 <= 0 <= %d", MaxBuckets),
+		err: fmt.Sprint("buckets: value must be between 1 <= 0 <= ", MaxBuckets),
 	}, {
 		name: "invalid buckets - too large",
 		data: kmeta.UnionMaps(okData(), map[string]string{
 			"buckets": strconv.Itoa(int(MaxBuckets + 1)),
 		}),
-		err: fmt.Errorf(`buckets: value must be between 1 <= %d <= %d`, MaxBuckets+1, MaxBuckets),
+		err: fmt.Sprintf("buckets: value must be between 1 <= %d <= %d", MaxBuckets+1, MaxBuckets),
 	}}
 
 	for _, tc := range cases {
@@ -138,8 +122,12 @@ func TestNewConfigMapFromData(t *testing.T) {
 					Data: tc.data,
 				})
 
-			if tc.err != nil && tc.err.Error() != actualErr.Error() {
-				t.Fatalf("Error = %v, want: %v", actualErr, tc.err)
+			if actualErr != nil {
+				if got, want := actualErr.Error(), tc.err; !strings.HasPrefix(got, want) {
+					t.Fatalf("Err = '%s', want: '%s'", got, want)
+				}
+			} else if tc.err != "" {
+				t.Fatal("Expected an error, got none")
 			}
 
 			if got, want := actualConfig, tc.expected; !cmp.Equal(got, want) {
@@ -158,32 +146,15 @@ func TestGetComponentConfig(t *testing.T) {
 	}{{
 		name: "component enabled",
 		config: Config{
-			ResourceLock:      "leases",
-			LeaseDuration:     15 * time.Second,
-			RenewDeadline:     10 * time.Second,
-			RetryPeriod:       2 * time.Second,
-			EnabledComponents: sets.NewString(expectedName),
-		},
-		expected: ComponentConfig{
-			Component:     expectedName,
-			LeaderElect:   true,
-			ResourceLock:  "leases",
 			LeaseDuration: 15 * time.Second,
 			RenewDeadline: 10 * time.Second,
 			RetryPeriod:   2 * time.Second,
 		},
-	}, {
-		name: "component disabled",
-		config: Config{
-			ResourceLock:      "leases",
-			LeaseDuration:     15 * time.Second,
-			RenewDeadline:     10 * time.Second,
-			RetryPeriod:       2 * time.Second,
-			EnabledComponents: sets.NewString("not-the-component"),
-		},
 		expected: ComponentConfig{
-			Component:   expectedName,
-			LeaderElect: false,
+			Component:     expectedName,
+			LeaseDuration: 15 * time.Second,
+			RenewDeadline: 10 * time.Second,
+			RetryPeriod:   2 * time.Second,
 		},
 	}}
 
@@ -192,6 +163,85 @@ func TestGetComponentConfig(t *testing.T) {
 			actual := tc.config.GetComponentConfig(expectedName)
 			if got, want := actual, tc.expected; !cmp.Equal(got, want) {
 				t.Errorf("Incorrect config: diff(-want,+got):\n%s", cmp.Diff(want, got))
+			}
+		})
+	}
+}
+
+func TestNewStatefulSetConfig(t *testing.T) {
+	cases := []struct {
+		name     string
+		pod      string
+		service  string
+		port     string
+		protocol string
+		wantErr  string
+		expected statefulSetConfig
+	}{{
+		name:    "success with default",
+		pod:     "as-42",
+		service: "autoscaler",
+		expected: statefulSetConfig{
+			StatefulSetID: statefulSetID{
+				ssName:  "as",
+				ordinal: 42,
+			},
+			ServiceName: "autoscaler",
+			Port:        "80",
+			Protocol:    "http",
+		},
+	}, {
+		name:     "success with overriding",
+		pod:      "as-42",
+		service:  "autoscaler",
+		port:     "8080",
+		protocol: "ws",
+		expected: statefulSetConfig{
+			StatefulSetID: statefulSetID{
+				ssName:  "as",
+				ordinal: 42,
+			},
+			ServiceName: "autoscaler",
+			Port:        "8080",
+			Protocol:    "ws",
+		},
+	}, {
+		name:    "failure with empty envs",
+		wantErr: "required key STATEFUL_CONTROLLER_ORDINAL missing value",
+	}, {
+		name:    "failure with invalid name",
+		pod:     "as-abcd",
+		wantErr: `envconfig.Process: assigning STATEFUL_CONTROLLER_ORDINAL to StatefulSetID: converting 'as-abcd' to type leaderelection.statefulSetID. details: strconv.ParseUint: parsing "abcd": invalid syntax`,
+	}}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.pod != "" {
+				os.Setenv(controllerOrdinalEnv, tc.pod)
+				defer os.Unsetenv(controllerOrdinalEnv)
+			}
+			if tc.service != "" {
+				os.Setenv(serviceNameEnv, tc.service)
+				defer os.Unsetenv(serviceNameEnv)
+			}
+			if tc.port != "" {
+				os.Setenv(servicePortEnv, tc.port)
+				defer os.Unsetenv(servicePortEnv)
+			}
+			if tc.protocol != "" {
+				os.Setenv(serviceProtocolEnv, tc.protocol)
+				defer os.Unsetenv(serviceProtocolEnv)
+			}
+
+			ssc, err := newStatefulSetConfig()
+			if err != nil {
+				if got, want := err.Error(), tc.wantErr; got != want {
+					t.Errorf("Got error: %s. want: %s", got, want)
+				}
+			} else {
+				if got, want := *ssc, tc.expected; !cmp.Equal(got, want, cmp.AllowUnexported(statefulSetID{})) {
+					t.Errorf("Incorrect config: diff(-want,+got):\n%s", cmp.Diff(want, got))
+				}
 			}
 		})
 	}

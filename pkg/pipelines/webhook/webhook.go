@@ -76,13 +76,9 @@ func List(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, 
 }
 
 func newWebhookInfo(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, isCICD bool) (*webhookInfo, error) {
-	manifest, err := config.ParsePipelinesFolder(ioutils.NewFilesystem(), pipelinesFile)
+	manifest, err := config.LoadManifest(ioutils.NewFilesystem(), pipelinesFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse pipelines: %v", err)
-	}
-
-	if err := manifest.Validate(); err != nil {
-		return nil, err
 	}
 
 	gitRepoURL := getRepoURL(manifest, isCICD, serviceName)
@@ -115,7 +111,6 @@ func newWebhookInfo(accessToken, pipelinesFile string, serviceName *QualifiedSer
 }
 
 func (w *webhookInfo) exists() (bool, error) {
-
 	ids, err := w.repository.ListWebhooks(w.listenerURL)
 	if err != nil {
 		return false, err
@@ -125,17 +120,14 @@ func (w *webhookInfo) exists() (bool, error) {
 }
 
 func (w *webhookInfo) list() ([]string, error) {
-
 	return w.repository.ListWebhooks(w.listenerURL)
 }
 
 func (w *webhookInfo) delete(ids []string) ([]string, error) {
-
 	return w.repository.DeleteWebhooks(ids)
 }
 
 func (w *webhookInfo) create() (string, error) {
-
 	secret, err := getWebhookSecret(w.clusterResource, w.cicdNamepace, w.isCICD, w.serviceName)
 	if err != nil {
 		return "", fmt.Errorf("failed to get webhook secret: %v", err)
@@ -147,7 +139,6 @@ func (w *webhookInfo) create() (string, error) {
 // Get Git repository URL whether it is CICD configuration or service source repository
 // Return "" if not found
 func getRepoURL(manifest *config.Manifest, isCICD bool, serviceName *QualifiedServiceName) string {
-
 	if isCICD {
 		return manifest.GitOpsURL
 	}
@@ -172,7 +163,6 @@ func getSourceRepoURL(manifest *config.Manifest, service *QualifiedServiceName) 
 }
 
 func getListenerURL(r *resources, cicdNamespace string) (string, error) {
-
 	hasTLS, host, err := r.getListenerAddress(cicdNamespace, routes.GitOpsWebhookEventListenerRouteName)
 	if err != nil {
 		return "", err
@@ -182,7 +172,6 @@ func getListenerURL(r *resources, cicdNamespace string) (string, error) {
 }
 
 func buildURL(host string, hasTLS bool) string {
-
 	scheme := "http"
 	if hasTLS {
 		scheme = scheme + "s"

@@ -32,25 +32,24 @@ type AddServiceOptions struct {
 	SealedSecretsService     types.NamespacedName // SealedSecrets service name
 }
 
-func AddService(p *AddServiceOptions, fs afero.Fs) error {
-	m, err := config.ParsePipelinesFolder(fs, p.PipelinesFolderPath)
+func AddService(o *AddServiceOptions, appFs afero.Fs) error {
+	m, err := config.LoadManifest(appFs, o.PipelinesFolderPath)
 	if err != nil {
-		return fmt.Errorf("failed to parse pipelines-file: %v", err)
+		return err
 	}
-
-	files, err := serviceResources(m, fs, p)
+	files, err := serviceResources(m, appFs, o)
 	if err != nil {
 		return err
 	}
 
-	_, err = yaml.WriteResources(fs, p.PipelinesFolderPath, files)
+	_, err = yaml.WriteResources(appFs, o.PipelinesFolderPath, files)
 	if err != nil {
 		return err
 	}
 	cfg := m.GetPipelinesConfig()
 	if cfg != nil {
-		base := filepath.Join(p.PipelinesFolderPath, config.PathForPipelines(cfg), "base")
-		err = updateKustomization(fs, base)
+		base := filepath.Join(o.PipelinesFolderPath, config.PathForPipelines(cfg), "base")
+		err = updateKustomization(appFs, base)
 		if err != nil {
 			return err
 		}
@@ -58,7 +57,7 @@ func AddService(p *AddServiceOptions, fs afero.Fs) error {
 	return nil
 }
 
-func serviceResources(m *config.Manifest, fs afero.Fs, o *AddServiceOptions) (res.Resources, error) {
+func serviceResources(m *config.Manifest, appFs afero.Fs, o *AddServiceOptions) (res.Resources, error) {
 	files := res.Resources{}
 	svc, err := createService(o.ServiceName, o.GitRepoURL)
 	if err != nil {
@@ -127,7 +126,7 @@ func serviceResources(m *config.Manifest, fs afero.Fs, o *AddServiceOptions) (re
 		PipelinesFolderPath: o.PipelinesFolderPath,
 		OutputPath:          o.PipelinesFolderPath,
 	}
-	built, err := buildResources(fs, buildParams, m)
+	built, err := buildResources(appFs, buildParams, m)
 	if err != nil {
 		return nil, err
 	}
@@ -173,14 +172,14 @@ func createService(serviceName, url string) (*config.Service, error) {
 	}, nil
 }
 
-func updateKustomization(fs afero.Fs, base string) error {
+func updateKustomization(appFs afero.Fs, base string) error {
 	files := res.Resources{}
-	filenames, err := environments.ListFiles(fs, base)
+	filenames, err := environments.ListFiles(appFs, base)
 	if err != nil {
 		return err
 	}
 	files[Kustomize] = &res.Kustomization{Resources: filenames.Items()}
-	_, err = yaml.WriteResources(fs, base, files)
+	_, err = yaml.WriteResources(appFs, base, files)
 	return err
 }
 

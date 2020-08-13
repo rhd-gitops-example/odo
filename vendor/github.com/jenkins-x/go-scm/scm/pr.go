@@ -26,7 +26,6 @@ type (
 		Base           PullRequestBranch
 		Head           PullRequestBranch
 		Fork           string
-		Link           string
 		State          string
 		Closed         bool
 		Draft          bool
@@ -41,6 +40,12 @@ type (
 		Milestone      Milestone
 		Created        time.Time
 		Updated        time.Time
+
+		// Link links to the main pull request page
+		Link string
+
+		// DiffLink links to the diff report of a pull request
+		DiffLink string
 	}
 
 	PullRequestInput struct {
@@ -83,15 +88,17 @@ type (
 
 	// Change represents a changed file.
 	Change struct {
-		Path      string
-		Added     bool
-		Renamed   bool
-		Deleted   bool
-		Additions int
-		Deletions int
-		Changes   int
-		BlobURL   string
-		Sha       string
+		Path         string
+		PreviousPath string
+		Added        bool
+		Renamed      bool
+		Deleted      bool
+		Patch        string
+		Additions    int
+		Deletions    int
+		Changes      int
+		BlobURL      string
+		Sha          string
 	}
 
 	// PullRequestMergeOptions lets you define how a pull request will be merged.

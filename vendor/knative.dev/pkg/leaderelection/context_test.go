@@ -22,12 +22,14 @@ package leaderelection
 import (
 	"context"
 	"os"
+	"sort"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	fakekube "k8s.io/client-go/kubernetes/fake"
 	ktesting "k8s.io/client-go/testing"
 	"knative.dev/pkg/reconciler"
@@ -35,11 +37,10 @@ import (
 )
 
 func TestWithBuilder(t *testing.T) {
+	const buckets = 3
 	cc := ComponentConfig{
 		Component:     "the-component",
-		LeaderElect:   true,
-		Buckets:       1,
-		ResourceLock:  "leases",
+		Buckets:       buckets,
 		LeaseDuration: 15 * time.Second,
 		RenewDeadline: 10 * time.Second,
 		RetryPeriod:   2 * time.Second,
@@ -47,15 +48,16 @@ func TestWithBuilder(t *testing.T) {
 	kc := fakekube.NewSimpleClientset()
 	ctx := context.Background()
 
-	promoted := make(chan struct{})
+	gotNames := make(sets.String, buckets)
+	promoted := make(chan string)
 	demoted := make(chan struct{})
 	laf := &reconciler.LeaderAwareFuncs{
 		PromoteFunc: func(bkt reconciler.Bucket, enq func(reconciler.Bucket, types.NamespacedName)) error {
-			close(promoted)
+			promoted <- bkt.Name()
 			return nil
 		},
 		DemoteFunc: func(bkt reconciler.Bucket) {
-			close(demoted)
+			demoted <- struct{}{}
 		},
 	}
 	enq := func(reconciler.Bucket, types.NamespacedName) {}
@@ -63,7 +65,7 @@ func TestWithBuilder(t *testing.T) {
 	created := make(chan struct{})
 	kc.PrependReactor("create", "leases",
 		func(action ktesting.Action) (bool, runtime.Object, error) {
-			close(created)
+			created <- struct{}{}
 			return false, nil, nil
 		},
 	)
@@ -71,7 +73,7 @@ func TestWithBuilder(t *testing.T) {
 	updated := make(chan struct{})
 	kc.PrependReactor("update", "leases",
 		func(action ktesting.Action) (bool, runtime.Object, error) {
-			// Only close update once.
+			// Only close updated once.
 			select {
 			case <-updated:
 			default:
@@ -102,7 +104,8 @@ func TestWithBuilder(t *testing.T) {
 
 	// We shouldn't see leases until we Run the elector.
 	select {
-	case <-promoted:
+	case s := <-promoted:
+		gotNames.Insert(s)
 		t.Error("Got promoted, want no actions.")
 	case <-demoted:
 		t.Error("Got demoted, want no actions.")
@@ -117,17 +120,22 @@ func TestWithBuilder(t *testing.T) {
 	t.Cleanup(cancel)
 	go le.Run(ctx)
 
-	select {
-	case <-created:
-		// We expect the lease to be created.
-	case <-time.After(1 * time.Second):
-		t.Fatal("Timed out waiting for lease creation.")
+	// We expect 3 lease to be created.
+	for i := 0; i < buckets; i++ {
+		select {
+		case <-created:
+		case <-time.After(1 * time.Second):
+			t.Fatal("Timed out waiting for lease creation.")
+		}
 	}
-	select {
-	case <-promoted:
-		// We expect to have been promoted.
-	case <-time.After(1 * time.Second):
-		t.Fatal("Timed out waiting for promotion.")
+	// We expect to have been promoted 3 times.
+	for i := 0; i < buckets; i++ {
+		select {
+		case s := <-promoted:
+			gotNames.Insert(s)
+		case <-time.After(time.Second):
+			t.Fatal("Timed out waiting for promotion.")
+		}
 	}
 
 	// Cancelling the context should case us to give up leadership.
@@ -136,24 +144,71 @@ func TestWithBuilder(t *testing.T) {
 	select {
 	case <-updated:
 		// We expect the lease to be updated.
-	case <-time.After(1 * time.Second):
+	case <-time.After(time.Second):
 		t.Fatal("Timed out waiting for lease update.")
 	}
-	select {
-	case <-demoted:
-		// We expect to have been demoted.
-	case <-time.After(1 * time.Second):
-		t.Fatal("Timed out waiting for demotion.")
+	// We expect to have been demoted 3 times.
+	for i := 0; i < buckets; i++ {
+		select {
+		case <-demoted:
+		case <-time.After(time.Second):
+			t.Fatal("Timed out waiting for demotion.")
+		}
+	}
+
+	want := sets.NewString(
+		"the-component.name.00-of-03",
+		"the-component.name.01-of-03",
+		"the-component.name.02-of-03",
+	)
+	if !gotNames.Equal(want) {
+		t.Errorf("BucketSet.BucketList() = %q, want: %q", gotNames, want)
+	}
+}
+
+func TestNewStatefulSetBucketAndSet(t *testing.T) {
+	wantNames := []string{
+		"http://as-0.autoscaler.knative-testing.svc.cluster.local:80",
+		"http://as-1.autoscaler.knative-testing.svc.cluster.local:80",
+		"http://as-2.autoscaler.knative-testing.svc.cluster.local:80",
+	}
+
+	os.Setenv(controllerOrdinalEnv, "as-2")
+	os.Setenv(serviceNameEnv, "autoscaler")
+	t.Cleanup(func() {
+		os.Unsetenv(controllerOrdinalEnv)
+		os.Unsetenv(serviceNameEnv)
+	})
+
+	_, _, err := NewStatefulSetBucketAndSet(2)
+	if err == nil {
+		// Ordinal 2 should be range [0, 2)
+		t.Fatal("Expected error from NewStatefulSetBucketAndSet but got nil")
+	}
+
+	bkt, bs, err := NewStatefulSetBucketAndSet(3)
+	if err != nil {
+		// Ordinal 2 should be range [0, 2)
+		t.Fatal("NewStatefulSetBucketAndSet() = ", err)
+	}
+
+	if got, want := bkt.Name(), wantNames[2]; got != want {
+		t.Errorf("Bucket.Name() = %s, want = %s", got, want)
+	}
+
+	gotNames := bs.BucketList()
+	sort.Strings(gotNames)
+	if !cmp.Equal(gotNames, wantNames) {
+		t.Errorf("BucketSet.BucketList() = %q, want: %q", gotNames, wantNames)
 	}
 }
 
 func TestWithStatefulSetBuilder(t *testing.T) {
 	cc := ComponentConfig{
-		Component:   "the-component",
-		LeaderElect: true,
-		Buckets:     1,
+		Component: "the-component",
+		Buckets:   3,
 	}
-	const podDNS = "ws://as-42.autoscaler.knative-testing.svc.cluster.local:8080"
+	const podDNS = "http://as-2.autoscaler.knative-testing.svc.cluster.local:80"
 	ctx := context.Background()
 
 	promoted := make(chan struct{})
@@ -165,22 +220,16 @@ func TestWithStatefulSetBuilder(t *testing.T) {
 	}
 	enq := func(reconciler.Bucket, types.NamespacedName) {}
 
-	if os.Setenv(controllerOrdinalEnv, "as-42") != nil {
-		t.Fatalf("Failed to set env var %s=%s", controllerOrdinalEnv, "as-42")
+	if os.Setenv(controllerOrdinalEnv, "as-2") != nil {
+		t.Fatalf("Failed to set env var %s=%s", controllerOrdinalEnv, "as-2")
 	}
-	defer os.Unsetenv(controllerOrdinalEnv)
-	if os.Setenv("STATEFUL_SERVICE_NAME", "autoscaler") != nil {
-		t.Fatalf("Failed to set env var %s=%s", "STATEFUL_SERVICE_NAME", "autoscaler")
+	if os.Setenv(serviceNameEnv, "autoscaler") != nil {
+		t.Fatalf("Failed to set env var %s=%s", serviceNameEnv, "autoscaler")
 	}
-	defer os.Unsetenv("STATEFUL_SERVICE_NAME")
-	if os.Setenv("STATEFUL_SERVICE_PORT", "8080") != nil {
-		t.Fatalf("Failed to set env var %s=%s", "STATEFUL_SERVICE_PORT", "8080")
-	}
-	defer os.Unsetenv("STATEFUL_SERVICE_PORT")
-	if os.Setenv("STATEFUL_SERVICE_PROTOCOL", "ws") != nil {
-		t.Fatalf("Failed to set env var %s=%s", "STATEFUL_SERVICE_PROTOCOL", "ws")
-	}
-	defer os.Unsetenv("STATEFUL_SERVICE_PROTOCOL")
+	t.Cleanup(func() {
+		os.Unsetenv(controllerOrdinalEnv)
+		os.Unsetenv(serviceNameEnv)
+	})
 
 	ctx = WithDynamicLeaderElectorBuilder(ctx, nil, cc)
 	if !HasLeaderElection(ctx) {
@@ -191,19 +240,6 @@ func TestWithStatefulSetBuilder(t *testing.T) {
 	ssb, ok := b.(*statefulSetBuilder)
 	if !ok || ssb == nil {
 		t.Fatal("StatefulSetBuilder not found on context")
-	}
-	want := statefulSetConfig{
-		StatefulSetID: statefulSetID{
-			ssName:  "as",
-			ordinal: 42,
-		},
-		ServiceName: "autoscaler",
-		Port:        "8080",
-		Protocol:    "ws",
-	}
-	if !cmp.Equal(ssb.ssc, want, cmp.AllowUnexported(statefulSetID{})) {
-		t.Errorf("StatefulSetConfig = %#v, want: %#v,diff(-want,+got)\n%s", ssb.ssc, want,
-			cmp.Diff(want, ssb.ssc, cmp.AllowUnexported(statefulSetID{})))
 	}
 
 	le, err := BuildElector(ctx, laf, "name", enq)
@@ -233,7 +269,7 @@ func TestWithStatefulSetBuilder(t *testing.T) {
 	select {
 	case <-promoted:
 		// We expect to have been promoted.
-	case <-time.After(1 * time.Second):
+	case <-time.After(time.Second):
 		t.Fatal("Timed out waiting for promotion.")
 	}
 }

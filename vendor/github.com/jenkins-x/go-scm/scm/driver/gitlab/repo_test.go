@@ -19,6 +19,86 @@ import (
 // TODO(bradrydzewski) repository create date is missing
 // TODO(bradrydzewski) repository update date is missing
 
+func TestRepositoryCreate(t *testing.T) {
+	defer gock.Off()
+
+	gock.New("https://gitlab.com").
+		Get("/api/v4/namespaces").
+		MatchParam("search", "diaspora").
+		Reply(200).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/find_namespace.json")
+
+	gock.New("https://gitlab.com").
+		Post("/api/v4/projects").
+		File("testdata/create_project.json").
+		Reply(200).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/repo.json")
+
+	client := NewDefault()
+	input := &scm.RepositoryInput{
+		Name:        "diaspora",
+		Namespace:   "diaspora",
+		Private:     false,
+		Description: "",
+	}
+	got, res, err := client.Repositories.Create(context.Background(), input)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	want := new(scm.Repository)
+	raw, _ := ioutil.ReadFile("testdata/repo.json.golden")
+	json.Unmarshal(raw, want)
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("Unexpected Results")
+		t.Log(diff)
+	}
+
+	t.Run("Request", testRequest(res))
+	t.Run("Rate", testRate(res))
+}
+
+func TestRepositoryFork(t *testing.T) {
+	defer gock.Off()
+
+	gock.New("https://gitlab.com").
+		Post("/api/v4/projects/something/diaspora/fork").
+		File("testdata/fork_project.json").
+		Reply(200).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/repo.json")
+
+	client := NewDefault()
+	input := &scm.RepositoryInput{
+		Name:      "diaspora",
+		Namespace: "diaspora",
+	}
+	got, res, err := client.Repositories.Fork(context.Background(), input, "something/diaspora")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	want := new(scm.Repository)
+	raw, _ := ioutil.ReadFile("testdata/repo.json.golden")
+	json.Unmarshal(raw, want)
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("Unexpected Results")
+		t.Log(diff)
+	}
+
+	t.Run("Request", testRequest(res))
+	t.Run("Rate", testRate(res))
+}
+
 func TestRepositoryFind(t *testing.T) {
 	defer gock.Off()
 
@@ -134,6 +214,36 @@ func TestRepositoryList(t *testing.T) {
 	t.Run("Request", testRequest(res))
 	t.Run("Rate", testRate(res))
 	t.Run("Page", testPage(res))
+}
+
+func TestAddCollaborator(t *testing.T) {
+	defer gock.Off()
+
+	gock.New("https://gitlab.com").
+		Get("/api/v4/users").
+		MatchParam("search", "john_smith").
+		Reply(200).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/user_search.json")
+
+	gock.New("https://gitlab.com").
+		Post("/api/v4/projects/diaspora/diaspora/members").
+		File("testdata/add_collaborator.json").
+		Reply(200).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/add_collaborator_user.json")
+
+	client := NewDefault()
+	_, _, res, err := client.Repositories.AddCollaborator(context.Background(), "diaspora/diaspora", "john_smith", scm.WritePermission)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Run("Request", testRequest(res))
+	t.Run("Rate", testRate(res))
 }
 
 func TestListContributor(t *testing.T) {

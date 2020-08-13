@@ -221,6 +221,7 @@ type pr struct {
 	Body               string      `json:"body"`
 	Labels             []*label    `json:"labels"`
 	DiffURL            string      `json:"diff_url"`
+	HTMLURL            string      `json:"html_url"`
 	User               user        `json:"user"`
 	RequestedReviewers []user      `json:"requested_reviewers"`
 	Assignees          []user      `json:"assignees"`
@@ -279,7 +280,8 @@ func convertPullRequest(from *pr) *scm.PullRequest {
 		Fork:           from.Head.Repo.FullName,
 		Base:           *convertPullRequestBranch(&from.Base),
 		Head:           *convertPullRequestBranch(&from.Head),
-		Link:           from.DiffURL,
+		DiffLink:       from.DiffURL,
+		Link:           from.HTMLURL,
 		Closed:         from.State != "open",
 		Draft:          from.Draft,
 		MergeSha:       from.MergeSha,
@@ -327,14 +329,16 @@ func convertChangeList(from []*file) []*scm.Change {
 
 func convertChange(from *file) *scm.Change {
 	return &scm.Change{
-		Path:      from.Filename,
-		Added:     from.Status == "added",
-		Deleted:   from.Status == "deleted",
-		Renamed:   from.Status == "moved",
-		Additions: from.Additions,
-		Deletions: from.Deletions,
-		Changes:   from.Changes,
-		BlobURL:   from.BlobURL,
-		Sha:       from.Sha,
+		Path:         from.Filename,
+		PreviousPath: from.PreviousFilename,
+		Added:        from.Status == "added",
+		Deleted:      from.Status == "deleted",
+		Renamed:      from.Status == "moved",
+		Patch:        from.Patch,
+		Additions:    from.Additions,
+		Deletions:    from.Deletions,
+		Changes:      from.Changes,
+		BlobURL:      from.BlobURL,
+		Sha:          from.Sha,
 	}
 }

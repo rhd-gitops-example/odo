@@ -104,6 +104,7 @@ type (
 		Label  string
 		Desc   string
 		Target string
+		Link   string
 	}
 
 	// StatusInput provides the input fields required for
@@ -113,6 +114,7 @@ type (
 		Label  string
 		Desc   string
 		Target string
+		Link   string
 	}
 
 	// RepositoryService provides access to repository resources.
@@ -150,6 +152,9 @@ type (
 		// Create creates a new repository .
 		Create(context.Context, *RepositoryInput) (*Repository, *Response, error)
 
+		// Fork creatings a new repository as a fork of an existing one.
+		Fork(context.Context, *RepositoryInput, string) (*Repository, *Response, error)
+
 		// CreateHook creates a new repository webhook.
 		CreateHook(context.Context, string, *HookInput) (*Hook, *Response, error)
 
@@ -160,7 +165,10 @@ type (
 		DeleteHook(context.Context, string, string) (*Response, error)
 
 		// IsCollaborator returns true if the user is a collaborator on the repository
-		IsCollaborator(ctx context.Context, repo, user string) (bool, *Response, error)
+		IsCollaborator(ctx context.Context, repo string, user string) (bool, *Response, error)
+
+		// AddCollaborator adds a collaborator to the repository
+		AddCollaborator(ctx context.Context, repo, user, permission string) (bool, bool, *Response, error)
 
 		// ListCollaborators lists the collaborators on a repository
 		ListCollaborators(ctx context.Context, repo string, ops ListOptions) ([]User, *Response, error)

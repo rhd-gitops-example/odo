@@ -1,8 +1,6 @@
 package pipelines
 
 import (
-	"fmt"
-
 	"github.com/openshift/odo/pkg/pipelines/argocd"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/environments"
@@ -20,11 +18,8 @@ type BuildParameters struct {
 
 // BuildResources builds all resources from a pipelines.
 func BuildResources(o *BuildParameters, appFs afero.Fs) error {
-	m, err := config.ParsePipelinesFolder(appFs, o.PipelinesFolderPath)
+	m, err := config.LoadManifest(appFs, o.PipelinesFolderPath)
 	if err != nil {
-		return fmt.Errorf("failed to parse pipelines: %v", err)
-	}
-	if err := m.Validate(); err != nil {
 		return err
 	}
 	resources, err := buildResources(appFs, o, m)

@@ -55,6 +55,26 @@ func (s *repositoryService) ListUser(context.Context, string, scm.ListOptions) (
 	panic("implement me")
 }
 
+func (s *repositoryService) AddCollaborator(ctx context.Context, repo, user, permission string) (bool, bool, *scm.Response, error) {
+	s.data.Collaborators = append(s.data.Collaborators, user)
+	if len(s.data.UserPermissions) == 0 {
+		s.data.UserPermissions = make(map[string]map[string]string)
+	}
+	m := s.data.UserPermissions[repo]
+	if len(m) == 0 {
+		m = make(map[string]string)
+	}
+
+	alreadyExists := false
+	if _, ok := m[user]; ok {
+		alreadyExists = true
+	}
+	m[user] = permission
+
+	s.data.UserPermissions[repo] = m
+	return true, alreadyExists, nil, nil
+}
+
 func (s *repositoryService) IsCollaborator(ctx context.Context, repo, login string) (bool, *scm.Response, error) {
 	f := s.data
 	normed := NormLogin(login)
@@ -118,6 +138,11 @@ func (s *repositoryService) Create(ctx context.Context, input *scm.RepositoryInp
 	}
 	s.data.Repositories = append(s.data.Repositories, repo)
 	return repo, nil, nil
+}
+
+func (s *repositoryService) Fork(ctx context.Context, input *scm.RepositoryInput, origRepo string) (*scm.Repository, *scm.Response, error) {
+	// TODO: Actually make this fork rather than just duplicate Create.
+	return s.Create(ctx, input)
 }
 
 func (s *repositoryService) ListHooks(ctx context.Context, fullName string, opts scm.ListOptions) ([]*scm.Hook, *scm.Response, error) {

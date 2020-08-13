@@ -15,7 +15,7 @@ import (
 )
 
 func TestAddEnv(t *testing.T) {
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
 	pipelinesFile := filepath.Join(gitopsPath, pipelinesFile)
 	envParameters := EnvParameters{
@@ -54,7 +54,7 @@ func TestAddEnv(t *testing.T) {
 }
 
 func TestAddEnvWithClusterProvided(t *testing.T) {
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
 	pipelinesFilePath := filepath.Join(gitopsPath, pipelinesFile)
 	envParameters := EnvParameters{
@@ -95,7 +95,7 @@ func TestAddEnvWithClusterProvided(t *testing.T) {
 }
 
 func TestAddEnvWithExistingName(t *testing.T) {
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	gitopsPath := afero.GetTempDir(fakeFs, "test")
 
 	pipelinesFile := filepath.Join(gitopsPath, pipelinesFile)

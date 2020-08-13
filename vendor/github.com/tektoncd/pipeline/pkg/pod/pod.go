@@ -34,6 +34,8 @@ import (
 )
 
 const (
+	homeDir = "/tekton/home"
+
 	// ResultsDir is the folder used by default to create the results file
 	ResultsDir = "/tekton/results"
 
@@ -56,7 +58,7 @@ var (
 		MountPath: pipeline.WorkspaceDir,
 	}, {
 		Name:      "tekton-internal-home",
-		MountPath: pipeline.HomeDir,
+		MountPath: homeDir,
 	}, {
 		Name:      "tekton-internal-results",
 		MountPath: ResultsDir,
@@ -73,9 +75,18 @@ var (
 	}}
 )
 
-// MakePod converts TaskRun and TaskSpec objects to a Pod which implements the taskrun specified
-// by the supplied CRD.
-func MakePod(ctx context.Context, images pipeline.Images, taskRun *v1beta1.TaskRun, taskSpec v1beta1.TaskSpec, kubeclient kubernetes.Interface, entrypointCache EntrypointCache, overrideHomeEnv bool) (*corev1.Pod, error) {
+// Builder exposes options to configure Pod construction from TaskSpecs/Runs.
+type Builder struct {
+	Images          pipeline.Images
+	KubeClient      kubernetes.Interface
+	EntrypointCache EntrypointCache
+	OverrideHomeEnv bool
+}
+
+// Build creates a Pod using the configuration options set on b and the TaskRun
+// and TaskSpec provided in its arguments. An error is returned if there are
+// any problems during the conversion.
+func (b *Builder) Build(ctx context.Context, taskRun *v1beta1.TaskRun, taskSpec v1beta1.TaskSpec) (*corev1.Pod, error) {
 	var initContainers []corev1.Container
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
@@ -85,26 +96,22 @@ func MakePod(ctx context.Context, images pipeline.Images, taskRun *v1beta1.TaskR
 	volumes = append(volumes, implicitVolumes...)
 	volumeMounts = append(volumeMounts, implicitVolumeMounts...)
 
-	if overrideHomeEnv {
+	if b.OverrideHomeEnv {
 		implicitEnvVars = append(implicitEnvVars, corev1.EnvVar{
 			Name:  "HOME",
-			Value: pipeline.HomeDir,
+			Value: homeDir,
 		})
-	} else {
-		// Add the volume that creds-init will write to when
-		// there's no consistent $HOME for Steps.
-		v, vm := getCredsInitVolume(volumes)
-		volumes = append(volumes, v)
-		volumeMounts = append(volumeMounts, vm)
 	}
 
-	// Inititalize any credentials found in annotated Secrets.
-	if credsInitContainer, secretsVolumes, err := credsInit(images.CredsImage, taskRun.Spec.ServiceAccountName, taskRun.Namespace, kubeclient, volumeMounts, implicitEnvVars); err != nil {
+	// Create Volumes and VolumeMounts for any credentials found in annotated
+	// Secrets, along with any arguments needed by Step entrypoints to process
+	// those secrets.
+	credEntrypointArgs, credVolumes, credVolumeMounts, err := credsInit(taskRun.Spec.ServiceAccountName, taskRun.Namespace, b.KubeClient)
+	if err != nil {
 		return nil, err
-	} else if credsInitContainer != nil {
-		initContainers = append(initContainers, *credsInitContainer)
-		volumes = append(volumes, secretsVolumes...)
 	}
+	volumes = append(volumes, credVolumes...)
+	volumeMounts = append(volumeMounts, credVolumeMounts...)
 
 	// Merge step template with steps.
 	// TODO(#1605): Move MergeSteps to pkg/pod
@@ -115,33 +122,33 @@ func MakePod(ctx context.Context, images pipeline.Images, taskRun *v1beta1.TaskR
 
 	// Convert any steps with Script to command+args.
 	// If any are found, append an init container to initialize scripts.
-	scriptsInit, stepContainers, sidecarContainers := convertScripts(images.ShellImage, steps, taskSpec.Sidecars)
+	scriptsInit, stepContainers, sidecarContainers := convertScripts(b.Images.ShellImage, steps, taskSpec.Sidecars)
 	if scriptsInit != nil {
 		initContainers = append(initContainers, *scriptsInit)
 		volumes = append(volumes, scriptsVolume)
 	}
 
 	// Initialize any workingDirs under /workspace.
-	if workingDirInit := workingDirInit(images.ShellImage, stepContainers); workingDirInit != nil {
+	if workingDirInit := workingDirInit(b.Images.ShellImage, stepContainers); workingDirInit != nil {
 		initContainers = append(initContainers, *workingDirInit)
 	}
 
 	// Resolve entrypoint for any steps that don't specify command.
-	stepContainers, err = resolveEntrypoints(entrypointCache, taskRun.Namespace, taskRun.Spec.ServiceAccountName, stepContainers)
+	stepContainers, err = resolveEntrypoints(b.EntrypointCache, taskRun.Namespace, taskRun.Spec.ServiceAccountName, stepContainers)
 	if err != nil {
 		return nil, err
 	}
 
 	// Rewrite steps with entrypoint binary. Append the entrypoint init
 	// container to place the entrypoint binary.
-	entrypointInit, stepContainers, err := orderContainers(images.EntrypointImage, stepContainers, taskSpec.Results)
+	entrypointInit, stepContainers, err := orderContainers(b.Images.EntrypointImage, credEntrypointArgs, stepContainers, taskSpec.Results)
 	if err != nil {
 		return nil, err
 	}
 	initContainers = append(initContainers, entrypointInit)
 	volumes = append(volumes, toolsVolume, downwardVolume)
 
-	limitRangeMin, err := getLimitRangeMinimum(taskRun.Namespace, kubeclient)
+	limitRangeMin, err := getLimitRangeMinimum(taskRun.Namespace, b.KubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -160,6 +167,13 @@ func MakePod(ctx context.Context, images pipeline.Images, taskRun *v1beta1.TaskR
 	// Add implicit volume mounts to each step, unless the step specifies
 	// its own volume mount at that path.
 	for i, s := range stepContainers {
+		// Mount /tekton/creds with a fresh volume for each Step. It needs to
+		// be world-writeable and empty so creds can be initialized in there. Cant
+		// guarantee what UID container runs with.
+		v, vm := getCredsInitVolume()
+		volumes = append(volumes, v)
+		s.VolumeMounts = append(s.VolumeMounts, vm)
+
 		requestedVolumeMounts := map[string]bool{}
 		for _, vm := range s.VolumeMounts {
 			requestedVolumeMounts[filepath.Clean(vm.MountPath)] = true
