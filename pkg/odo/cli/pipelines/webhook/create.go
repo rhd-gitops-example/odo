@@ -31,7 +31,6 @@ func (o *createOptions) Run() error {
 	id, err := backend.Create(o.accessToken, o.pipelinesFolderPath, o.getAppServiceNames(), o.isCICD)
 
 	if err != nil {
-		fmt.Println("This is the error", err, id)
 		return fmt.Errorf("Unable to create webhook: %v", err)
 	}
 

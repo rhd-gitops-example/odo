@@ -26,7 +26,7 @@ var (
 )
 
 // DefaultPublicKeyFunc is the func used to get the key from Bitnami.
-var DefaultPublicKeyFunc = getClusterPublicKey
+var DefaultPublicKeyFunc = GetClusterPublicKey
 
 // PublicKeyFunc retruns a public key  give a service namedspaced name
 type PublicKeyFunc func(service types.NamespacedName) (*rsa.PublicKey, error)
@@ -83,22 +83,6 @@ func seal(secret *corev1.Secret, pubKey PublicKeyFunc, service types.NamespacedN
 }
 
 // Retrieves a public key from sealed-secrets-service, by finding the
-// service in the provided namespaced name and fetching its key.
-func getClusterPublicKey(service types.NamespacedName) (*rsa.PublicKey, error) {
-	client, err := getRESTClient()
-	if err != nil {
-		return nil, err
-	}
-
-	f, err := openCertCluster(client, service)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	return parseKey(f)
-}
-
-// Retrieves a public key from sealed-secrets-service+1, by finding the
 // service in the provided namespaced name and fetching its key.
 func GetClusterPublicKey(service types.NamespacedName) (*rsa.PublicKey, error) {
 	client, err := getRESTClient()
