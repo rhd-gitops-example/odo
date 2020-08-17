@@ -1,6 +1,7 @@
 package pipelines
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -12,9 +13,11 @@ import (
 	"github.com/openshift/odo/pkg/odo/cli/pipelines/utility"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
+	"github.com/openshift/odo/pkg/pipelines/git"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
-	"github.com/openshift/odo/pkg/pipelines/scm"
+	sc "github.com/openshift/odo/pkg/pipelines/scm"
+	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -89,7 +92,7 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 
 	io.GitOpsRepoURL = ui.EnterGitRepo()
 	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
-	_, err := scm.NewRepository(io.GitOpsRepoURL)
+	_, err := sc.NewRepository(io.GitOpsRepoURL)
 	if err != nil {
 		return err
 	}
@@ -101,7 +104,7 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	} else {
 		io.DockerConfigJSONFilename = ui.EnterDockercfg()
 		fs := ioutils.NewFilesystem()
-		_, err = pipelines.CheckFileExists(fs, io.DockerConfigJSONFilename)
+		_, err := pipelines.CheckFileExists(fs, io.DockerConfigJSONFilename)
 		if err != nil {
 			return err
 		}
@@ -113,14 +116,18 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	}
 	io.SealedSecretsService.Name = ui.EnterSealedSecretService()
 	io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
+	_, err = secrets.GetClusterPublicKey(io.SealedSecretsService)
+	if err != nil {
+		return fmt.Errorf("Kindly install sealed secrets controller in the correct namespace")
+	}
 	io.Prefix = ui.EnterPrefix()
 	io.ServiceRepoURL = ui.EnterServiceRepoURL()
-	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
-	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
-	_, err = scm.NewRepository(io.ServiceRepoURL)
+	_, err = sc.NewRepository(io.ServiceRepoURL)
 	if err != nil {
 		return err
 	}
+	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
+	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
 	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
 	if ui.CheckSecretLength(io.ServiceWebhookSecret) {
 		return fmt.Errorf("The GitOps Webhook Secret length should 16 or more ")
@@ -128,6 +135,13 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
 	if commitStatusTrackerCheck == "yes" {
 		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
+		repo, _ := git.NewRepository(io.ServiceRepoURL, io.StatusTrackerAccessToken)
+		repoName, _ := repoFromURL(io.ServiceRepoURL)
+		_, _, err := repo.Client.Repositories.Find(context.Background(), repoName)
+		if err != nil {
+			return fmt.Errorf("The token passed is incorrect for repository %s", repoName)
+		}
+
 	}
 	io.OutputPath = ui.EnterOutputPath(io.GitOpsRepoURL)
 	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(io.OutputPath, "pipelines.yaml"))
@@ -241,4 +255,14 @@ func NewCmdWizard(name, fullName string) *cobra.Command {
 
 func clusterErr(errMsg string) error {
 	return fmt.Errorf("Couldn't connect to cluster: %s", errMsg)
+}
+
+//returns the username/reponame from the url
+func repoFromURL(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	parts := strings.Split(u.Path, "/")
+	return strings.TrimSuffix(parts[len(parts)-2], ".git") + "/" + strings.TrimSuffix(parts[len(parts)-1], ".git"), nil
 }
