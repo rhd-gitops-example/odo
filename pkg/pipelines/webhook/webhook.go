@@ -78,7 +78,6 @@ func List(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, 
 func newWebhookInfo(accessToken, pipelinesFile string, serviceName *QualifiedServiceName, isCICD bool) (*webhookInfo, error) {
 	manifest, err := config.ParsePipelinesFolder(ioutils.NewFilesystem(), pipelinesFile)
 	if err != nil {
-		fmt.Println("Reahed here 1")
 		return nil, fmt.Errorf("failed to parse pipelines: %v", err)
 	}
 
