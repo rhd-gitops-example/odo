@@ -37,10 +37,10 @@ type BuildParameters struct {
 	DockerConfigJSONFilename string                  // Credentials refers to the path to the dockerconfig file containing external registry credentials
 	Rootless                 bool                    // Rootless/Unprivileged builder pod
 	FromKind                 string
-	FromNamespace            string
-	FromName                 string
-	Script                   string
-	IncrementalBuild         bool
+	FromNamespace            string // Namespace where your builder image is prsent
+	FromName                 string // builder image name with tag
+	Script                   string //	Script URL path to override default scripts provided by builder image
+	IncrementalBuild         bool   //  Flag to perform increamental builds
 }
 
 // DeployParameters is a struct containing the parameters to be used when building the image for a devfile component
