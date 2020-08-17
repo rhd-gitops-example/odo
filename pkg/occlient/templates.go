@@ -349,7 +349,7 @@ func generateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta
 }
 
 func generateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta,
-	fromKind, fromNamespace, fromName, outputImageTag, outputType string) buildv1.BuildConfig {
+	fromKind, fromNamespace, fromName, outputImageTag, scriptUrl string, increamentalBuild bool, outputType string) buildv1.BuildConfig {
 	buildSource := buildv1.BuildSource{
 		Binary: &buildv1.BinaryBuildSource{},
 		Type:   buildv1.BuildSourceBinary,
@@ -375,6 +375,8 @@ func generateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta
 							Name:      fromName,
 							Namespace: fromNamespace,
 						},
+						Scripts:     scriptUrl,
+						Incremental: &increamentalBuild,
 					},
 				},
 			},

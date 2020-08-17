@@ -107,7 +107,7 @@ func (a Adapter) runBuildConfig(isS2i bool, client *occlient.Client, parameters 
 	}
 
 	if isS2i {
-		_, err = client.CreateSourceBuildConfigWithBinaryInput(commonObjectMeta, parameters.FromKind, parameters.FromNamespace, parameters.FromName, parameters.Tag, []corev1.EnvVar{}, buildOutput, secretName)
+		_, err = client.CreateSourceBuildConfigWithBinaryInput(commonObjectMeta, "ImageStreamTag", "openshift", "nodejs:12", parameters.Tag, "", true, []corev1.EnvVar{}, buildOutput, secretName)
 		if err != nil {
 			return err
 		}

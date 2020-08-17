@@ -3163,7 +3163,7 @@ func (c *Client) CreateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.
 	return bc, err
 }
 
-func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, fromKind, fromNamespace, fromName string, outputImageTag string, envVars []corev1.EnvVar, outputType string, secretName string) (bc buildv1.BuildConfig, err error) {
+func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, fromKind, fromNamespace, fromName string, outputImageTag string, scriptUrl string, increamentalBuild bool, envVars []corev1.EnvVar, outputType string, secretName string) (bc buildv1.BuildConfig, err error) {
 	// generate and create ImageStream if not present
 
 	var imageStream *imagev1.ImageStream
@@ -3179,7 +3179,7 @@ func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.
 	}
 
 	bc = generateSourceBuildConfigWithBinaryInput(commonObjectMeta, fromKind,
-		fromNamespace, fromName, outputImageTag, outputType)
+		fromNamespace, fromName, outputImageTag, scriptUrl, increamentalBuild, outputType)
 
 	if secretName != "" {
 		bc.Spec.CommonSpec.Output.PushSecret = &corev1.LocalObjectReference{

@@ -39,6 +39,8 @@ type BuildParameters struct {
 	FromKind                 string
 	FromNamespace            string
 	FromName                 string
+	Script                   string
+	IncrementalBuild         bool
 }
 
 // DeployParameters is a struct containing the parameters to be used when building the image for a devfile component
