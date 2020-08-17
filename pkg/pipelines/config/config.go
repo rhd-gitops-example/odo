@@ -41,6 +41,7 @@ type Manifest struct {
 	GitOpsURL    string         `json:"gitops_url,omitempty"`
 	Environments []*Environment `json:"environments,omitempty"`
 	Config       *Config        `json:"config,omitempty"`
+	Version      int            `json:"version,omitempty"`
 }
 
 // GetEnvironment returns a named environment if it exists in the configuration.

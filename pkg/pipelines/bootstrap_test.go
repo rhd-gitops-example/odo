@@ -66,6 +66,7 @@ func TestBootstrapManifest(t *testing.T) {
 		"environments/tst-dev/apps/app-http-api/services/http-api/base/config/200-service.yaml":    createBootstrapService("app-http-api", "tst-dev", "http-api"),
 		"environments/tst-dev/apps/app-http-api/services/http-api/base/config/kustomization.yaml":  &res.Kustomization{Resources: []string{"100-deployment.yaml", "200-service.yaml"}},
 		pipelinesFile: &config.Manifest{
+			Version:   version,
 			GitOpsURL: "https://github.com/my-org/gitops.git",
 			Environments: []*config.Environment{
 				{
@@ -204,7 +205,7 @@ func TestOverwriteFlag(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := Bootstrap(params, fakeFs)
-	want := errors.New("pipelines.yaml in output path already exists. If you want replace your existing files, please rerun with --overwrite.")
+	want := errors.New("pipelines.yaml in output path already exists. If you want replace your existing files, please rerun with --overwrite")
 	if got.Error() != want.Error() {
 		t.Fatalf("Got %s want %s", got, want)
 	}
@@ -216,6 +217,7 @@ func TestCreateManifest(t *testing.T) {
 	want := &config.Manifest{
 		GitOpsURL: repoURL,
 		Config:    Config,
+		Version:   version,
 	}
 	got := createManifest(repoURL, Config)
 	if diff := cmp.Diff(want, got); diff != "" {
