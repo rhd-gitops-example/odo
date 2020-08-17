@@ -3172,10 +3172,11 @@ func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.
 			ObjectMeta: commonObjectMeta,
 		}
 
-		_, err = c.imageClient.ImageStreams(c.Namespace).Create(imageStream)
 		if err != nil {
 			return bc, errors.Wrapf(err, "unable to create ImageStream for %s", commonObjectMeta.Name)
 		}
+
+		_, err = c.imageClient.ImageStreams(c.Namespace).Create(imageStream)
 	}
 
 	bc = generateSourceBuildConfigWithBinaryInput(commonObjectMeta, fromKind,
