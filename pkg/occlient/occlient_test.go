@@ -5007,6 +5007,132 @@ func TestWaitAndGetDC(t *testing.T) {
 	}
 }
 
+func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
+	type args struct {
+		commonObjectMeta metav1.ObjectMeta
+		kind             string
+		namespace        string
+		name             string
+		scripts          string
+		incremental      bool
+		envVars          []corev1.EnvVar
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+		actions int
+	}{
+		{
+			name: "Case 1 - Generate and create the BuildConfig",
+			args: args{
+				kind:        "ImageStreamTag",
+				namespace:   "testing",
+				name:        "nodejs:latest",
+				scripts:     "https://raw.githubusercontent.com/Shraddhak22/s2i-scripts/master/s2i/bin",
+				incremental: true,
+				commonObjectMeta: metav1.ObjectMeta{
+					Name: "nodejs",
+					Labels: map[string]string{
+						"app":                        "apptmp",
+						"app.kubernetes.io/instance": "nodejs",
+						"app.kubernetes.io/name":     "nodejs",
+						"app.kubernetes.io/part-of":  "apptmp",
+					},
+				},
+				envVars: []corev1.EnvVar{
+					{
+						Name:  "key",
+						Value: "value",
+					},
+					{
+						Name:  "key1",
+						Value: "value1",
+					},
+				},
+			},
+			wantErr: false,
+			actions: 3,
+		},
+
+		{
+			name: "Case 2 - Generate and create the BuildConfig but fail with unable to find image name",
+			args: args{
+				kind:        "ImageStreamTag",
+				namespace:   "testing",
+				name:        "fakeimage:notlatest",
+				scripts:     "",
+				incremental: true,
+				commonObjectMeta: metav1.ObjectMeta{
+					Name: "nodejs",
+					Labels: map[string]string{
+						"app":                        "apptmp",
+						"app.kubernetes.io/instance": "nodejs",
+						"app.kubernetes.io/name":     "nodejs",
+						"app.kubernetes.io/part-of":  "apptmp",
+					},
+					Annotations: map[string]string{
+						"app.openshift.io/vcs-uri":                "https://github.com/openshift/nodejs",
+						"app.kubernetes.io/component-source-type": "binary",
+					},
+				},
+				envVars: []corev1.EnvVar{
+					{
+						Name:  "key",
+						Value: "value",
+					},
+					{
+						Name:  "key1",
+						Value: "value1",
+					},
+				},
+			},
+			wantErr: true,
+			actions: 3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient, fakeClientSet := FakeNew()
+
+			fakeClientSet.ImageClientset.PrependReactor("get", "imagestreams", func(action ktesting.Action) (bool, runtime.Object, error) {
+				return true, fakeImageStream(tt.args.commonObjectMeta.Name, tt.args.commonObjectMeta.Namespace, []string{"latest"}), nil
+			})
+
+			// Run function CreateBuildConfig
+			bc, err := fakeClient.CreateSourceBuildConfigWithBinaryInput(tt.args.commonObjectMeta, tt.args.kind, tt.args.namespace, tt.args.name, "nodeimage", tt.args.scripts, tt.args.incremental, []corev1.EnvVar{}, "DockerImage", "")
+			//t.Errorf(bc.Spec.Strategy.SourceStrategy.From.Name)
+			if err == nil && !tt.wantErr {
+				// Check to see how many actions are being ran
+				if (len(fakeClientSet.ImageClientset.Actions()) != tt.actions) && !tt.wantErr {
+					t.Errorf("expected %v action(s) in CreateBuildConfig got %v: %v", tt.actions, len(fakeClientSet.ImageClientset.Actions()), fakeClientSet.ImageClientset.Actions())
+				}
+
+				// Check to see that names match
+				if bc.ObjectMeta.Name != tt.args.commonObjectMeta.Name {
+					t.Errorf("Expected buildConfig name %s, got '%s'", tt.args.commonObjectMeta.Name, bc.ObjectMeta.Name)
+				}
+
+				// Check to see that labels match
+				if !reflect.DeepEqual(tt.args.commonObjectMeta.Labels, bc.ObjectMeta.Labels) {
+					t.Errorf("Expected equal labels, got %+v, expected %+v", tt.args.commonObjectMeta.Labels, bc.ObjectMeta.Labels)
+				}
+
+				// Check to see that annotations match
+				if !reflect.DeepEqual(tt.args.commonObjectMeta.Annotations, bc.ObjectMeta.Annotations) {
+					t.Errorf("Expected equal annotations, got %+v, expected %+v", tt.args.commonObjectMeta.Annotations, bc.ObjectMeta.Annotations)
+				}
+
+			} else if err == nil && tt.wantErr {
+				t.Error("test failed, expected: false, got true")
+			} else if err != nil && !tt.wantErr {
+				t.Errorf("test failed, expected: no error, got error: %s", err.Error())
+			}
+
+		})
+	}
+}
+
 func TestCreateBuildConfig(t *testing.T) {
 	type args struct {
 		commonObjectMeta metav1.ObjectMeta
