@@ -110,7 +110,7 @@ func EnterGitWebhookSecret() string {
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
 
-	err := survey.AskOne(prompt, &gitWebhookSecret, nil)
+	err := survey.AskOne(prompt, &gitWebhookSecret, ValidateSecretLength(gitWebhookSecret))
 	ui.HandleError(err)
 
 	return gitWebhookSecret
@@ -189,7 +189,7 @@ func EnterServiceWebhookSecret() string {
 		Message: "Provide a secret whose length should be 16 or more characters that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)",
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
-	err := survey.AskOne(prompt, &serviceWebhookSecret, nil)
+	err := survey.AskOne(prompt, &serviceWebhookSecret, ValidateSecretLength(serviceWebhookSecret))
 	ui.HandleError(err)
 	return serviceWebhookSecret
 }
@@ -252,6 +252,20 @@ func ValidatePrefix(prefix string) survey.Validator {
 			err := validation.ValidateName(s)
 			if err != nil {
 				return err
+			}
+			return nil
+		}
+		return nil
+	}
+}
+
+//
+func ValidateSecretLength(secret string) survey.Validator {
+	return func(input interface{}) error {
+		if s, ok := input.(string); ok {
+			err := CheckSecretLength(s)
+			if err == true {
+				return fmt.Errorf("The secret length should 16 or more ")
 			}
 			return nil
 		}

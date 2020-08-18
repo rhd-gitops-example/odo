@@ -111,9 +111,6 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-	if ui.CheckSecretLength(io.GitOpsWebhookSecret) {
-		return fmt.Errorf("The GitOps Webhook Secret length should 16 or more ")
-	}
 	io.SealedSecretsService.Name = ui.EnterSealedSecretService()
 	io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
 	_, err = secrets.GetClusterPublicKey(io.SealedSecretsService)
@@ -130,9 +127,6 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
 	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
 	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
-	if ui.CheckSecretLength(io.ServiceWebhookSecret) {
-		return fmt.Errorf("The GitOps Webhook Secret length should 16 or more ")
-	}
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
 	if commitStatusTrackerCheck == "yes" {
 		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
