@@ -5023,43 +5023,18 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 		args    args
 		wantErr bool
 		actions int
-	}{{
-		name: "Case 1 - Generate and create the BuildConfig",
-		args: args{
-			kind:           "ImageStreamTag",
-			namespace:      "openshift",
-			name:           "nodejs:latest",
-			outputimageTag: "nodeimage:latest",
-			scripts:        "https://raw.githubusercontent.com/Shraddhak22/s2i-scripts/master/s2i/bin",
-			incremental:    true,
-			commonObjectMeta: metav1.ObjectMeta{
-				Name: "nodejs",
-			},
-			envVars: []corev1.EnvVar{
-				{
-					Name:  "key",
-					Value: "value",
-				},
-				{
-					Name:  "key1",
-					Value: "value1",
-				},
-			},
-		},
-		wantErr: false,
-		actions: 3,
-	},
+	}{
 		{
-			name: "Case 2 - Generate and create the BuildConfig but fail with unable to find image name",
+			name: "Case 1 - Generate and create the BuildConfig",
 			args: args{
 				kind:           "ImageStreamTag",
-				namespace:      "testing",
-				name:           "nonValidImage",
+				namespace:      "openshift",
+				name:           "nodejs:12",
 				outputimageTag: "nodeimage:latest",
 				scripts:        "",
-				incremental:    true,
+				incremental:    false,
 				commonObjectMeta: metav1.ObjectMeta{
-					Name: "nonValidImage",
+					Name: "nodejs",
 				},
 				envVars: []corev1.EnvVar{
 					{
@@ -5072,7 +5047,7 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 			actions: 3,
 		},
 	}
@@ -5132,38 +5107,6 @@ func TestCreateBuildConfig(t *testing.T) {
 		actions int
 	}{
 		{
-			name: "Case 2 - Generate and create the BuildConfig but fail with unable to find image name",
-			args: args{
-				builderImage: "fakeimagename:notlatest",
-				namespace:    "testing",
-				gitURL:       "https://github.com/openshift/ruby",
-				commonObjectMeta: metav1.ObjectMeta{
-					Name: "ruby",
-					Labels: map[string]string{
-						"app":                        "apptmp",
-						"app.kubernetes.io/instance": "ruby",
-						"app.kubernetes.io/name":     "ruby",
-						"app.kubernetes.io/part-of":  "apptmp",
-					},
-					Annotations: map[string]string{
-						"app.openshift.io/vcs-uri":                "https://github.com/openshift/ruby",
-						"app.kubernetes.io/component-source-type": "git",
-					},
-				},
-				envVars: []corev1.EnvVar{
-					{
-						Name:  "key",
-						Value: "value",
-					},
-					{
-						Name:  "key1",
-						Value: "value1",
-					},
-				},
-			},
-			wantErr: true,
-			actions: 1,
-		}, {
 			name: "Case 1 - Generate and create the BuildConfig",
 			args: args{
 				builderImage: "ruby:latest",
@@ -5197,7 +5140,39 @@ func TestCreateBuildConfig(t *testing.T) {
 			wantErr: false,
 			actions: 1,
 		},
-
+		{
+			name: "Case 2 - Generate and create the BuildConfig but fail with unable to find image name",
+			args: args{
+				builderImage: "fakeimagename:notlatest",
+				namespace:    "testing",
+				gitURL:       "https://github.com/openshift/ruby",
+				commonObjectMeta: metav1.ObjectMeta{
+					Name: "ruby",
+					Labels: map[string]string{
+						"app":                        "apptmp",
+						"app.kubernetes.io/instance": "ruby",
+						"app.kubernetes.io/name":     "ruby",
+						"app.kubernetes.io/part-of":  "apptmp",
+					},
+					Annotations: map[string]string{
+						"app.openshift.io/vcs-uri":                "https://github.com/openshift/ruby",
+						"app.kubernetes.io/component-source-type": "git",
+					},
+				},
+				envVars: []corev1.EnvVar{
+					{
+						Name:  "key",
+						Value: "value",
+					},
+					{
+						Name:  "key1",
+						Value: "value1",
+					},
+				},
+			},
+			wantErr: true,
+			actions: 1,
+		},
 		{
 			name: "Case 3 - Generate and create the BuildConfig but fail with unable to parse image name",
 			args: args{

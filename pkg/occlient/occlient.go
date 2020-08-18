@@ -3134,14 +3134,15 @@ func (c *Client) CreateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.
 func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, fromKind, fromNamespace, fromName string, outputImageTag string, scriptUrl string, increamentalBuild bool, envVars []corev1.EnvVar, outputType string, secretName string) (bc buildv1.BuildConfig, err error) {
 	// generate and create ImageStream if not present
 	var imageStream *imagev1.ImageStream
-	if imageStream, err = c.GetImageStream(fromNamespace, commonObjectMeta.Name, ""); err != nil || imageStream == nil {
+	if imageStream, err = c.GetImageStream(c.Namespace, commonObjectMeta.Name, ""); err != nil || imageStream == nil {
 		imageStream = &imagev1.ImageStream{
 			ObjectMeta: commonObjectMeta,
 		}
+
+		_, err = c.imageClient.ImageStreams(c.Namespace).Create(imageStream)
 		if err != nil {
 			return bc, errors.Wrapf(err, "unable to create ImageStream for %s", commonObjectMeta.Name)
 		}
-		_, err = c.imageClient.ImageStreams(c.Namespace).Create(imageStream)
 
 	}
 
