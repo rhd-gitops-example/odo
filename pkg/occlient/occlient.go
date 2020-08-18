@@ -3132,6 +3132,16 @@ func (c *Client) CreateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.
 }
 
 func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, fromKind, fromNamespace, fromName string, outputImageTag string, scriptUrl string, increamentalBuild bool, envVars []corev1.EnvVar, outputType string, secretName string) (bc buildv1.BuildConfig, err error) {
+	// check if builder image is available in provided namespace else return error
+	_, imageName, imageTag, _, err := ParseImageName(fromName)
+	if err != nil {
+		return bc, errors.Wrapf(err, "unable to parse image name")
+	}
+	_, err = c.GetImageStream(fromNamespace, imageName, imageTag)
+	if err != nil {
+		return bc, errors.Wrap(err, "unable to retrieve image stream for CreateSourceBuildConfigWithBinaryInput")
+	}
+
 	// generate and create ImageStream if not present
 	var imageStream *imagev1.ImageStream
 	if imageStream, err = c.GetImageStream(c.Namespace, commonObjectMeta.Name, ""); err != nil || imageStream == nil {

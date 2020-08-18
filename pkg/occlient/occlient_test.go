@@ -5029,12 +5029,12 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 			args: args{
 				kind:           "ImageStreamTag",
 				namespace:      "openshift",
-				name:           "nodejs:12",
+				name:           "ruby:latest",
 				outputimageTag: "nodeimage:latest",
 				scripts:        "",
 				incremental:    false,
 				commonObjectMeta: metav1.ObjectMeta{
-					Name: "nodejs",
+					Name: "ruby",
 				},
 				envVars: []corev1.EnvVar{
 					{
@@ -5048,7 +5048,33 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 				},
 			},
 			wantErr: false,
-			actions: 3,
+			actions: 4,
+		},
+		{
+			name: "Case 2 - Generate and create the BuildConfig but fail with unable to find image name",
+			args: args{
+				kind:           "ImageStreamTag",
+				namespace:      "testing",
+				name:           "fakeimagename:notlatest",
+				outputimageTag: "nodeimage:latest",
+				scripts:        "",
+				incremental:    false,
+				commonObjectMeta: metav1.ObjectMeta{
+					Name: "ruby",
+				},
+				envVars: []corev1.EnvVar{
+					{
+						Name:  "key",
+						Value: "value",
+					},
+					{
+						Name:  "key1",
+						Value: "value1",
+					},
+				},
+			},
+			wantErr: true,
+			actions: 4,
 		},
 	}
 	for _, tt := range tests {
