@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/mkmik/multierror"
@@ -217,9 +218,16 @@ func (vv *validateVisitor) validateConfig(manifest *Manifest) []error {
 
 func validateName(name, path string) *apis.FieldError {
 	err := validation.NameIsDNS1035Label(name, true)
+
 	if len(err) > 0 {
 		return invalidNameError(name, err[0], []string{path})
 	}
+
+	_, err1 := strconv.ParseFloat(name, 64)
+	if err != nil {
+		return invalidNameError(name, err1.Error(), []string{path})
+	}
+
 	return nil
 }
 
