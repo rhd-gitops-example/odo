@@ -1,9 +1,16 @@
 package ui
 
 import (
+	"context"
 	"fmt"
+	"net/url"
+	"path/filepath"
+	"strings"
 
 	"github.com/openshift/odo/pkg/odo/util/validation"
+	"github.com/openshift/odo/pkg/pipelines/git"
+	"github.com/openshift/odo/pkg/pipelines/ioutils"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 
 	"github.com/openshift/odo/pkg/odo/cli/ui"
 	"gopkg.in/AlecAivazis/survey.v1"
@@ -18,7 +25,7 @@ func EnterGitRepo() string {
 		Help:    "The GitOps repository stores your GitOps configuration files, including your Openshift Pipelines resources for driving automated deployments and builds.  Please enter a valid git repository e.g. https://github.com/example/myorg.git",
 	}
 
-	err := survey.AskOne(prompt, &gitopsUrl, survey.Required)
+	err := survey.AskOne(prompt, &gitopsUrl, validateURL(gitopsUrl))
 	ui.HandleError(err)
 
 	return gitopsUrl
@@ -86,16 +93,17 @@ func EnterImageRepoExternalRepository() string {
 }
 
 // EnterOutputPath allows the user to specify the path where the gitops configuration must reside locally in a UI prompt.
-func EnterOutputPath(GitopsUrl string) string {
+func EnterOutputPath() string {
 	var outputPath string
 	var prompt *survey.Input
 	prompt = &survey.Input{
 		Message: "Provide a path to write GitOps resources?",
-		Help:    fmt.Sprintf("This is the path where the GitOps repository configuration is stored locally before you push it to the repository GitopsRepoURL %s", GitopsUrl),
+		Help:    fmt.Sprintf("This is the path where the GitOps repository configuration is stored locally before you push it to the repository GitopsRepoURL"),
 		Default: ".",
 	}
 
 	err := survey.AskOne(prompt, &outputPath, nil)
+	SelectOptionOverwrite(outputPath)
 	ui.HandleError(err)
 
 	return outputPath
@@ -110,7 +118,7 @@ func EnterGitWebhookSecret() string {
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
 
-	err := survey.AskOne(prompt, &gitWebhookSecret, ValidateSecretLength(gitWebhookSecret))
+	err := survey.AskOne(prompt, &gitWebhookSecret, validateSecretLength(gitWebhookSecret))
 	ui.HandleError(err)
 
 	return gitWebhookSecret
@@ -147,13 +155,13 @@ func EnterSealedSecretNamespace() string {
 }
 
 // EnterStatusTrackerAccessToken , it becomes necessary to add the personal access token from github to autheticate the commit-status-tracker.
-func EnterStatusTrackerAccessToken() string {
+func EnterStatusTrackerAccessToken(serviceRepo string) string {
 	var accessToken string
 	prompt := &survey.Password{
 		Message: "Please provide a token used to authenticate API calls to push commit-status updates to your Git hosting service",
 		Help:    "commit-status-tracker reports the completion status of OpenShift pipeline runs to your Git hosting status on success or failure, this token will be encrypted as a secret in your cluster.\n If you are using Github, please see here for how to generate a token https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token\nIf you are using GitLab, please see here for how to generate a token https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html",
 	}
-	err := survey.AskOne(prompt, &accessToken, nil)
+	err := survey.AskOne(prompt, &accessToken, validateAccessToken(serviceRepo))
 	ui.HandleError(err)
 	return accessToken
 }
@@ -177,7 +185,7 @@ func EnterServiceRepoURL() string {
 		Message: "Provide the URL for your Service repository e.g. https://github.com/organisation/service.git",
 		Help:    "The repository name where the source code of your service is situated",
 	}
-	err := survey.AskOne(prompt, &serviceRepo, survey.Required)
+	err := survey.AskOne(prompt, &serviceRepo, validateURL(serviceRepo))
 	ui.HandleError(err)
 	return serviceRepo
 }
@@ -189,7 +197,7 @@ func EnterServiceWebhookSecret() string {
 		Message: "Provide a secret whose length should be 16 or more characters that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)",
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
-	err := survey.AskOne(prompt, &serviceWebhookSecret, ValidateSecretLength(serviceWebhookSecret))
+	err := survey.AskOne(prompt, &serviceWebhookSecret, validateSecretLength(serviceWebhookSecret))
 	ui.HandleError(err)
 	return serviceWebhookSecret
 }
@@ -209,7 +217,7 @@ func SelectOptionImageRepository() string {
 }
 
 // SelectOptionOverwrite allows users the option to overwrite the current gitops configuration locally through the UI prompt.
-func SelectOptionOverwrite() string {
+func SelectOptionOverwrite(path string) string {
 	var overwrite string
 
 	prompt := &survey.Select{
@@ -217,7 +225,7 @@ func SelectOptionOverwrite() string {
 		Options: []string{"yes", "no"},
 		Default: "no",
 	}
-	err := survey.AskOne(prompt, &overwrite, survey.Required)
+	err := survey.AskOne(prompt, &overwrite, validateOverwriteOption(path))
 	ui.HandleError(err)
 	return overwrite
 }
@@ -259,8 +267,8 @@ func ValidatePrefix(prefix string) survey.Validator {
 	}
 }
 
-//
-func ValidateSecretLength(secret string) survey.Validator {
+//validateSecretLength validates the length of the secret
+func validateSecretLength(secret string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
 			err := CheckSecretLength(s)
@@ -271,4 +279,59 @@ func ValidateSecretLength(secret string) survey.Validator {
 		}
 		return nil
 	}
+}
+
+//validateURL  validates the URL
+func validateURL(url string) survey.Validator {
+	return func(input interface{}) error {
+		if s, ok := input.(string); ok {
+			_, err := scm.NewRepository(s)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return nil
+	}
+}
+
+//validateURL  validates the URL
+func validateOverwriteOption(path string) survey.Validator {
+	return func(input interface{}) error {
+		if s, ok := input.(string); ok {
+			if s == "no" {
+				exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(path, "pipelines.yaml"))
+				if exists {
+					EnterOutputPath()
+				}
+			}
+			return nil
+		}
+		return nil
+	}
+}
+
+func validateAccessToken(serviceRepo string) survey.Validator {
+	return func(input interface{}) error {
+		if s, ok := input.(string); ok {
+			repo, _ := git.NewRepository(serviceRepo, s)
+			repoName, _ := repoFromURL(serviceRepo)
+			_, _, err := repo.Client.Repositories.Find(context.Background(), repoName)
+			if err != nil {
+				return fmt.Errorf("The token passed is incorrect for repository %s", repoName)
+			}
+			return nil
+		}
+		return nil
+	}
+}
+
+//returns the username/reponame from the url
+func repoFromURL(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	parts := strings.Split(u.Path, "/")
+	return strings.TrimSuffix(parts[len(parts)-2], ".git") + "/" + strings.TrimSuffix(parts[len(parts)-1], ".git"), nil
 }

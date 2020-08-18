@@ -1,7 +1,6 @@
 package pipelines
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -13,7 +12,6 @@ import (
 	"github.com/openshift/odo/pkg/odo/cli/pipelines/utility"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
-	"github.com/openshift/odo/pkg/pipelines/git"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	sc "github.com/openshift/odo/pkg/pipelines/scm"
@@ -129,26 +127,10 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
 	if commitStatusTrackerCheck == "yes" {
-		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
-		repo, _ := git.NewRepository(io.ServiceRepoURL, io.StatusTrackerAccessToken)
-		repoName, _ := repoFromURL(io.ServiceRepoURL)
-		_, _, err := repo.Client.Repositories.Find(context.Background(), repoName)
-		if err != nil {
-			return fmt.Errorf("The token passed is incorrect for repository %s", repoName)
-		}
-
+		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken(io.ServiceRepoURL)
 	}
-	io.OutputPath = ui.EnterOutputPath(io.GitOpsRepoURL)
-	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(io.OutputPath, "pipelines.yaml"))
-	if exists {
-		selectOverwriteOption := ui.SelectOptionOverwrite()
-		if selectOverwriteOption == "no" {
-			io.Overwrite = false
-			return fmt.Errorf("Cannot create GitOps configuration since file exists at %s", io.OutputPath)
-		}
-	}
+	io.OutputPath = ui.EnterOutputPath()
 	io.Overwrite = true
-
 	return nil
 }
 
@@ -260,4 +242,8 @@ func repoFromURL(raw string) (string, error) {
 	}
 	parts := strings.Split(u.Path, "/")
 	return strings.TrimSuffix(parts[len(parts)-2], ".git") + "/" + strings.TrimSuffix(parts[len(parts)-1], ".git"), nil
+}
+func CheckFileExists(path string) bool {
+	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(path, "pipelines.yaml"))
+	return exists
 }
