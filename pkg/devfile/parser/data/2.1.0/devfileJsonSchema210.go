@@ -1217,7 +1217,16 @@ const JsonSchema210 = `{
               "fromName":{
                 "description":"From Name",
                 "type":"string"
-              }              
+              },
+              "script": {
+                "description":"Script URL path to override default scripts provided by builder image",
+                "type":"string"
+              },
+              "incrementalbuild":{
+                "description":"Flag to perform increamental builds",
+                "type": "boolean"
+              }
+                         
             },
             "required":[
               "name",

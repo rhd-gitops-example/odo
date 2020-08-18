@@ -385,7 +385,9 @@ type Source struct {
 }
 
 type SourceToImage struct {
-	FromKind      string `json:"fromKind"`
-	FromNamespace string `json:"fromNamespace"`
-	FromName      string `json:"fromName"`
+	FromKind         string `json:"fromKind"`
+	FromNamespace    string `json:"fromNamespace"`
+	FromName         string `json:"fromName"`
+	Script           string `json:"script"`
+	IncrementalBuild bool   `json:"incrementalbuild"`
 }

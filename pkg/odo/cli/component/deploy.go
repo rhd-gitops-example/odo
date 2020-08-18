@@ -123,6 +123,8 @@ func (do *DeployOptions) Validate() (err error) {
 			do.fromKind = component.SourceToImage.FromKind
 			do.fromNamespace = component.SourceToImage.FromNamespace
 			do.fromName = component.SourceToImage.FromName
+			do.script = component.SourceToImage.Script
+			do.incrementalbuild = component.SourceToImage.IncrementalBuild
 		}
 	}
 
