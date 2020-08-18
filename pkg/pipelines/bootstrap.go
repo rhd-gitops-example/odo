@@ -65,6 +65,7 @@ const (
 	pipelinesFile     = "pipelines.yaml"
 	bootstrapImage    = "nginxinc/nginx-unprivileged:latest"
 	appCITemplateName = "app-ci-template"
+	version           = 1
 )
 
 // BootstrapOptions is a struct that provides the optional flags
@@ -502,6 +503,7 @@ func createManifest(gitOpsRepoURL string, configEnv *config.Config, envs ...*con
 		GitOpsURL:    gitOpsRepoURL,
 		Environments: envs,
 		Config:       configEnv,
+		Version:      version,
 	}
 }
 
