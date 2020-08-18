@@ -3,9 +3,10 @@ package ui
 import (
 	"fmt"
 
-	"gopkg.in/AlecAivazis/survey.v1"
+	"github.com/openshift/odo/pkg/odo/util/validation"
 
 	"github.com/openshift/odo/pkg/odo/cli/ui"
+	"gopkg.in/AlecAivazis/survey.v1"
 )
 
 // EnterGitRepo allows the user to specify the git repository in a prompt
@@ -152,7 +153,7 @@ func EnterStatusTrackerAccessToken() string {
 		Message: "Please provide a token used to authenticate API calls to push commit-status updates to your Git hosting service",
 		Help:    "commit-status-tracker reports the completion status of OpenShift pipeline runs to your Git hosting status on success or failure, this token will be encrypted as a secret in your cluster.\n If you are using Github, please see here for how to generate a token https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token\nIf you are using GitLab, please see here for how to generate a token https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html",
 	}
-	err := survey.AskOne(prompt, &accessToken, survey.Required)
+	err := survey.AskOne(prompt, &accessToken, nil)
 	ui.HandleError(err)
 	return accessToken
 }
@@ -164,7 +165,7 @@ func EnterPrefix() string {
 		Message: "Add a prefix to the environment names(dev, stage, cicd etc.) to distinguish and identify individual environments?",
 		Help:    "The prefix helps differentiate between the different namespaces on the cluster, the default namespace cicd will appear as test-cicd if the prefix passed is test.",
 	}
-	err := survey.AskOne(prompt, &prefix, nil)
+	err := survey.AskOne(prompt, &prefix, ValidatePrefix(prefix))
 	ui.HandleError(err)
 	return prefix
 }
@@ -232,4 +233,28 @@ func SelectOptionCommitStatusTracker() string {
 	err := survey.AskOne(prompt, &optionCommitStatusTracker, survey.Required)
 	ui.HandleError(err)
 	return optionCommitStatusTracker
+}
+
+//check if the length of secret is less than 16 chars
+func CheckSecretLength(secret string) bool {
+	if secret != "" {
+		if len(secret) < 16 {
+			return true
+		}
+	}
+	return false
+}
+
+//ValidatePrefix checks the length of the prefix with the env crosses 63 chars or not
+func ValidatePrefix(prefix string) survey.Validator {
+	return func(input interface{}) error {
+		if s, ok := input.(string); ok {
+			err := validation.ValidateName(s)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return nil
+	}
 }

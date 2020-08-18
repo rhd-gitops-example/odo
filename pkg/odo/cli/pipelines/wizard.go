@@ -121,6 +121,7 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 		return fmt.Errorf("Kindly install sealed secrets controller in the correct namespace")
 	}
 	io.Prefix = ui.EnterPrefix()
+
 	io.ServiceRepoURL = ui.EnterServiceRepoURL()
 	_, err = sc.NewRepository(io.ServiceRepoURL)
 	if err != nil {
