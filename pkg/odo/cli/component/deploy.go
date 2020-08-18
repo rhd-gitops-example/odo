@@ -52,6 +52,8 @@ type DeployOptions struct {
 	fromKind                 string
 	fromNamespace            string
 	fromName                 string
+	script                   string
+	incrementalbuild         bool
 
 	*genericclioptions.Context
 }

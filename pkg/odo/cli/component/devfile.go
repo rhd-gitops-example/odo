@@ -172,6 +172,8 @@ func (do *DeployOptions) DevfileDeploy() (err error) {
 		FromKind:                 do.fromKind,
 		FromNamespace:            do.fromNamespace,
 		FromName:                 do.fromName,
+		Script:                   do.script,
+		IncrementalBuild:         do.incrementalbuild,
 	}
 
 	log.Infof("\nBuilding component %s", componentName)
