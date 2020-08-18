@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/types"
 
 	ktemplates "k8s.io/kubectl/pkg/util/templates"
 )
@@ -62,8 +63,13 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-	io.SealedSecretsService.Name = ui.EnterSealedSecretService()
-	io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
+
+	var err error
+	io.SealedSecretsService, err = enterSealedSecretsDetails()
+	if err != nil {
+		return err
+	}
+
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
 	if commitStatusTrackerCheck == "yes" {
 		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
@@ -131,4 +137,17 @@ func NewCmdWizard(name, fullName string) *cobra.Command {
 		},
 	}
 	return wizardCmd
+}
+
+func enterSealedSecretsDetails() (types.NamespacedName, error) {
+	for {
+		n, err := ui.EnterSealedSecretDetails()
+		if err == nil {
+			return *n, nil
+		}
+		if !ui.IsNotFound(err) {
+			return types.NamespacedName{}, err
+		}
+	}
+	return types.NamespacedName{}, nil
 }

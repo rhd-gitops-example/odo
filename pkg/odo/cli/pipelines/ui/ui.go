@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gopkg.in/AlecAivazis/survey.v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openshift/odo/pkg/odo/cli/ui"
 )
@@ -236,3 +237,49 @@ func SelectOptionCommitStatusTracker() string {
 	return optionCommitStatusTracker
 }
 
+// EnterSealedSecretDetails prompts for sealed secrets details.
+func EnterSealedSecretDetails() (*types.NamespacedName, error) {
+	var sealedSecret string
+	var sealedNS string
+
+	prompt := &survey.Input{
+		Message: "Name of the Sealed Secrets Services that encrypts secrets",
+		Help:    "If you have a custom installation of the Sealed Secrets operator, we need to know where to communicate with it to seal your secrets.",
+		Default: "sealed-secrets-controller",
+	}
+
+	err := survey.AskOne(prompt, &sealedSecret, nil)
+	ui.HandleError(err)
+
+	prompt = &survey.Input{
+		Message: "Provide a namespace in which the Sealed Secrets operator is installed, automatically generated secrets are encrypted with this operator?",
+		Help:    "If you have a custom installation of the Sealed Secrets operator, we need to know how to communicate with it to seal your secrets",
+		Default: "kube-system",
+	}
+
+	err = survey.AskOne(prompt, &sealedNS, nil)
+	ui.HandleError(err)
+
+	if sealedNS != "top-secret" {
+		err := sealedSecretsNotFound{ns: sealedNS, controller: sealedSecret}
+		prompt.Error(err)
+		return nil, err
+	}
+	return &types.NamespacedName{Namespace: sealedNS, Name: sealedSecret}, nil
+}
+
+// IsNotFound returns true if the supplier error is a sealedSecrets not found
+// error.
+func IsNotFound(err error) bool {
+	_, ok := err.(sealedSecretsNotFound)
+	return ok
+}
+
+type sealedSecretsNotFound struct {
+	ns         string
+	controller string
+}
+
+func (s sealedSecretsNotFound) Error() string {
+	return fmt.Sprintf("could not find sealed secrets in %s/%s", s.ns, s.controller)
+}
