@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	sc "github.com/openshift/odo/pkg/pipelines/scm"
-	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -66,6 +65,15 @@ func NewWizardParameters() *WizardParameters {
 	}
 }
 
+// type NotFoundError struct {
+//     Name string
+// }
+
+// func (e *NotFoundError) Error() string { return e.Name + " not found" }
+
+// if e, ok := err.(*NotFoundError); ok {
+//     // e.Name wasn't found
+// }
 // Complete completes WizardParameters after they've been created.
 //
 // If the prefix provided doesn't have a "-" then one is added, this makes the
@@ -109,14 +117,8 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-	io.SealedSecretsService.Name = ui.EnterSealedSecretService()
-	io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
-	_, err = secrets.GetClusterPublicKey(io.SealedSecretsService)
-	if err != nil {
-		return fmt.Errorf("Kindly install sealed secrets controller in the correct namespace")
-	}
+	io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
 	io.Prefix = ui.EnterPrefix()
-
 	io.ServiceRepoURL = ui.EnterServiceRepoURL()
 	_, err = sc.NewRepository(io.ServiceRepoURL)
 	if err != nil {

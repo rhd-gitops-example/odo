@@ -11,6 +11,8 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/git"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/scm"
+	"github.com/openshift/odo/pkg/pipelines/secrets"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openshift/odo/pkg/odo/cli/ui"
 	"gopkg.in/AlecAivazis/survey.v1"
@@ -125,15 +127,14 @@ func EnterGitWebhookSecret() string {
 }
 
 // EnterSealedSecretService , if the secret isnt installed using the operator it is necessary to manually add the sealed-secrets-controller name through this UI prompt.
-func EnterSealedSecretService() string {
+func EnterSealedSecretService(sealedSecretService *types.NamespacedName) string {
 	var sealedSecret string
 	var prompt *survey.Input
 	prompt = &survey.Input{
 		Message: "Name of the Sealed Secrets Services that encrypts secrets",
 		Help:    "If you have a custom installation of the Sealed Secrets operator, we need to know where to communicate with it to seal your secrets.",
 	}
-
-	err := survey.AskOne(prompt, &sealedSecret, survey.Required)
+	err := survey.AskOne(prompt, &sealedSecret, validateSealedSecretService(sealedSecretService))
 	ui.HandleError(err)
 
 	return sealedSecret
@@ -325,6 +326,29 @@ func validateAccessToken(serviceRepo string) survey.Validator {
 		return nil
 	}
 }
+
+func validateSealedSecretService(sealedSecretService *types.NamespacedName) survey.Validator {
+	return func(input interface{}) error {
+		if s, ok := input.(string); ok {
+			sealedSecretService.Name = s
+			sealedSecretService.Namespace = EnterSealedSecretNamespace()
+			_, err := secrets.GetClusterPublicKey(*sealedSecretService)
+			// if checkerror(err) {
+			// 	return fmt.Errorf("The given service %s cannot be found in namspace %s", sealedSecretService.Name, sealedSecretService.Namespace)
+			// }
+			if err != nil {
+				return fmt.Errorf("The given service was not found")
+			}
+			return nil
+		}
+		return nil
+	}
+}
+
+// func checkerror(err error) bool {
+// 	var ErrNotFound = errors.New("not found")
+// 	return errors.Is(err, ErrNotFound)
+// }
 
 //returns the username/reponame from the url
 func repoFromURL(raw string) (string, error) {
