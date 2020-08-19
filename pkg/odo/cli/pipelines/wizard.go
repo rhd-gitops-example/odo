@@ -199,7 +199,7 @@ func (io *WizardParameters) Run() error {
 		if err != nil {
 			return err
 		}
-		log.Success("Bootstrapped GitOps sucessfully.")
+		nextSteps()
 	}
 	return nil
 }
