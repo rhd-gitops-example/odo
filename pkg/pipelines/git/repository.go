@@ -37,7 +37,7 @@ func NewRepository(rawURL, token string) (*Repository, error) {
 		return nil, err
 	}
 
-	repoName, err := getRepoName(parsedURL)
+	repoName, err := GetRepoName(parsedURL)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func getDriverName(u *url.URL) (string, error) {
 	return "", errors.New("unknown Git server: " + u.Host)
 }
 
-func getRepoName(u *url.URL) (string, error) {
+func GetRepoName(u *url.URL) (string, error) {
 
 	var components []string
 

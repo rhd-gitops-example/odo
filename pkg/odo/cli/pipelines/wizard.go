@@ -65,17 +65,7 @@ func NewWizardParameters() *WizardParameters {
 	}
 }
 
-// type NotFoundError struct {
-//     Name string
-// }
-
-// func (e *NotFoundError) Error() string { return e.Name + " not found" }
-
-// if e, ok := err.(*NotFoundError); ok {
-//     // e.Name wasn't found
-// }
 // Complete completes WizardParameters after they've been created.
-//
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []string) error {

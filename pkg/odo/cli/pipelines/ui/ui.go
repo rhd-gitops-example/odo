@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
-	"strings"
 
 	"github.com/openshift/odo/pkg/odo/util/validation"
 	"github.com/openshift/odo/pkg/pipelines/git"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
-	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -27,7 +25,7 @@ func EnterGitRepo() string {
 		Help:    "The GitOps repository stores your GitOps configuration files, including your Openshift Pipelines resources for driving automated deployments and builds.  Please enter a valid git repository e.g. https://github.com/example/myorg.git",
 	}
 
-	err := survey.AskOne(prompt, &gitopsUrl, validateURL(gitopsUrl))
+	err := survey.AskOne(prompt, &gitopsUrl, survey.Required)
 	ui.HandleError(err)
 
 	return gitopsUrl
@@ -105,7 +103,10 @@ func EnterOutputPath() string {
 	}
 
 	err := survey.AskOne(prompt, &outputPath, nil)
-	SelectOptionOverwrite(outputPath)
+	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(outputPath, "pipelines.yaml"))
+	if exists {
+		SelectOptionOverwrite(outputPath)
+	}
 	ui.HandleError(err)
 
 	return outputPath
@@ -186,7 +187,7 @@ func EnterServiceRepoURL() string {
 		Message: "Provide the URL for your Service repository e.g. https://github.com/organisation/service.git",
 		Help:    "The repository name where the source code of your service is situated",
 	}
-	err := survey.AskOne(prompt, &serviceRepo, validateURL(serviceRepo))
+	err := survey.AskOne(prompt, &serviceRepo, survey.Required)
 	ui.HandleError(err)
 	return serviceRepo
 }
@@ -283,20 +284,6 @@ func validateSecretLength(secret string) survey.Validator {
 }
 
 //validateURL  validates the URL
-func validateURL(url string) survey.Validator {
-	return func(input interface{}) error {
-		if s, ok := input.(string); ok {
-			_, err := scm.NewRepository(s)
-			if err != nil {
-				return err
-			}
-			return nil
-		}
-		return nil
-	}
-}
-
-//validateURL  validates the URL
 func validateOverwriteOption(path string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
@@ -316,8 +303,9 @@ func validateAccessToken(serviceRepo string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
 			repo, _ := git.NewRepository(serviceRepo, s)
-			repoName, _ := repoFromURL(serviceRepo)
-			_, _, err := repo.Client.Repositories.Find(context.Background(), repoName)
+			parsedURL, err := url.Parse(serviceRepo)
+			repoName, err := git.GetRepoName(parsedURL)
+			_, _, err = repo.Client.Repositories.Find(context.Background(), repoName)
 			if err != nil {
 				return fmt.Errorf("The token passed is incorrect for repository %s", repoName)
 			}
@@ -333,29 +321,11 @@ func validateSealedSecretService(sealedSecretService *types.NamespacedName) surv
 			sealedSecretService.Name = s
 			sealedSecretService.Namespace = EnterSealedSecretNamespace()
 			_, err := secrets.GetClusterPublicKey(*sealedSecretService)
-			// if checkerror(err) {
-			// 	return fmt.Errorf("The given service %s cannot be found in namspace %s", sealedSecretService.Name, sealedSecretService.Namespace)
-			// }
 			if err != nil {
-				return fmt.Errorf("The given service was not found")
+				return fmt.Errorf("The given service is not installed in the right namespace")
 			}
 			return nil
 		}
 		return nil
 	}
-}
-
-// func checkerror(err error) bool {
-// 	var ErrNotFound = errors.New("not found")
-// 	return errors.Is(err, ErrNotFound)
-// }
-
-//returns the username/reponame from the url
-func repoFromURL(raw string) (string, error) {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return "", err
-	}
-	parts := strings.Split(u.Path, "/")
-	return strings.TrimSuffix(parts[len(parts)-2], ".git") + "/" + strings.TrimSuffix(parts[len(parts)-1], ".git"), nil
 }

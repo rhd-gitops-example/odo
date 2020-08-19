@@ -240,7 +240,7 @@ func TestGetDriverName(t *testing.T) {
 					t.Errorf("driver mismatch got\n%s", diff)
 				}
 
-				repoName, err := getRepoName(u)
+				repoName, err := GetRepoName(u)
 				repoErrMsg := ""
 				if err != nil {
 					repoErrMsg = err.Error()
