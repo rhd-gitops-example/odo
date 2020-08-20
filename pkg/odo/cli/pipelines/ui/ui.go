@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -322,10 +323,18 @@ func validateSealedSecretService(sealedSecretService *types.NamespacedName) surv
 			sealedSecretService.Namespace = EnterSealedSecretNamespace()
 			_, err := secrets.GetClusterPublicKey(*sealedSecretService)
 			if err != nil {
-				return fmt.Errorf("The given service is not installed in the right namespace")
+				if compareError(err, sealedSecretService.Name) {
+					return fmt.Errorf("The given service %s is not installed in the right namespace %s", sealedSecretService.Name, sealedSecretService.Namespace)
+				}
+				return errors.New("sealed secrets could not be configured sucessfully")
 			}
 			return nil
 		}
 		return nil
 	}
+}
+
+func compareError(err error, sealedSecretService string) bool {
+	createdError := fmt.Errorf("cannot fetch certificate: services \"%s\" not found", sealedSecretService)
+	return err.Error() == createdError.Error()
 }
