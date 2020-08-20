@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -542,16 +543,18 @@ func getResourceFiles(res res.Resources) []string {
 //check if the file exists or not
 func CheckFileExists(fs afero.Fs, dockerConfigJSONFilename string) (string, error) {
 	if dockerConfigJSONFilename == "" {
-		return "", errors.New("failed to generate path to file: --dockerconfigjson flag is not provided")
+		return "", errors.New("failed to generate path to file: must provide --dockerconfigjson parameter")
 	}
 	authJSONPath, err := homedir.Expand(dockerConfigJSONFilename)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate path to file: %v", err)
 	}
-	f, err := fs.Open(authJSONPath)
+	_, err = fs.Stat(authJSONPath)
+	if os.IsNotExist(err) {
+		return "", fmt.Errorf("Please input the correct file path to the --dockerconfigjson parameter")
+	}
 	if err != nil {
 		return "", fmt.Errorf("failed to read Docker config %#v : %s", authJSONPath, err)
 	}
-	defer f.Close()
 	return authJSONPath, nil
 }

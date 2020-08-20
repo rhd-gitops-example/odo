@@ -104,9 +104,12 @@ func EnterOutputPath() string {
 	}
 
 	err := survey.AskOne(prompt, &outputPath, nil)
-	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(outputPath, "pipelines.yaml"))
+	exists, filePathError := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(outputPath, "pipelines.yaml"))
 	if exists {
 		SelectOptionOverwrite(outputPath)
+	}
+	if !exists {
+		err = filePathError
 	}
 	ui.HandleError(err)
 
@@ -246,7 +249,7 @@ func SelectOptionCommitStatusTracker() string {
 	return optionCommitStatusTracker
 }
 
-//check if the length of secret is less than 16 chars
+// check if the length of secret is less than 16 chars
 func CheckSecretLength(secret string) bool {
 	if secret != "" {
 		if len(secret) < 16 {
@@ -256,7 +259,7 @@ func CheckSecretLength(secret string) bool {
 	return false
 }
 
-//ValidatePrefix checks the length of the prefix with the env crosses 63 chars or not
+// ValidatePrefix checks the length of the prefix with the env crosses 63 chars or not
 func ValidatePrefix(prefix string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
@@ -270,7 +273,7 @@ func ValidatePrefix(prefix string) survey.Validator {
 	}
 }
 
-//validateSecretLength validates the length of the secret
+// validateSecretLength validates the length of the secret
 func validateSecretLength(secret string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
@@ -284,7 +287,7 @@ func validateSecretLength(secret string) survey.Validator {
 	}
 }
 
-//validateURL  validates the URL
+// validateOverwriteOption(  validates the URL
 func validateOverwriteOption(path string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
@@ -300,6 +303,7 @@ func validateOverwriteOption(path string) survey.Validator {
 	}
 }
 
+// validateAccessToken validates if the access token is correct for a particular service repo
 func validateAccessToken(serviceRepo string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
@@ -316,6 +320,7 @@ func validateAccessToken(serviceRepo string) survey.Validator {
 	}
 }
 
+// validateSealedSecretService validates to see if the sealed secret service is present in the correct namespace.
 func validateSealedSecretService(sealedSecretService *types.NamespacedName) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
