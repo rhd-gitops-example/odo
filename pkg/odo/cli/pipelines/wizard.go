@@ -12,14 +12,24 @@ import (
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
+	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	ktemplates "k8s.io/kubectl/pkg/util/templates"
 )
 
 const (
 	// WizardRecommendedCommandName the recommended command name
 	WizardRecommendedCommandName = "wizard"
+
+	sealedSecretsName   = "sealed-secrets-controller"
+	sealedSecretsNS     = "kube-system"
+	argoCDNS            = "argocd"
+	argoCDOperatorName  = "argocd-operator"
+	argoCDServerName    = "argocd-server"
+	pipelinesOperatorNS = "openshift-operators"
 )
 
 var (
@@ -51,6 +61,22 @@ func NewWizardParameters() *WizardParameters {
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []string) error {
+
+	clientSet, err := namespaces.GetClientSet()
+	if err != nil {
+		return err
+	}
+	err = checkBootstrapDependencies(io, clientSet)
+	if err != nil {
+		return err
+	}
+
+	// ask for sealed secrets only when default is absent
+	if io.SealedSecretsService == (types.NamespacedName{}) {
+		io.SealedSecretsService.Name = ui.EnterSealedSecretService()
+		io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
+	}
+
 	io.GitOpsRepoURL = ui.EnterGitRepo()
 	option := ui.SelectOptionImageRepository()
 	if option == "Openshift Internal repository" {
@@ -62,8 +88,6 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-	io.SealedSecretsService.Name = ui.EnterSealedSecretService()
-	io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
 	if commitStatusTrackerCheck == "yes" {
 		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
@@ -87,6 +111,46 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	}
 	io.Overwrite = true
 	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+	return nil
+}
+
+func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Interface) error {
+
+	client := utility.NewClient(kubeClient)
+	log.Progressf("\nChecking dependencies\n")
+
+	sealedSpinner := log.Spinner("Checking if Sealed Secrets is installed at kube-system namespace")
+	err := client.CheckIfSealedSecretsExists(sealedSecretsNS+"s", sealedSecretsName)
+	if err != nil {
+		sealedSpinner.WarningStatus("Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases")
+		sealedSpinner.End(false)
+	} else {
+		io.SealedSecretsService.Name = sealedSecretsName
+		io.SealedSecretsService.Namespace = sealedSecretsNS
+		sealedSpinner.End(true)
+	}
+
+	argoSpinner := log.Spinner("Checking if ArgoCD Operator is installed at argocd namespace")
+	err = client.CheckIfArgoCDExists(argoCDNS)
+	if err != nil {
+		argoSpinner.WarningStatus("Please install ArgoCD operator from OperatorHub")
+		argoSpinner.End(false)
+	} else {
+		argoSpinner.End(true)
+	}
+
+	pipelineSpinner := log.Spinner("Checking if OpenShift Pipelines Operator is installed")
+	err = client.CheckIfPipelinesExists(pipelinesOperatorNS)
+	if err != nil {
+		pipelineSpinner.WarningStatus("Please install OpenShift Pipelines operator from OperatorHub")
+		pipelineSpinner.End(false)
+	} else {
+		pipelineSpinner.End(true)
+	}
+
+	if err != nil {
+		return fmt.Errorf("Failed to satisfy the required dependencies")
+	}
 	return nil
 }
 
@@ -117,7 +181,7 @@ func (io *WizardParameters) Run() error {
 	return nil
 }
 
-// NewCmdwizard creates the project init command.
+// NewCmdWizard creates the project init command.
 func NewCmdWizard(name, fullName string) *cobra.Command {
 	o := NewWizardParameters()
 
