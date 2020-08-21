@@ -217,6 +217,25 @@ func (a Adapter) Build(parameters common.BuildParameters) (err error) {
 		}
 	}
 
+	useBuildPacksV3 := true
+	if useBuildPacksV3 {
+		isBuildSupported, err := client.IsBuildSupported()
+		if err != nil {
+			return err
+		}
+
+		isBuildRunSupported, err := client.IsBuildRunSupported()
+		if err != nil {
+			return err
+		}
+
+		if isBuildSupported && isBuildRunSupported {
+			return a.runBuildpacksV3(parameters, isImageRegistryInternal)
+		} else {
+			return errors.Errorf("Failed to perform buildpacksV3 build; Required resource types not present on cluster")
+		}
+	}
+
 	if isBuildConfigSupported && !parameters.Rootless {
 		return a.runBuildConfig(client, parameters, isImageRegistryInternal)
 	} else {

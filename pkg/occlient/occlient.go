@@ -3331,6 +3331,18 @@ func (c *Client) IsBuildConfigSupported() (bool, error) {
 	return c.isResourceSupported("build.openshift.io", "v1", "buildconfigs")
 }
 
+// IsBuildSupported checks if build resource type (from "build.dev/v1alpha1") is present on the cluster
+func (c *Client) IsBuildSupported() (bool, error) {
+
+	return c.isResourceSupported("build.dev", "v1alpha1", "builds")
+}
+
+// IsBuildRunSupported checks if buildrun resource type (from "build.dev/v1alpha1") is present on the cluster
+func (c *Client) IsBuildRunSupported() (bool, error) {
+
+	return c.isResourceSupported("build.dev", "v1alpha1", "buildruns")
+}
+
 // IsRouteSupported checks if route resource type is present on the cluster
 func (c *Client) IsRouteSupported() (bool, error) {
 
