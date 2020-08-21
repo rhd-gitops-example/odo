@@ -43,7 +43,7 @@ func (a Adapter) runBuildpacksV3(parameters common.BuildParameters, isImageRegis
 	buildObj := a.build(labels, sourceUrl, parameters.Tag, regcredName)
 	buildRunObj := a.buildRun(labels)
 
-	// Create the build object on the cluster
+	// Create the build object on the cluster (look at how to feed structured objects to dynamicClient)
 	if _, err := a.Client.DynamicClient.Resource(secretGroupVersionResource).
 		Namespace(parameters.EnvSpecificInfo.GetNamespace()).
 		Create(context.Background(), buildObj); err != nil {
@@ -66,6 +66,7 @@ func (a Adapter) runBuildpacksV3(parameters common.BuildParameters, isImageRegis
 
 	go utils.PipeStdOutput(cmdOutput, reader, controlC)
 
+	// Look at how to retrieve the builder pod name
 	s := log.Spinner("Waiting for builder pod to complete")
 
 	if _, err := a.Client.WaitAndGetPod(watchOptions, corev1.PodSucceeded, "Waiting for builder pod to complete", false); err != nil {
@@ -82,6 +83,9 @@ func (a Adapter) runBuildpacksV3(parameters common.BuildParameters, isImageRegis
 }
 
 func (a Adapter) build(labels map[string]string, sourceURL, imageDestination, secretName string) *v1alpha1.Build {
+
+	// Investigate glide vs go.mod incompatibility issue
+
 	objectMeta := kclient.CreateObjectMeta("buildpack-"+a.ComponentName+"-build", a.Client.Namespace, labels, nil)
 	typeMeta := metav1.TypeMeta{
 		Kind:       "Build",
@@ -112,6 +116,9 @@ func (a Adapter) build(labels map[string]string, sourceURL, imageDestination, se
 }
 
 func (a Adapter) buildRun(labels map[string]string) *v1alpha1.BuildRun {
+
+	// Investigate glide vs go.mod incompatibility issue
+
 	objectMeta := kclient.CreateObjectMeta("buildpack-"+a.ComponentName+"-buildrun", a.Client.Namespace, labels, nil)
 	typeMeta := metav1.TypeMeta{
 		Kind:       "BuildRun",
