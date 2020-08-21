@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"gopkg.in/AlecAivazis/survey.v1"
 
@@ -47,7 +48,7 @@ func EnterImageRepoInternalRegistry() string {
 		Help:    "By default images are built from source, whenever there is a push to the repository for your service source code and this image will be pushed to the image repository specified in this parameter, if the value is of the form <registry>/<username>/<repository>, then it assumed that it is an upstream image repository e.g. Quay, if its of the form <project>/<app> the internal registry present on the current cluster will be used as the image repository.",
 	}
 
-	err := survey.AskOne(prompt, &imageRepo, survey.Required)
+	err := survey.AskOne(prompt, &imageRepo, validateInternalRepo(imageRepo))
 	ui.HandleError(err)
 
 	return imageRepo
@@ -236,3 +237,16 @@ func SelectOptionCommitStatusTracker() string {
 	return optionCommitStatusTracker
 }
 
+// validateInternalRepo validates the internal registry repo
+func validateInternalRepo(repo string) survey.Validator {
+	return func(input interface{}) error {
+		if s, ok := input.(string); ok {
+			imageRepo := strings.Split("/", s)
+			if len(imageRepo) != 2 {
+				return fmt.Errorf("This is not a valid internal registry repo")
+			}
+			return nil
+		}
+		return nil
+	}
+}
