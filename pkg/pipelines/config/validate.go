@@ -3,13 +3,16 @@ package config
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/mkmik/multierror"
 	"github.com/openshift/odo/pkg/pipelines/scm"
 	"k8s.io/apimachinery/pkg/api/validation"
 	"knative.dev/pkg/apis"
+)
+
+const (
+	LongServiceNameError = "A service name can be no longer than 47 characters"
 )
 
 type validateVisitor struct {
@@ -140,6 +143,10 @@ func (vv *validateVisitor) Service(app *Application, env *Environment, svc *Serv
 	if err := validateName(svc.Name, svcPath); err != nil {
 		vv.errs = append(vv.errs, err)
 	}
+
+	if len(svc.Name) > 40 {
+		vv.errs = append(vv.errs, invalidNameError(svc.Name, LongServiceNameError, []string{svcPath}))
+	}
 	if err := validateWebhook(svc.Webhook, svcPath); err != nil {
 		vv.errs = append(vv.errs, err...)
 	}
@@ -222,12 +229,6 @@ func validateName(name, path string) *apis.FieldError {
 	if len(err) > 0 {
 		return invalidNameError(name, err[0], []string{path})
 	}
-
-	_, err1 := strconv.ParseFloat(name, 64)
-	if err != nil {
-		return invalidNameError(name, err1.Error(), []string{path})
-	}
-
 	return nil
 }
 
