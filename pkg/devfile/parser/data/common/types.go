@@ -385,9 +385,18 @@ type Source struct {
 }
 
 type SourceToImage struct {
-	FromKind         string `json:"fromKind"`
-	FromNamespace    string `json:"fromNamespace"`
-	FromName         string `json:"fromName"`
-	Script           string `json:"script"`
-	IncrementalBuild bool   `json:"incrementalbuild"`
+	// Mandatory name of the kind for builder image
+	BuilderImageKind string `json:"builderImageKind"`
+
+	//Mandatory name of the namespace where your builder image is present
+	BuilderImageNamespace string `json:"builderImageNamespace"`
+
+	//Mandatory name of the builder image with tag
+	BuilderImage string `json:"BuilderImage"`
+
+	//Optional path to custom s2i scripts
+	ScriptLocation string `json:"scriptLocation,omitempty"`
+
+	//optional flag to control incremental build
+	IncrementalBuild bool `json:"incrementalBuild,omitempty"`
 }

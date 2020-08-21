@@ -3131,15 +3131,20 @@ func (c *Client) CreateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.
 	return bc, err
 }
 
-func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, fromKind, fromNamespace, fromName string, outputImageTag string, scriptUrl string, increamentalBuild bool, envVars []corev1.EnvVar, outputType string, secretName string) (bc buildv1.BuildConfig, err error) {
+// CreateSourceBuildConfigWithBinaryInput creates a BuildConfig which accepts
+//builder image. It will build
+// the source with builder image, and push the image using tag.
+// envVars is the array containing the environment variables
+
+func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, parameters common.BuildParameters, envVars []corev1.EnvVar, outputType, secretName string) (bc buildv1.BuildConfig, err error) {
 	// check if builder image is available in provided namespace else return error
-	_, imageName, imageTag, _, err := ParseImageName(fromName)
+	_, imageName, imageTag, _, err := ParseImageName(parameters.BuilderImage)
 	if err != nil {
 		return bc, errors.Wrapf(err, "unable to parse image name")
 	}
-	_, err = c.GetImageStream(fromNamespace, imageName, imageTag)
+	_, err = c.GetImageStream(parameters.BuilderImageNamespace, imageName, imageTag)
 	if err != nil {
-		return bc, errors.Wrap(err, "unable to retrieve image stream for CreateSourceBuildConfigWithBinaryInput")
+		return bc, errors.Wrapf(err, "unable to retrieve ImageStream %s from namespace %s", parameters.BuilderImage, parameters.BuilderImageNamespace)
 	}
 
 	// generate and create ImageStream if not present
@@ -3156,13 +3161,22 @@ func (c *Client) CreateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.
 
 	}
 
-	bc = generateSourceBuildConfigWithBinaryInput(commonObjectMeta, fromKind,
-		fromNamespace, fromName, outputImageTag, scriptUrl, increamentalBuild, outputType)
-
+	bc = generateSourceBuildConfigWithBinaryInput(commonObjectMeta, parameters, outputType)
+	// Set secret in buildconfig for external registry
 	if secretName != "" {
 		bc.Spec.CommonSpec.Output.PushSecret = &corev1.LocalObjectReference{
 			Name: secretName,
 		}
+	}
+
+	// Set script location if provided by user in devfile
+	if parameters.ScriptLocation != "" {
+		bc.Spec.Strategy.SourceStrategy.Scripts = parameters.ScriptLocation
+	}
+
+	// Set Incremental build flag if provided by user in devfile
+	if parameters.IncrementalBuild {
+		bc.Spec.Strategy.SourceStrategy.Incremental = &parameters.IncrementalBuild
 	}
 
 	if len(envVars) > 0 {

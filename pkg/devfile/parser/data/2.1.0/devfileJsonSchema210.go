@@ -1206,23 +1206,23 @@ const JsonSchema210 = `{
                 "description":"Mandatory name that allows referencing the sourcetoimage component",
                 "type":"string"
               },              
-              "fromKind":{
-                "description":"From Kind",
+              "builderImageKind":{
+                "description":"mandatory kind of builder image",
                 "type":"string"
               },
-              "fromNamespace":{
-                "description":"From Namespace",
+              "builderImageNamespace":{
+                "description":"Mandatory namespace where builder image present",
                 "type":"string"
               },
-              "fromName":{
-                "description":"From Name",
+              "builderImage":{
+                "description":"Mandatory builder image name with tag",
                 "type":"string"
               },
-              "script": {
+              "scriptLocation": {
                 "description":"Script URL path to override default scripts provided by builder image",
                 "type":"string"
               },
-              "incrementalbuild":{
+              "incrementalBuild":{
                 "description":"Flag to perform increamental builds",
                 "type": "boolean"
               }
@@ -1230,9 +1230,9 @@ const JsonSchema210 = `{
             },
             "required":[
               "name",
-              "fromKind",
-              "fromNamespace",
-              "fromName"
+              "builderImageKind",
+              "builderImageNamespace",
+              "builderImage"
             ],
             "type":"object"
           }          

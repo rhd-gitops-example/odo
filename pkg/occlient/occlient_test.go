@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	scv1beta1 "github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/kylelemons/godebug/pretty"
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -5010,12 +5011,7 @@ func TestWaitAndGetDC(t *testing.T) {
 func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 	type args struct {
 		commonObjectMeta metav1.ObjectMeta
-		kind             string
-		namespace        string
-		name             string
-		scripts          string
-		outputimageTag   string
-		incremental      bool
+		parameters       common.BuildParameters
 		envVars          []corev1.EnvVar
 	}
 	tests := []struct {
@@ -5027,14 +5023,21 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 		{
 			name: "Case 1 - Generate and create the BuildConfig",
 			args: args{
-				kind:           "ImageStreamTag",
-				namespace:      "openshift",
-				name:           "ruby:latest",
-				outputimageTag: "nodeimage:latest",
-				scripts:        "",
-				incremental:    false,
 				commonObjectMeta: metav1.ObjectMeta{
 					Name: "ruby",
+					Labels: map[string]string{
+						"app":                        "apptmp",
+						"app.kubernetes.io/instance": "ruby",
+						"app.kubernetes.io/name":     "ruby",
+						"app.kubernetes.io/part-of":  "apptmp",
+					},
+				},
+				parameters: common.BuildParameters{
+					BuilderImageKind:      "ImageStreamTag",
+					BuilderImageNamespace: "openshift",
+					BuilderImage:          "ruby:latest",
+					ScriptLocation:        "",
+					IncrementalBuild:      false,
 				},
 				envVars: []corev1.EnvVar{
 					{
@@ -5053,14 +5056,22 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 		{
 			name: "Case 2 - Generate and create the BuildConfig but fail with unable to find image name",
 			args: args{
-				kind:           "ImageStreamTag",
-				namespace:      "testing",
-				name:           "fakeimagename:notlatest",
-				outputimageTag: "nodeimage:latest",
-				scripts:        "",
-				incremental:    false,
 				commonObjectMeta: metav1.ObjectMeta{
 					Name: "ruby",
+					Labels: map[string]string{
+						"app":                        "apptmp",
+						"app.kubernetes.io/instance": "ruby",
+						"app.kubernetes.io/name":     "ruby",
+						"app.kubernetes.io/part-of":  "apptmp",
+					},
+				},
+				parameters: common.BuildParameters{
+					BuilderImageKind:      "ImageStreamTag",
+					BuilderImageNamespace: "testing",
+					BuilderImage:          "fakeimagename:notlatest",
+					ScriptLocation:        "",
+					IncrementalBuild:      false,
+					Tag:                   "rubyimage:latest",
 				},
 				envVars: []corev1.EnvVar{
 					{
@@ -5085,7 +5096,7 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 				return true, fakeImageStream(tt.args.commonObjectMeta.Name, tt.args.commonObjectMeta.Namespace, []string{"latest"}), nil
 			})
 			// Run function CreateBuildConfig
-			bc, err := fakeClient.CreateSourceBuildConfigWithBinaryInput(tt.args.commonObjectMeta, tt.args.kind, tt.args.namespace, tt.args.name, tt.args.outputimageTag, tt.args.scripts, tt.args.incremental, []corev1.EnvVar{}, "DockerImage", "")
+			bc, err := fakeClient.CreateSourceBuildConfigWithBinaryInput(tt.args.commonObjectMeta, tt.args.parameters, []corev1.EnvVar{}, "DockerImage", "")
 			if err == nil && !tt.wantErr {
 				// Check to see how many actions are being ran
 				if (len(fakeClientSet.ImageClientset.Actions()) != tt.actions) && !tt.wantErr {
@@ -5098,13 +5109,10 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 				}
 
 				// Check to see that labels match
-				if !reflect.DeepEqual(tt.args.commonObjectMeta.Labels, bc.ObjectMeta.Labels) {
-					t.Errorf("Expected equal labels, got %+v, expected %+v", tt.args.commonObjectMeta.Labels, bc.ObjectMeta.Labels)
-				}
+				diff := cmp.Diff(tt.args.commonObjectMeta.Labels, bc.ObjectMeta.Labels)
 
-				// Check to see that annotations match
-				if !reflect.DeepEqual(tt.args.commonObjectMeta.Annotations, bc.ObjectMeta.Annotations) {
-					t.Errorf("Expected equal annotations, got %+v, expected %+v", tt.args.commonObjectMeta.Annotations, bc.ObjectMeta.Annotations)
+				if diff != "" {
+					t.Errorf("Expected equal labels: got %s", diff)
 				}
 
 			} else if err == nil && tt.wantErr {

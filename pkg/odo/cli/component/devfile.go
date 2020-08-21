@@ -169,11 +169,11 @@ func (do *DeployOptions) DevfileDeploy() (err error) {
 		EnvSpecificInfo:          *do.EnvSpecificInfo,
 		DockerConfigJSONFilename: do.dockerConfigJSONFilename,
 		Rootless:                 do.rootless,
-		FromKind:                 do.fromKind,
-		FromNamespace:            do.fromNamespace,
-		FromName:                 do.fromName,
-		Script:                   do.script,
-		IncrementalBuild:         do.incrementalbuild,
+		BuilderImageKind:         do.builderImageKind,
+		BuilderImageNamespace:    do.builderImageNamespace,
+		BuilderImage:             do.builderImage,
+		ScriptLocation:           do.scriptLocation,
+		IncrementalBuild:         do.incrementalBuild,
 	}
 
 	log.Infof("\nBuilding component %s", componentName)

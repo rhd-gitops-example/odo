@@ -49,11 +49,11 @@ type DeployOptions struct {
 	DeploymentPort           int
 	dockerConfigJSONFilename string
 	rootless                 bool
-	fromKind                 string
-	fromNamespace            string
-	fromName                 string
-	script                   string
-	incrementalbuild         bool
+	builderImageKind         string
+	builderImageNamespace    string
+	builderImage             string
+	scriptLocation           string
+	incrementalBuild         bool
 
 	*genericclioptions.Context
 }
@@ -120,11 +120,11 @@ func (do *DeployOptions) Validate() (err error) {
 			do.rootless = component.Dockerfile.Rootless
 		}
 		if component.SourceToImage != nil {
-			do.fromKind = component.SourceToImage.FromKind
-			do.fromNamespace = component.SourceToImage.FromNamespace
-			do.fromName = component.SourceToImage.FromName
-			do.script = component.SourceToImage.Script
-			do.incrementalbuild = component.SourceToImage.IncrementalBuild
+			do.builderImageKind = component.SourceToImage.BuilderImageKind
+			do.builderImageNamespace = component.SourceToImage.BuilderImageNamespace
+			do.builderImage = component.SourceToImage.BuilderImage
+			do.scriptLocation = component.SourceToImage.ScriptLocation
+			do.incrementalBuild = component.SourceToImage.IncrementalBuild
 		}
 	}
 

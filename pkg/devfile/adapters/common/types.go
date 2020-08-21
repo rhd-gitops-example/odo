@@ -36,11 +36,11 @@ type BuildParameters struct {
 	IgnoredFiles             []string                // IgnoredFiles is the list of files to not push up to a component
 	DockerConfigJSONFilename string                  // Credentials refers to the path to the dockerconfig file containing external registry credentials
 	Rootless                 bool                    // Rootless/Unprivileged builder pod
-	FromKind                 string
-	FromNamespace            string // Namespace where your builder image is prsent
-	FromName                 string // builder image name with tag
-	Script                   string //	Script URL path to override default scripts provided by builder image
-	IncrementalBuild         bool   //  Flag to perform increamental builds
+	BuilderImageKind         string                  // builder image kind
+	BuilderImageNamespace    string                  // Namespace where your builder image is prsent
+	BuilderImage             string                  // builder image name with tag
+	ScriptLocation           string                  //	Script URL path to override default scripts provided by builder image
+	IncrementalBuild         bool                    //  Flag to perform increamental builds
 }
 
 // DeployParameters is a struct containing the parameters to be used when building the image for a devfile component

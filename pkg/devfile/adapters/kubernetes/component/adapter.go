@@ -129,13 +129,13 @@ func (a Adapter) runBuildConfig(isS2i bool, client *occlient.Client, parameters 
 	signal.Notify(controlC, os.Interrupt, syscall.SIGTERM)
 	go a.terminateBuild(controlC, client, commonObjectMeta)
 
-	var secretName string
+	var secretName string = ""
 	if !isImageRegistryInternal {
 		secretName = regcredName
 	}
 
 	if isS2i {
-		_, err = client.CreateSourceBuildConfigWithBinaryInput(commonObjectMeta, parameters.FromKind, parameters.FromNamespace, parameters.FromName, parameters.Tag, parameters.Script, parameters.IncrementalBuild, []corev1.EnvVar{}, buildOutput, secretName)
+		_, err = client.CreateSourceBuildConfigWithBinaryInput(commonObjectMeta, parameters, []corev1.EnvVar{}, buildOutput, secretName)
 		if err != nil {
 			return err
 		}
