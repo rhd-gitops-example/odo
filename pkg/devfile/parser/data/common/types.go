@@ -68,7 +68,7 @@ type DevfileComponent struct {
 
 	// Allows specifying a dockerfile to initiate build
 	Dockerfile *Dockerfile `json:"dockerfile,omitempty"`
-
+	// Allows specifying builder image to initiate s2i build
 	SourceToImage *SourceToImage `json:"sourcetoimage,omitempty"`
 }
 
