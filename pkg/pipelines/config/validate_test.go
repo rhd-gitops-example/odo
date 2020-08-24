@@ -55,6 +55,15 @@ func TestValidate(t *testing.T) {
 			),
 		},
 		{
+			"Invalid long service name error",
+			"testdata/service_name_long.yaml",
+			multierror.Join(
+				[]error{
+					invalidNameError("my-incredibly-long-name-for-a-test-service-that-fails", LongServiceNameError, []string{"environments.development.apps.app-1.services.my-incredibly-long-name-for-a-test-service-that-fails"}),
+				},
+			),
+		},
+		{
 			"Missing field error",
 			"testdata/missing_fields_error.yaml",
 			multierror.Join([]error{

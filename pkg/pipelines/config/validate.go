@@ -11,6 +11,10 @@ import (
 	"knative.dev/pkg/apis"
 )
 
+const (
+	LongServiceNameError = "A service name can be no longer than 47 characters"
+)
+
 type validateVisitor struct {
 	errs         []error
 	envNames     map[string]bool
@@ -138,6 +142,10 @@ func (vv *validateVisitor) Service(app *Application, env *Environment, svc *Serv
 	}
 	if err := validateName(svc.Name, svcPath); err != nil {
 		vv.errs = append(vv.errs, err)
+	}
+
+	if len(svc.Name) > 47 {
+		vv.errs = append(vv.errs, invalidNameError(svc.Name, LongServiceNameError, []string{svcPath}))
 	}
 	if err := validateWebhook(svc.Webhook, svcPath); err != nil {
 		vv.errs = append(vv.errs, err...)
