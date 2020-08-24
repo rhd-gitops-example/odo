@@ -80,6 +80,8 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	if err != nil {
 		return err
 	}
+
+	// ask for sealed secrets only when default is absent
 	mandatoryFlags := map[string]string{io.GitOpsRepoURL: "Git-repo-url", io.ServiceRepoURL: "service-repo-url"}
 	flagset := cmd.Flags()
 	if flagset.NFlag() == 0 {
@@ -88,50 +90,51 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 			io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
 
 		}
+			io.GitOpsRepoURL = ui.EnterGitRepo()
+			option := ui.SelectOptionImageRepository()
+			if option == "Openshift Internal repository" {
+				io.InternalRegistryHostname = ui.EnterInternalRegistry()
+				io.ImageRepo = ui.EnterImageRepoInternalRegistry()
 
-	
-		io.GitOpsRepoURL = ui.EnterGitRepo()
-		io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
-		_, err = sc.NewRepository(io.GitOpsRepoURL)
-		if err != nil {
-			return err
+			} else {
+				io.DockerConfigJSONFilename = ui.EnterDockercfg()
+				io.ImageRepo = ui.EnterImageRepoExternalRepository()
+			}
+			io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
+			
 		}
-		option := ui.SelectOptionImageRepository()
-		if option == "Openshift Internal repository" {
-			io.InternalRegistryHostname = ui.EnterInternalRegistry()
-			io.ImageRepo = ui.EnterImageRepoInternalRegistry()
+			commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
+			if commitStatusTrackerCheck == "yes" {
+				io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
+			}
+			io.Prefix = ui.EnterPrefix()
+			io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
+			io.ServiceRepoURL = ui.EnterServiceRepoURL()
+			io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
 
+			io.OutputPath = ui.EnterOutputPath(io.GitOpsRepoURL)
+			exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(io.OutputPath, "pipelines.yaml"))
+			if exists {
+				selectOverwriteOption := ui.SelectOptionOverwrite()
+				if selectOverwriteOption == "no" {
+					io.Overwrite = false
+					return fmt.Errorf("Cannot create GitOps configuration since file exists at %s", io.OutputPath)
+				}
+			}
 		} else {
-			io.DockerConfigJSONFilename = ui.EnterDockercfg()
-			fs := ioutils.NewFilesystem()
-			_, err := pipelines.CheckFileExists(fs, io.DockerConfigJSONFilename)
-			if err != nil {
-				return err
+			for key, value := range mandatoryFlags {
+				if key == "" {
+					return fmt.Errorf("Please enter the value of the flag %s", value)
+				}
 			}
-			io.ImageRepo = ui.EnterImageRepoExternalRepository()
-		}
-		io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-		io.Prefix = ui.EnterPrefix()
-		io.ServiceRepoURL = ui.EnterServiceRepoURL()
-		io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
-		io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
-		io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
-		commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
-		if commitStatusTrackerCheck == "yes" {
-			io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken(io.ServiceRepoURL)
-		}
-		io.OutputPath = ui.EnterOutputPath()
-		io.Overwrite = true
-		
-		
-	}
-	else {
-		for key, value := range mandatoryFlags {
-			if key == "" {
-				return fmt.Errorf("Please enter the value of the flag %s", value)
-			}
-		}
 
+		}
+		io.Overwrite = true
+		io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
+		io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+		io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
+
+		return nil
 	}
 	return nil
 }
