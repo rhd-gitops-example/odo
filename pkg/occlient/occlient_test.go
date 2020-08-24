@@ -5093,7 +5093,7 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 			})
 			// Run function CreateBuildConfig
 			bc, err := fakeClient.CreateBuildConfigWithBinaryInput(tt.args.commonObjectMeta, tt.args.builderImageTag, tt.args.builderImageNamespace,
-				tt.args.pushSecret, tt.args.scriptURL, tt.args.outputImageTag, tt.args.incrementalBuild, tt.args.envVars)
+				tt.args.pushSecret, tt.args.scriptURL, tt.args.outputImageTag, "DockerImage", tt.args.incrementalBuild, tt.args.envVars)
 			if err == nil && !tt.wantErr {
 				// Check to see that names match
 				if bc.ObjectMeta.Name != tt.args.commonObjectMeta.Name {
