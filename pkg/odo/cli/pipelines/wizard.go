@@ -3,6 +3,7 @@ package pipelines
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ktemplates "k8s.io/kubectl/pkg/util/templates"
@@ -49,6 +51,12 @@ type WizardParameters struct {
 	*genericclioptions.Context
 }
 
+type status interface {
+	WarningStatus(status string)
+	Start(status string, debug bool)
+	End(status bool)
+}
+
 // NewWizardParameters Wizards a WizardParameters instance.
 func NewWizardParameters() *WizardParameters {
 	return &WizardParameters{
@@ -66,7 +74,8 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	if err != nil {
 		return err
 	}
-	err = checkBootstrapDependencies(io, clientSet)
+
+	err = checkBootstrapDependencies(io, clientSet, log.NewStatus(os.Stdout))
 	if err != nil {
 		return err
 	}
@@ -114,44 +123,57 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 	return nil
 }
 
-func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Interface) error {
+func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Interface, spinner status) error {
 
+	var errs []error
 	client := utility.NewClient(kubeClient)
 	log.Progressf("\nChecking dependencies\n")
 
-	sealedSpinner := log.Spinner("Checking if Sealed Secrets is installed at kube-system namespace")
-	err := client.CheckIfSealedSecretsExists(sealedSecretsNS+"s", sealedSecretsName)
-	if err != nil {
-		sealedSpinner.WarningStatus("Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases")
-		sealedSpinner.End(false)
-	} else {
+	spinner.Start("Checking if Sealed Secrets is installed at kube-system namespace", false)
+	err := client.CheckIfSealedSecretsExists(types.NamespacedName{Namespace: sealedSecretsNS, Name: sealedSecretsName})
+	checkSpinner(spinner, "Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases", err)
+	if err == nil {
 		io.SealedSecretsService.Name = sealedSecretsName
 		io.SealedSecretsService.Namespace = sealedSecretsNS
-		sealedSpinner.End(true)
+	} else if !errors.IsNotFound(err) {
+		return clusterErr(err.Error())
 	}
 
-	argoSpinner := log.Spinner("Checking if ArgoCD Operator is installed at argocd namespace")
+	spinner.Start("Checking if ArgoCD Operator is installed at argocd namespace", false)
 	err = client.CheckIfArgoCDExists(argoCDNS)
+	checkSpinner(spinner, "Please install ArgoCD operator from OperatorHub", err)
 	if err != nil {
-		argoSpinner.WarningStatus("Please install ArgoCD operator from OperatorHub")
-		argoSpinner.End(false)
-	} else {
-		argoSpinner.End(true)
+		if !errors.IsNotFound(err) {
+			return clusterErr(err.Error())
+		}
+		errs = append(errs, err)
 	}
 
-	pipelineSpinner := log.Spinner("Checking if OpenShift Pipelines Operator is installed")
+	spinner.Start("Checking if OpenShift Pipelines Operator is installed", false)
 	err = client.CheckIfPipelinesExists(pipelinesOperatorNS)
+	checkSpinner(spinner, "Please install OpenShift Pipelines operator from OperatorHub", err)
 	if err != nil {
-		pipelineSpinner.WarningStatus("Please install OpenShift Pipelines operator from OperatorHub")
-		pipelineSpinner.End(false)
-	} else {
-		pipelineSpinner.End(true)
+		if !errors.IsNotFound(err) {
+			return clusterErr(err.Error())
+		}
+		errs = append(errs, err)
 	}
 
-	if err != nil {
+	if len(errs) > 0 {
 		return fmt.Errorf("Failed to satisfy the required dependencies")
 	}
 	return nil
+}
+
+func checkSpinner(spinner status, warningMsg string, err error) {
+	if err != nil {
+		if errors.IsNotFound(err) {
+			spinner.WarningStatus(warningMsg)
+		}
+		spinner.End(false)
+		return
+	}
+	spinner.End(true)
 }
 
 // Validate validates the parameters of the WizardParameters.
@@ -195,4 +217,8 @@ func NewCmdWizard(name, fullName string) *cobra.Command {
 		},
 	}
 	return wizardCmd
+}
+
+func clusterErr(errMsg string) error {
+	return fmt.Errorf("Couldn't connect to cluster: %s", errMsg)
 }

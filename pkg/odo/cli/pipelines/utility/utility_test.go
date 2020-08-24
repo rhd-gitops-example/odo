@@ -7,6 +7,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -82,12 +83,11 @@ func TestCheckIfSealedSecretsExists(t *testing.T) {
 	})
 
 	fakeClient := Client{KubeClient: fakeClientSet}
-
-	err := fakeClient.CheckIfSealedSecretsExists("kube-system", "sealed-secrets-controller")
+	err := fakeClient.CheckIfSealedSecretsExists(types.NamespacedName{Namespace: "kube-system", Name: "sealed-secrets-controller"})
 	if err != nil {
 		t.Fatalf("CheckIfSealedSecretsExists failed: got %v,want %v", err, nil)
 	}
-	err = fakeClient.CheckIfSealedSecretsExists("unknown", "unknown")
+	err = fakeClient.CheckIfSealedSecretsExists(types.NamespacedName{Namespace: "unknown", Name: "unknown"})
 	wantErr := `services "unknown" not found`
 	if err == nil {
 		t.Fatalf("CheckIfSealedSecretsExists failed: got %v,want %v", nil, wantErr)
