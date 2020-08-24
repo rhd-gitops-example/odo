@@ -144,7 +144,7 @@ func (vv *validateVisitor) Service(app *Application, env *Environment, svc *Serv
 		vv.errs = append(vv.errs, err)
 	}
 
-	if len(svc.Name) > 40 {
+	if len(svc.Name) > 47 {
 		vv.errs = append(vv.errs, invalidNameError(svc.Name, LongServiceNameError, []string{svcPath}))
 	}
 	if err := validateWebhook(svc.Webhook, svcPath); err != nil {
@@ -225,7 +225,6 @@ func (vv *validateVisitor) validateConfig(manifest *Manifest) []error {
 
 func validateName(name, path string) *apis.FieldError {
 	err := validation.NameIsDNS1035Label(name, true)
-
 	if len(err) > 0 {
 		return invalidNameError(name, err[0], []string{path})
 	}
