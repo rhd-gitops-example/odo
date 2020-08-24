@@ -122,10 +122,9 @@ func EnterSealedSecretService() string {
 	prompt = &survey.Input{
 		Message: "Name of the Sealed Secrets Services that encrypts secrets",
 		Help:    "If you have a custom installation of the Sealed Secrets operator, we need to know where to communicate with it to seal your secrets.",
-		Default: "sealed-secrets-controller",
 	}
 
-	err := survey.AskOne(prompt, &sealedSecret, nil)
+	err := survey.AskOne(prompt, &sealedSecret, survey.Required)
 	ui.HandleError(err)
 
 	return sealedSecret
@@ -138,10 +137,9 @@ func EnterSealedSecretNamespace() string {
 	prompt = &survey.Input{
 		Message: "Provide a namespace in which the Sealed Secrets operator is installed, automatically generated secrets are encrypted with this operator?",
 		Help:    "If you have a custom installation of the Sealed Secrets operator, we need to know how to communicate with it to seal your secrets",
-		Default: "kube-system",
 	}
 
-	err := survey.AskOne(prompt, &sealedNs, nil)
+	err := survey.AskOne(prompt, &sealedNs, survey.Required)
 	ui.HandleError(err)
 
 	return sealedNs
@@ -235,4 +233,3 @@ func SelectOptionCommitStatusTracker() string {
 	ui.HandleError(err)
 	return optionCommitStatusTracker
 }
-
