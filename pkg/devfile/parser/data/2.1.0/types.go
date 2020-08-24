@@ -450,7 +450,7 @@ type SourceToImage struct {
 	// Mandatory namespace where builder image is present
 	BuilderImageNamespace string `json:"builderImageNamespace"`
 
-	// Mandatory name builder image name with tag
+	// Mandatory builder image name with tag
 	BuilderImageTag string `json:"builderImageTag"`
 
 	// Optional script URL to override default scripts provided by builder image

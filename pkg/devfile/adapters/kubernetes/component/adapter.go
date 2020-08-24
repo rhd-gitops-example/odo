@@ -134,6 +134,10 @@ func (a Adapter) runBuildConfig(isS2i bool, client *occlient.Client, parameters 
 		secretName = regcredName
 	}
 
+	if err := client.EnsureImageStream(client.Namespace, buildName); err != nil {
+		return err
+	}
+
 	if isS2i {
 		_, err = client.CreateBuildConfigWithBinaryInput(commonObjectMeta, parameters.BuilderImageTag, parameters.BuilderImageNamespace,
 			secretName, parameters.ScriptLocation, parameters.Tag, parameters.IncrementalBuild, []corev1.EnvVar{})

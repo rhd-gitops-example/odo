@@ -1211,7 +1211,7 @@ const JsonSchema210 = `{
                 "type":"string"
               },
               "builderImageTag":{
-                "description":"Mandatory name builder image name with tag",
+                "description":"Mandatory builder image name with tag",
                 "type":"string"
               },
               "scriptLocation": {

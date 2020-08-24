@@ -3099,19 +3099,6 @@ func (c *Client) GetPVCFromName(pvcName string) (*corev1.PersistentVolumeClaim, 
 // the source with Dockerfile, and push the image using tag.
 // envVars is the array containing the environment variables
 func (c *Client) CreateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, dockerfilePath string, outputImageTag string, envVars []corev1.EnvVar, outputType string, secretName string) (bc buildv1.BuildConfig, err error) {
-	// generate and create ImageStream if not present
-
-	var imageStream *imagev1.ImageStream
-	if imageStream, err = c.GetImageStream(c.Namespace, commonObjectMeta.Name, ""); err != nil || imageStream == nil {
-		imageStream = &imagev1.ImageStream{
-			ObjectMeta: commonObjectMeta,
-		}
-
-		_, err = c.imageClient.ImageStreams(c.Namespace).Create(imageStream)
-		if err != nil {
-			return bc, errors.Wrapf(err, "unable to create ImageStream for %s", commonObjectMeta.Name)
-		}
-	}
 
 	bc = generateDockerBuildConfigWithBinaryInput(commonObjectMeta, dockerfilePath, outputImageTag, outputType)
 
@@ -3438,6 +3425,21 @@ func (c *Client) GetApplicationURLFromService(applicationName string) (fullURL s
 	}
 
 	return fullURL
+}
+
+// EnsureImageStreamTag creates ImageStream if not present
+func (c *Client) EnsureImageStream(ns, name string) error {
+	if imageStream, err := c.GetImageStream(ns, name, ""); err != nil || imageStream == nil {
+		imageStream = &imagev1.ImageStream{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		}
+		if _, err = c.imageClient.ImageStreams(ns).Create(imageStream); err != nil {
+			return errors.Wrapf(err, "unable to create ImageStream for %s", name)
+		}
+	}
+	return nil
 }
 
 func (c *Client) GetApplicationURL(applicationName, labelSelector string) (fullURL string, err error) {
