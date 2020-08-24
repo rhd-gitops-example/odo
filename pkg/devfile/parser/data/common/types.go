@@ -393,7 +393,7 @@ type SourceToImage struct {
 	BuilderImageNamespace string `json:"builderImageNamespace"`
 
 	//Mandatory name of the builder image with tag
-	BuilderImageTag string `json:"BuilderImageTag"`
+	BuilderImageStreamTag string `json:"BuilderImageStreamTag"`
 
 	//Optional path to custom s2i scripts
 	ScriptLocation string `json:"scriptLocation,omitempty"`

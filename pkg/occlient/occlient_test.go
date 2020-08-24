@@ -5011,7 +5011,7 @@ func TestWaitAndGetDC(t *testing.T) {
 func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 	type args struct {
 		commonObjectMeta      metav1.ObjectMeta
-		builderImageTag       string
+		builderImageStreamTag string
 		builderImageNamespace string
 		pushSecret            string
 		scriptURL             string
@@ -5037,7 +5037,7 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 						"app.kubernetes.io/part-of":  "apptmp",
 					},
 				},
-				builderImageTag:       "ruby:latest",
+				builderImageStreamTag: "ruby:latest",
 				builderImageNamespace: "openshift",
 				scriptURL:             "",
 				incrementalBuild:      false,
@@ -5066,7 +5066,7 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 						"app.kubernetes.io/part-of":  "apptmp",
 					},
 				},
-				builderImageTag:       "fakeimagename:notlatest",
+				builderImageStreamTag: "fakeimagename:notlatest",
 				builderImageNamespace: "testing",
 				scriptURL:             "",
 				outputImageTag:        "rubyimage:latest",
@@ -5092,7 +5092,7 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 				return true, fakeImageStream(tt.args.commonObjectMeta.Name, tt.args.commonObjectMeta.Namespace, []string{"latest"}), nil
 			})
 			// Run function CreateBuildConfig
-			bc, err := fakeClient.CreateBuildConfigWithBinaryInput(tt.args.commonObjectMeta, tt.args.builderImageTag, tt.args.builderImageNamespace,
+			bc, err := fakeClient.CreateBuildConfigWithBinaryInput(tt.args.commonObjectMeta, tt.args.builderImageStreamTag, tt.args.builderImageNamespace,
 				tt.args.pushSecret, tt.args.scriptURL, tt.args.outputImageTag, "DockerImage", tt.args.incrementalBuild, tt.args.envVars)
 			if err == nil && !tt.wantErr {
 				// Check to see that names match

@@ -170,7 +170,7 @@ func (do *DeployOptions) DevfileDeploy() (err error) {
 		DockerConfigJSONFilename: do.dockerConfigJSONFilename,
 		Rootless:                 do.rootless,
 		BuilderImageNamespace:    do.builderImageNamespace,
-		BuilderImageTag:          do.builderImageTag,
+		BuilderImageStreamTag:    do.builderImageStreamTag,
 		ScriptLocation:           do.scriptLocation,
 		IncrementalBuild:         do.incrementalBuild,
 	}

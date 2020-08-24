@@ -1210,7 +1210,7 @@ const JsonSchema210 = `{
                 "description":"Mandatory namespace where builder image is present",
                 "type":"string"
               },
-              "builderImageTag":{
+              "builderImageStreamTag":{
                 "description":"Mandatory builder image name with tag",
                 "type":"string"
               },
@@ -1226,7 +1226,7 @@ const JsonSchema210 = `{
             "required":[
               "name",
               "builderImageNamespace",
-              "builderImageTag"
+              "builderImageStreamTag"
             ],
             "type":"object"
           }          

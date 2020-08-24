@@ -37,7 +37,7 @@ type BuildParameters struct {
 	DockerConfigJSONFilename string                  // Credentials refers to the path to the dockerconfig file containing external registry credentials
 	Rootless                 bool                    // Rootless/Unprivileged builder pod
 	BuilderImageNamespace    string                  // Namespace where your builder image is prsent
-	BuilderImageTag          string                  // builder image name with tag
+	BuilderImageStreamTag    string                  // builder image name with tag
 	ScriptLocation           string                  //	Script URL path to override default scripts provided by builder image
 	IncrementalBuild         bool                    //  Flag to perform increamental builds
 }

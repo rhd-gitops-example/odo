@@ -351,7 +351,7 @@ func generateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta
 }
 
 // generateBuildConfig creates a BuildConfig with a given buildSource being passed into Odo
-func generateBuildConfig(commonObjectMeta metav1.ObjectMeta, buildSource buildv1.BuildSource, builderImageTag, builderImageNamespace, outputImageKind, outputImageTag string) buildv1.BuildConfig {
+func generateBuildConfig(commonObjectMeta metav1.ObjectMeta, buildSource buildv1.BuildSource, builderImageStreamTag, builderImageNamespace, outputImageKind, outputImageTag string) buildv1.BuildConfig {
 
 	return buildv1.BuildConfig{
 		ObjectMeta: commonObjectMeta,
@@ -368,7 +368,7 @@ func generateBuildConfig(commonObjectMeta metav1.ObjectMeta, buildSource buildv1
 					SourceStrategy: &buildv1.SourceBuildStrategy{
 						From: corev1.ObjectReference{
 							Kind:      imageStreamTagKind,
-							Name:      builderImageTag,
+							Name:      builderImageStreamTag,
 							Namespace: builderImageNamespace,
 						},
 					},

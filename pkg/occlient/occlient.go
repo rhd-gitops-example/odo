@@ -3121,23 +3121,23 @@ func (c *Client) CreateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.
 // CreateBuildConfigWithBinaryInput creates a BuildConfig which accepts a builder image. It will build
 // the source with builder image, and push the image using tag.
 // envVars is the array containing the environment variables
-func (c *Client) CreateBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, builderImageTag, buildImageNamespace, pushSecret, scriptURL, outputImageKind, outputImageTag string, incrementalBuild bool, envVars []corev1.EnvVar) (buildv1.BuildConfig, error) {
+func (c *Client) CreateBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, builderImageStreamTag, buildImageNamespace, pushSecret, scriptURL, outputImageKind, outputImageTag string, incrementalBuild bool, envVars []corev1.EnvVar) (buildv1.BuildConfig, error) {
 	buildSource := buildv1.BuildSource{
 		Binary: &buildv1.BinaryBuildSource{},
 		Type:   buildv1.BuildSourceBinary,
 	}
-	return c.createBuildConfig(commonObjectMeta, builderImageTag, buildImageNamespace, buildSource, pushSecret, scriptURL, outputImageKind, outputImageTag, incrementalBuild, envVars)
+	return c.createBuildConfig(commonObjectMeta, builderImageStreamTag, buildImageNamespace, buildSource, pushSecret, scriptURL, outputImageKind, outputImageTag, incrementalBuild, envVars)
 }
 
 // CreateBuildConfig creates a buildConfig using the builderImage as well as gitURL.
 // envVars is the array containing the environment variables
-func (c *Client) CreateBuildConfig(commonObjectMeta metav1.ObjectMeta, builderImageTag string, gitURL string, gitRef string, envVars []corev1.EnvVar) (buildv1.BuildConfig, error) {
-	return c.createBuildConfig(commonObjectMeta, builderImageTag, "", gitBuildSource(gitURL, gitRef), "", "", "ImageStreamTag", commonObjectMeta.Name+":latest", false, envVars)
+func (c *Client) CreateBuildConfig(commonObjectMeta metav1.ObjectMeta, builderImageStreamTag string, gitURL string, gitRef string, envVars []corev1.EnvVar) (buildv1.BuildConfig, error) {
+	return c.createBuildConfig(commonObjectMeta, builderImageStreamTag, "", gitBuildSource(gitURL, gitRef), "", "", "ImageStreamTag", commonObjectMeta.Name+":latest", false, envVars)
 }
 
-func (c *Client) createBuildConfig(commonObjectMeta metav1.ObjectMeta, builderImageTag, builderImageNamespace string, buildSource buildv1.BuildSource, pushSecret, scriptURL, outputImageKind, outputImageTag string, incrementalBuild bool, envVars []corev1.EnvVar) (buildv1.BuildConfig, error) {
+func (c *Client) createBuildConfig(commonObjectMeta metav1.ObjectMeta, builderImageStreamTag, builderImageNamespace string, buildSource buildv1.BuildSource, pushSecret, scriptURL, outputImageKind, outputImageTag string, incrementalBuild bool, envVars []corev1.EnvVar) (buildv1.BuildConfig, error) {
 	// Retrieve the namespace, image name and the appropriate tag
-	imageNS, imageName, imageTag, _, err := ParseImageName(builderImageTag)
+	imageNS, imageName, imageTag, _, err := ParseImageName(builderImageStreamTag)
 	if err != nil {
 		return buildv1.BuildConfig{}, errors.Wrap(err, "unable to parse image name")
 	}
