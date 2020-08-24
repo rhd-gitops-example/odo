@@ -174,7 +174,7 @@ func EnterPrefix() string {
 		Message: "Add a prefix to the environment names(dev, stage, cicd etc.) to distinguish and identify individual environments?",
 		Help:    "The prefix helps differentiate between the different namespaces on the cluster, the default namespace cicd will appear as test-cicd if the prefix passed is test.",
 	}
-	err := survey.AskOne(prompt, &prefix, ValidatePrefix(prefix))
+	err := survey.AskOne(prompt, &prefix, MakePrefixValidator())
 	ui.HandleError(err)
 	return prefix
 }

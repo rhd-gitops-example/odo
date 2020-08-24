@@ -26,24 +26,28 @@ func CheckSecretLength(secret string) bool {
 	return false
 }
 
-// ValidatePrefix checks the length of the prefix with the env crosses 63 chars or not
-func ValidatePrefix(prefix string) survey.Validator {
+func MakePrefixValidator() survey.Validator {
 	return func(input interface{}) error {
-		if s, ok := input.(string); ok {
-			s = utility.MaybeCompletePrefix(s)
-			s = s + "stage"
-			if len(s) < 64 {
-				err := validation.ValidateName(s)
-				if err != nil {
-					return err
-				}
-			} else {
-				return fmt.Errorf("The prefix length should be less than 58 characters")
+		return ValidatePrefix(input)
+	}
+}
+
+// ValidatePrefix checks the length of the prefix with the env crosses 63 chars or not
+func ValidatePrefix(input interface{}) error {
+	if s, ok := input.(string); ok {
+		s = utility.MaybeCompletePrefix(s)
+		s = s + "stage"
+		if len(s) < 64 {
+			err := validation.ValidateName(s)
+			if err != nil {
+				return err
 			}
-			return nil
+		} else {
+			return fmt.Errorf("The prefix length is %s, must be less than 58 characters", s)
 		}
 		return nil
 	}
+	return nil
 }
 
 // validateSecretLength validates the length of the secret
