@@ -939,6 +939,10 @@ func (a Adapter) createDockerConfigSecret(dockerConfigJSONFilename, secretName, 
 
 // NOTE: we assume internal registry host is: image-registry.openshift-image-registry.svc:5000
 func isInternalRegistry(imageTag string) (bool, error) {
+	if imageTag == "" {
+		// relax validation check to allow empty tag (image repository) which default to the "buildName"
+		return true, nil
+	}
 	components := strings.Split(imageTag, "/")
 	if len(components) != 3 {
 		return false, fmt.Errorf("Invalid image tag '%s', must contain 3 components", imageTag)
