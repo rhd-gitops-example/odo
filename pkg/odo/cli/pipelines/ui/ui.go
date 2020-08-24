@@ -120,7 +120,7 @@ func EnterGitWebhookSecret() string {
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
 
-	err := survey.AskOne(prompt, &gitWebhookSecret, validateSecretLength(gitWebhookSecret))
+	err := survey.AskOne(prompt, &gitWebhookSecret, makeSecretValidator())
 	ui.HandleError(err)
 
 	return gitWebhookSecret
@@ -134,7 +134,7 @@ func EnterSealedSecretService(sealedSecretService *types.NamespacedName) string 
 		Message: "Name of the Sealed Secrets Services that encrypts secrets",
 		Help:    "If you have a custom installation of the Sealed Secrets operator, we need to know where to communicate with it to seal your secrets.",
 	}
-	err := survey.AskOne(prompt, &sealedSecret, validateSealedSecretService(sealedSecretService))
+	err := survey.AskOne(prompt, &sealedSecret, makeSealedSecretsService(sealedSecretService))
 	ui.HandleError(err)
 
 	return sealedSecret
@@ -162,7 +162,7 @@ func EnterStatusTrackerAccessToken(serviceRepo string) string {
 		Message: "Please provide a token used to authenticate API calls to push commit-status updates to your Git hosting service",
 		Help:    "commit-status-tracker reports the completion status of OpenShift pipeline runs to your Git hosting status on success or failure, this token will be encrypted as a secret in your cluster.\n If you are using Github, please see here for how to generate a token https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token\nIf you are using GitLab, please see here for how to generate a token https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html",
 	}
-	err := survey.AskOne(prompt, &accessToken, validateAccessToken(serviceRepo))
+	err := survey.AskOne(prompt, &accessToken, makeAccessTokenCheck(serviceRepo))
 	ui.HandleError(err)
 	return accessToken
 }
@@ -174,7 +174,7 @@ func EnterPrefix() string {
 		Message: "Add a prefix to the environment names(dev, stage, cicd etc.) to distinguish and identify individual environments?",
 		Help:    "The prefix helps differentiate between the different namespaces on the cluster, the default namespace cicd will appear as test-cicd if the prefix passed is test.",
 	}
-	err := survey.AskOne(prompt, &prefix, MakePrefixValidator())
+	err := survey.AskOne(prompt, &prefix, makePrefixValidator())
 	ui.HandleError(err)
 	return prefix
 }
@@ -198,7 +198,7 @@ func EnterServiceWebhookSecret() string {
 		Message: "Provide a secret whose length should be 16 or more characters that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)",
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
-	err := survey.AskOne(prompt, &serviceWebhookSecret, validateSecretLength(serviceWebhookSecret))
+	err := survey.AskOne(prompt, &serviceWebhookSecret, makeSecretValidator())
 	ui.HandleError(err)
 	return serviceWebhookSecret
 }
@@ -226,7 +226,7 @@ func SelectOptionOverwrite(path string) string {
 		Options: []string{"yes", "no"},
 		Default: "no",
 	}
-	err := survey.AskOne(prompt, &overwrite, validateOverwriteOption(path))
+	err := survey.AskOne(prompt, &overwrite, makeOverWriteValidator(path))
 	ui.HandleError(err)
 	return overwrite
 }
