@@ -134,7 +134,8 @@ func (a Adapter) runBuildConfig(isS2i bool, client *occlient.Client, parameters 
 		secretName = regcredName
 	}
 
-	if !isS2i {
+	// Currently, we hardcode to s2i build until we implement logic to swtch betweeen build strategy from devfile guidance
+	if isS2i {
 		_, err = client.CreateBuildConfigWithBinaryInput(commonObjectMeta, parameters.BuilderImageTag, parameters.BuilderImageNamespace,
 			secretName, parameters.ScriptLocation, buildOutput, parameters.Tag, parameters.IncrementalBuild, []corev1.EnvVar{})
 		if err != nil {
