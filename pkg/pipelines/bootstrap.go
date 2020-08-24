@@ -540,7 +540,7 @@ func getResourceFiles(res res.Resources) []string {
 	return files
 }
 
-//check if the file exists or not
+// check if the file exists or not
 func CheckFileExists(fs afero.Fs, dockerConfigJSONFilename string) (string, error) {
 	if dockerConfigJSONFilename == "" {
 		return "", errors.New("failed to generate path to file: must provide --dockerconfigjson parameter")
@@ -551,10 +551,10 @@ func CheckFileExists(fs afero.Fs, dockerConfigJSONFilename string) (string, erro
 	}
 	_, err = fs.Stat(authJSONPath)
 	if os.IsNotExist(err) {
-		return "", fmt.Errorf("Please input the correct file path to the --dockerconfigjson parameter")
+		return "", fmt.Errorf("file does not exist at the file-path passed to access the dockercfgjson, kindly enter a valid file path")
 	}
 	if err != nil {
-		return "", fmt.Errorf("failed to read Docker config %#v : %s", authJSONPath, err)
+		return "", fmt.Errorf("failed to read Docker config %q : %s", authJSONPath, err)
 	}
 	return authJSONPath, nil
 }

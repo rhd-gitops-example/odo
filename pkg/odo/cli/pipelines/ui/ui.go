@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"path/filepath"
 
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/utility"
+
 	"github.com/openshift/odo/pkg/odo/util/validation"
 	"github.com/openshift/odo/pkg/pipelines/git"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
@@ -263,9 +265,15 @@ func CheckSecretLength(secret string) bool {
 func ValidatePrefix(prefix string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
-			err := validation.ValidateName(s)
-			if err != nil {
-				return err
+			s = utility.MaybeCompletePrefix(s)
+			s = s + "stage"
+			if len(s) < 64 {
+				err := validation.ValidateName(s)
+				if err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("The prefix length should be less than 58 characters")
 			}
 			return nil
 		}
@@ -278,7 +286,7 @@ func validateSecretLength(secret string) survey.Validator {
 	return func(input interface{}) error {
 		if s, ok := input.(string); ok {
 			err := CheckSecretLength(s)
-			if err == true {
+			if err {
 				return fmt.Errorf("The secret length should 16 or more ")
 			}
 			return nil
@@ -329,7 +337,7 @@ func validateSealedSecretService(sealedSecretService *types.NamespacedName) surv
 			_, err := secrets.GetClusterPublicKey(*sealedSecretService)
 			if err != nil {
 				if compareError(err, sealedSecretService.Name) {
-					return fmt.Errorf("The given service %s is not installed in the right namespace %s", sealedSecretService.Name, sealedSecretService.Namespace)
+					return fmt.Errorf("The given service %q is not installed in the right namespace %q", sealedSecretService.Name, sealedSecretService.Namespace)
 				}
 				return errors.New("sealed secrets could not be configured sucessfully")
 			}
