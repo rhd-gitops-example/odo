@@ -134,6 +134,14 @@ func (a Adapter) runBuildConfig(isS2i bool, client *occlient.Client, parameters 
 		secretName = regcredName
 	}
 
+	// If tag is not provided, default to use the buildNama as image stream.
+	// We need to make sure imagestream exists.
+	if parameters.Tag == "" {
+		if err := client.EnsureImageStream(client.Namespace, buildName); err != nil {
+			return err
+		}
+	}
+
 	// Currently, we hardcode to s2i build until we implement logic to swtch betweeen build strategy from devfile guidance
 	if isS2i {
 		_, err = client.CreateBuildConfigWithBinaryInput(commonObjectMeta, parameters.BuilderImageStreamTag, parameters.BuilderImageNamespace,

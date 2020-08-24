@@ -3462,6 +3462,21 @@ func (c *Client) GetApplicationURL(applicationName, labelSelector string) (fullU
 	return fullURL, nil
 }
 
+// EnsureImageStreamTag creates ImageStream if not present
+func (c *Client) EnsureImageStream(ns, name string) error {
+	if imageStream, err := c.GetImageStream(ns, name, ""); err != nil || imageStream == nil {
+		imageStream = &imagev1.ImageStream{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		}
+		if _, err = c.imageClient.ImageStreams(ns).Create(imageStream); err != nil {
+			return errors.Wrapf(err, "unable to create ImageStream for %s", name)
+		}
+	}
+	return nil
+}
+
 // Create a function to wait for deploment completion of any unstructured object
 func (c *Client) waitForManifestDeployCompletion(applicationName string, gvr schema.GroupVersionResource, conditionTypeValue string) (*unstructured.Unstructured, error) {
 	klog.V(4).Infof("Waiting for %s manifest deployment completion", applicationName)
