@@ -169,9 +169,8 @@ func (do *DeployOptions) DevfileDeploy() (err error) {
 		EnvSpecificInfo:          *do.EnvSpecificInfo,
 		DockerConfigJSONFilename: do.dockerConfigJSONFilename,
 		Rootless:                 do.rootless,
-		BuilderImageKind:         do.builderImageKind,
 		BuilderImageNamespace:    do.builderImageNamespace,
-		BuilderImage:             do.builderImage,
+		BuilderImageTag:          do.builderImageTag,
 		ScriptLocation:           do.scriptLocation,
 		IncrementalBuild:         do.incrementalBuild,
 	}

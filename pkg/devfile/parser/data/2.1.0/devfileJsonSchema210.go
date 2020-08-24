@@ -1200,39 +1200,33 @@ const JsonSchema210 = `{
             "type":"object"
           },
           "SourceToImage":{
-            "description":"SourceToImage component",
+            "description":"SourceToImage (s2i) component",
             "properties":{
               "name":{
-                "description":"Mandatory name that allows referencing the sourcetoimage component",
+                "description":"Mandatory name that allows referencing the sourcetoimage (s2i) component",
                 "type":"string"
               },              
-              "builderImageKind":{
-                "description":"mandatory kind of builder image",
-                "type":"string"
-              },
               "builderImageNamespace":{
-                "description":"Mandatory namespace where builder image present",
+                "description":"Mandatory namespace where builder image is present",
                 "type":"string"
               },
-              "builderImage":{
-                "description":"Mandatory builder image name with tag",
+              "builderImageTag":{
+                "description":"Mandatory name builder image name with tag",
                 "type":"string"
               },
               "scriptLocation": {
-                "description":"Script URL path to override default scripts provided by builder image",
+                "description":"Script URL to override default scripts provided by builder image",
                 "type":"string"
               },
               "incrementalBuild":{
-                "description":"Flag to perform increamental builds",
+                "description":"Flag that indicates whether to perform increamental builds or not",
                 "type": "boolean"
               }
-                         
             },
             "required":[
               "name",
-              "builderImageKind",
               "builderImageNamespace",
-              "builderImage"
+              "builderImageTag"
             ],
             "type":"object"
           }          

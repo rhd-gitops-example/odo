@@ -49,9 +49,8 @@ type DeployOptions struct {
 	DeploymentPort           int
 	dockerConfigJSONFilename string
 	rootless                 bool
-	builderImageKind         string
 	builderImageNamespace    string
-	builderImage             string
+	builderImageTag          string
 	scriptLocation           string
 	incrementalBuild         bool
 
@@ -120,9 +119,8 @@ func (do *DeployOptions) Validate() (err error) {
 			do.rootless = component.Dockerfile.Rootless
 		}
 		if component.SourceToImage != nil {
-			do.builderImageKind = component.SourceToImage.BuilderImageKind
 			do.builderImageNamespace = component.SourceToImage.BuilderImageNamespace
-			do.builderImage = component.SourceToImage.BuilderImage
+			do.builderImageTag = component.SourceToImage.BuilderImageTag
 			do.scriptLocation = component.SourceToImage.ScriptLocation
 			do.incrementalBuild = component.SourceToImage.IncrementalBuild
 		}

@@ -68,6 +68,7 @@ type DevfileComponent struct {
 
 	// Allows specifying a dockerfile to initiate build
 	Dockerfile *Dockerfile `json:"dockerfile,omitempty"`
+
 	// Allows specifying builder image to initiate s2i build
 	SourceToImage *SourceToImage `json:"sourcetoimage,omitempty"`
 }
@@ -392,7 +393,7 @@ type SourceToImage struct {
 	BuilderImageNamespace string `json:"builderImageNamespace"`
 
 	//Mandatory name of the builder image with tag
-	BuilderImage string `json:"BuilderImage"`
+	BuilderImageTag string `json:"BuilderImageTag"`
 
 	//Optional path to custom s2i scripts
 	ScriptLocation string `json:"scriptLocation,omitempty"`

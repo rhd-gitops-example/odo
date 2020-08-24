@@ -135,7 +135,8 @@ func (a Adapter) runBuildConfig(isS2i bool, client *occlient.Client, parameters 
 	}
 
 	if isS2i {
-		_, err = client.CreateSourceBuildConfigWithBinaryInput(commonObjectMeta, parameters, []corev1.EnvVar{}, buildOutput, secretName)
+		_, err = client.CreateBuildConfigWithBinaryInput(commonObjectMeta, parameters.BuilderImageTag, parameters.BuilderImageNamespace,
+			secretName, parameters.ScriptLocation, parameters.Tag, parameters.IncrementalBuild, []corev1.EnvVar{})
 		if err != nil {
 			return err
 		}

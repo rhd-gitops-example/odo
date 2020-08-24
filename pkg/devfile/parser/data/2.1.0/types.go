@@ -443,18 +443,19 @@ type Source struct {
 }
 
 type SourceToImage struct {
-	// Mandatory name of the kind for builder image
-	BuilderImageKind string `json:"builderImageKind"`
 
-	//Mandatory name of the namespace where your builder image is present
+	// Mandatory name that allows referencing the sourcetoimage (s2i) component"
+	Name string `json:"name"`
+
+	// Mandatory namespace where builder image is present
 	BuilderImageNamespace string `json:"builderImageNamespace"`
 
-	//Mandatory name of the builder image with tag
-	BuilderImage string `json:"BuilderImage"`
+	// Mandatory name builder image name with tag
+	BuilderImageTag string `json:"builderImageTag"`
 
-	//Optional path to custom s2i scripts
+	// Optional script URL to override default scripts provided by builder image
 	ScriptLocation string `json:"scriptLocation,omitempty"`
 
-	//optional flag to control incremental build
+	// Optional flag that indicates whether to perform increamental builds or no
 	IncrementalBuild bool `json:"incrementalBuild,omitempty"`
 }
