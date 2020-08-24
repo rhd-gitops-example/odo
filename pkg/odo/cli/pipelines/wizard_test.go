@@ -67,7 +67,7 @@ func TestCheckSpinner(t *testing.T) {
 
 			fakeSpinner := &mockSpinner{writer: buff}
 			fakeSpinner.Start("Checking if abcd is installed", false)
-			checkSpinner(fakeSpinner, "Please install abcd", test.err)
+			setSpinnerStatus(fakeSpinner, "Please install abcd", test.err)
 
 			if fakeSpinner.end != test.endStatus {
 				t.Errorf("Spinner status mismatch: got %v, want %v", fakeSpinner.end, test.endStatus)
@@ -81,9 +81,9 @@ func TestDependenciesWithNothingInstalled(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	wantMsg := `
-Checking if Sealed Secrets is installed at kube-system namespace[Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases]
-Checking if ArgoCD Operator is installed at argocd namespace[Please install ArgoCD operator from OperatorHub]
-Checking if OpenShift Pipelines Operator is installed[Please install OpenShift Pipelines operator from OperatorHub]`
+Checking if Sealed Secrets is installed with the default configuration[Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases]
+Checking if ArgoCD Operator is installed with the default configuration[Please install ArgoCD operator from OperatorHub]
+Checking if OpenShift Pipelines Operator is installed with the default configuration[Please install OpenShift Pipelines operator from OperatorHub]`
 
 	buff := &bytes.Buffer{}
 	fakeSpinner := &mockSpinner{writer: buff}
@@ -98,9 +98,9 @@ func TestDependenciesWithAllInstalled(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset(sealedSecretService(), argoCDOperator(), pipelinesOperator())
 
 	wantMsg := `
-Checking if Sealed Secrets is installed at kube-system namespace
-Checking if ArgoCD Operator is installed at argocd namespace
-Checking if OpenShift Pipelines Operator is installed`
+Checking if Sealed Secrets is installed with the default configuration
+Checking if ArgoCD Operator is installed with the default configuration
+Checking if OpenShift Pipelines Operator is installed with the default configuration`
 
 	buff := &bytes.Buffer{}
 	fakeSpinner := &mockSpinner{writer: buff}
@@ -118,9 +118,9 @@ func TestDependenciesWithNoArgoCD(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset(sealedSecretService(), pipelinesOperator())
 
 	wantMsg := `
-Checking if Sealed Secrets is installed at kube-system namespace
-Checking if ArgoCD Operator is installed at argocd namespace[Please install ArgoCD operator from OperatorHub]
-Checking if OpenShift Pipelines Operator is installed`
+Checking if Sealed Secrets is installed with the default configuration
+Checking if ArgoCD Operator is installed with the default configuration[Please install ArgoCD operator from OperatorHub]
+Checking if OpenShift Pipelines Operator is installed with the default configuration`
 
 	buff := &bytes.Buffer{}
 	fakeSpinner := &mockSpinner{writer: buff}
@@ -136,9 +136,9 @@ func TestDependenciesWithNoPipelines(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset(sealedSecretService(), argoCDOperator())
 
 	wantMsg := `
-Checking if Sealed Secrets is installed at kube-system namespace
-Checking if ArgoCD Operator is installed at argocd namespace
-Checking if OpenShift Pipelines Operator is installed[Please install OpenShift Pipelines operator from OperatorHub]`
+Checking if Sealed Secrets is installed with the default configuration
+Checking if ArgoCD Operator is installed with the default configuration
+Checking if OpenShift Pipelines Operator is installed with the default configuration[Please install OpenShift Pipelines operator from OperatorHub]`
 
 	buff := &bytes.Buffer{}
 	fakeSpinner := &mockSpinner{writer: buff}

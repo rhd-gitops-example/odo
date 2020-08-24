@@ -129,9 +129,9 @@ func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Inte
 	client := utility.NewClient(kubeClient)
 	log.Progressf("\nChecking dependencies\n")
 
-	spinner.Start("Checking if Sealed Secrets is installed at kube-system namespace", false)
+	spinner.Start("Checking if Sealed Secrets is installed with the default configuration", false)
 	err := client.CheckIfSealedSecretsExists(types.NamespacedName{Namespace: sealedSecretsNS, Name: sealedSecretsName})
-	checkSpinner(spinner, "Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases", err)
+	setSpinnerStatus(spinner, "Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases", err)
 	if err == nil {
 		io.SealedSecretsService.Name = sealedSecretsName
 		io.SealedSecretsService.Namespace = sealedSecretsNS
@@ -139,9 +139,9 @@ func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Inte
 		return clusterErr(err.Error())
 	}
 
-	spinner.Start("Checking if ArgoCD Operator is installed at argocd namespace", false)
+	spinner.Start("Checking if ArgoCD Operator is installed with the default configuration", false)
 	err = client.CheckIfArgoCDExists(argoCDNS)
-	checkSpinner(spinner, "Please install ArgoCD operator from OperatorHub", err)
+	setSpinnerStatus(spinner, "Please install ArgoCD operator from OperatorHub", err)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return clusterErr(err.Error())
@@ -149,9 +149,9 @@ func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Inte
 		errs = append(errs, err)
 	}
 
-	spinner.Start("Checking if OpenShift Pipelines Operator is installed", false)
+	spinner.Start("Checking if OpenShift Pipelines Operator is installed with the default configuration", false)
 	err = client.CheckIfPipelinesExists(pipelinesOperatorNS)
-	checkSpinner(spinner, "Please install OpenShift Pipelines operator from OperatorHub", err)
+	setSpinnerStatus(spinner, "Please install OpenShift Pipelines operator from OperatorHub", err)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return clusterErr(err.Error())
@@ -165,7 +165,7 @@ func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Inte
 	return nil
 }
 
-func checkSpinner(spinner status, warningMsg string, err error) {
+func setSpinnerStatus(spinner status, warningMsg string, err error) {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			spinner.WarningStatus(warningMsg)
