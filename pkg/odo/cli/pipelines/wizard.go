@@ -14,7 +14,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
-	sc "github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -90,52 +89,38 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 			io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
 
 		}
-			io.GitOpsRepoURL = ui.EnterGitRepo()
-			option := ui.SelectOptionImageRepository()
-			if option == "Openshift Internal repository" {
-				io.InternalRegistryHostname = ui.EnterInternalRegistry()
-				io.ImageRepo = ui.EnterImageRepoInternalRegistry()
-
-			} else {
-				io.DockerConfigJSONFilename = ui.EnterDockercfg()
-				io.ImageRepo = ui.EnterImageRepoExternalRepository()
-			}
-			io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-			
-		}
-			commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
-			if commitStatusTrackerCheck == "yes" {
-				io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
-			}
-			io.Prefix = ui.EnterPrefix()
-			io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
-			io.ServiceRepoURL = ui.EnterServiceRepoURL()
-			io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
-
-			io.OutputPath = ui.EnterOutputPath(io.GitOpsRepoURL)
-			exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(io.OutputPath, "pipelines.yaml"))
-			if exists {
-				selectOverwriteOption := ui.SelectOptionOverwrite()
-				if selectOverwriteOption == "no" {
-					io.Overwrite = false
-					return fmt.Errorf("Cannot create GitOps configuration since file exists at %s", io.OutputPath)
-				}
-			}
+		io.GitOpsRepoURL = ui.EnterGitRepo()
+		option := ui.SelectOptionImageRepository()
+		if option == "Openshift Internal repository" {
+			io.InternalRegistryHostname = ui.EnterInternalRegistry()
+			io.ImageRepo = ui.EnterImageRepoInternalRegistry()
 		} else {
-			for key, value := range mandatoryFlags {
-				if key == "" {
-					return fmt.Errorf("Please enter the value of the flag %s", value)
-				}
-			}
-
+			io.DockerConfigJSONFilename = ui.EnterDockercfg()
+			io.ImageRepo = ui.EnterImageRepoExternalRepository()
 		}
-		io.Overwrite = true
+		io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
+		commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
+		if commitStatusTrackerCheck == "yes" {
+			io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken(io.ServiceRepoURL)
+		}
+		io.Prefix = ui.EnterPrefix()
 		io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
-		io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
-		io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
+		io.ServiceRepoURL = ui.EnterServiceRepoURL()
+		io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
+		io.OutputPath = ui.EnterOutputPath()
+	} else {
+		for key, value := range mandatoryFlags {
+			if key == "" {
+				return fmt.Errorf("Please enter the value of the flag %s", value)
+			}
+		}
 
-		return nil
 	}
+	io.Overwrite = true
+	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
+	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
+
 	return nil
 }
 
@@ -174,7 +159,6 @@ func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Inte
 		}
 		errs = append(errs, err)
 	}
-
 	if len(errs) > 0 {
 		return fmt.Errorf("Failed to satisfy the required dependencies")
 	}
