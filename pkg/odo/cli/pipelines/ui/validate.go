@@ -52,7 +52,7 @@ func validatePrefix(input interface{}) error {
 		prefix := utility.MaybeCompletePrefix(s)
 		s = prefix + "stage"
 		if len(s) < 64 {
-			err := validation.ValidateName(prefix)
+			err := validation.ValidateName(s)
 			if err != nil {
 				return err
 			}

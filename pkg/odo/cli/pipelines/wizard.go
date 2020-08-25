@@ -82,13 +82,13 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 
 	// ask for sealed secrets only when default is absent
 	if io.SealedSecretsService == (types.NamespacedName{}) {
-		io.SealedSecretsService.Name = ui.EnterSealedSecretService()
-		io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
+		io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
+
 	}
 
 	io.GitOpsRepoURL = ui.EnterGitRepo()
 	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
-	_, err := sc.NewRepository(io.GitOpsRepoURL)
+	_, err = sc.NewRepository(io.GitOpsRepoURL)
 	if err != nil {
 		return err
 	}
@@ -107,13 +107,8 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-	io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
 	io.Prefix = ui.EnterPrefix()
 	io.ServiceRepoURL = ui.EnterServiceRepoURL()
-	_, err = sc.NewRepository(io.ServiceRepoURL)
-	if err != nil {
-		return err
-	}
 	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
 	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
 	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
@@ -235,6 +230,7 @@ func repoFromURL(raw string) (string, error) {
 	parts := strings.Split(u.Path, "/")
 	return strings.TrimSuffix(parts[len(parts)-2], ".git") + "/" + strings.TrimSuffix(parts[len(parts)-1], ".git"), nil
 }
+
 func CheckFileExists(path string) bool {
 	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(path, "pipelines.yaml"))
 	return exists
