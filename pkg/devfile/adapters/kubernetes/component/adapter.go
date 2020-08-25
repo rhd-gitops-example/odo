@@ -111,7 +111,7 @@ type Adapter struct {
 
 const dockerfilePath string = "Dockerfile"
 
-func (a Adapter) runBuildConfig(isS2i bool, client *occlient.Client, parameters common.BuildParameters, isImageRegistryInternal bool) (err error) {
+func (a Adapter) runBuildConfig(client *occlient.Client, parameters common.BuildParameters, isImageRegistryInternal bool) (err error) {
 	buildName := a.ComponentName
 
 	commonObjectMeta := metav1.ObjectMeta{
@@ -142,18 +142,21 @@ func (a Adapter) runBuildConfig(isS2i bool, client *occlient.Client, parameters 
 		}
 	}
 
-	// Currently, we hardcode to s2i build until we implement logic to swtch betweeen build strategy from devfile guidance
-	if isS2i {
-		_, err = client.CreateBuildConfigWithBinaryInput(commonObjectMeta, parameters.BuilderImageStreamTag, parameters.BuilderImageNamespace,
-			secretName, parameters.ScriptLocation, buildOutput, parameters.Tag, parameters.IncrementalBuild, []corev1.EnvVar{})
-		if err != nil {
-			return err
-		}
-	} else {
+	switch parameters.BuildGuidance {
+	case common.DockerFile:
 		_, err = client.CreateDockerBuildConfigWithBinaryInput(commonObjectMeta, dockerfilePath, parameters.Tag, []corev1.EnvVar{}, buildOutput, secretName)
 		if err != nil {
 			return err
 		}
+	case common.SourceToImage:
+		_, err = client.CreateBuildConfigWithBinaryInput(commonObjectMeta, parameters.SourceToImageGuidance.BuilderImageNamespace,
+			parameters.SourceToImageGuidance.BuilderImageNamespace, secretName, parameters.SourceToImageGuidance.ScriptLocation,
+			buildOutput, parameters.Tag, parameters.SourceToImageGuidance.IncrementalBuild, []corev1.EnvVar{})
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown build guidance '%d", parameters.BuildGuidance)
 	}
 
 	defer func() {
@@ -235,11 +238,12 @@ func (a Adapter) Build(parameters common.BuildParameters) (err error) {
 		}
 	}
 
-	if isBuildConfigSupported && !parameters.Rootless {
-		return a.runBuildConfig(true, client, parameters, isImageRegistryInternal)
-	} else {
+	if parameters.BuildGuidance == common.DockerFile && (parameters.DockerfileGuidance.Rootless || !isBuildConfigSupported) {
 		return a.runKaniko(parameters, isImageRegistryInternal)
 	}
+
+	return a.runBuildConfig(client, parameters, isImageRegistryInternal)
+
 }
 
 // Perform the substitutions in the manifest file(s)
