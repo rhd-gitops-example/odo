@@ -136,30 +136,28 @@ func (do *DeployOptions) Validate() (err error) {
 			// TODO: make clearer more visible output
 			log.Warning("Dockerfile already exists in project directory and one is specified in Devfile.")
 			log.Warningf("Using Dockerfile specified in devfile from '%s'", do.dockerfileGuidance.DockerfileLocation)
-
-			if do.dockerfileGuidance.DockerfileLocation != "" {
-				dockerfileBytes, err := util.LoadFileIntoMemory(do.dockerfileGuidance.DockerfileLocation)
-				if err != nil {
-					s.End(false)
-					return errors.New("unable to download Dockerfile from URL specified in devfile")
-				}
-				// If we successfully downloaded the Dockerfile into memory, store it in the DeployOptions
-				do.DockerfileBytes = dockerfileBytes
-
-				// Validate the file that was downloaded is a Dockerfile
-				err = util.ValidateDockerfile(dockerfileBytes)
-				if err != nil {
-					s.End(false)
-					return err
-				}
-			} else if !util.CheckPathExists(filepath.Join(do.componentContext, "Dockerfile")) {
-				s.End(false)
-				return errors.New("dockerfile required for build. No 'DockerfileLocation' field found in dockerfile component of devfile, or Dockerfile found in project directory")
-			}
 		}
+		if do.dockerfileGuidance.DockerfileLocation != "" {
+			dockerfileBytes, err := util.LoadFileIntoMemory(do.dockerfileGuidance.DockerfileLocation)
+			if err != nil {
+				s.End(false)
+				return errors.New("unable to download Dockerfile from URL specified in devfile")
+			}
+			// If we successfully downloaded the Dockerfile into memory, store it in the DeployOptions
+			do.DockerfileBytes = dockerfileBytes
 
-		s.End(true)
+			// Validate the file that was downloaded is a Dockerfile
+			err = util.ValidateDockerfile(dockerfileBytes)
+			if err != nil {
+				s.End(false)
+				return err
+			}
+		} else if !util.CheckPathExists(filepath.Join(do.componentContext, "Dockerfile")) {
+			s.End(false)
+			return errors.New("dockerfile required for build. No 'DockerfileLocation' field found in dockerfile component of devfile, or Dockerfile found in project directory")
+		}
 	}
+	s.End(true)
 	s = log.Spinner("Validating deployment information")
 	metadata := do.devObj.Data.GetMetadata()
 	manifestURL := metadata.Manifest
