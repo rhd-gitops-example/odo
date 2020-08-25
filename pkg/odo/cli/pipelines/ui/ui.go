@@ -2,8 +2,12 @@ package ui
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"gopkg.in/AlecAivazis/survey.v1"
+
+	"github.com/openshift/odo/pkg/pipelines/ioutils"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openshift/odo/pkg/odo/cli/ui"
 )
@@ -85,16 +89,23 @@ func EnterImageRepoExternalRepository() string {
 }
 
 // EnterOutputPath allows the user to specify the path where the gitops configuration must reside locally in a UI prompt.
-func EnterOutputPath(GitopsUrl string) string {
+func EnterOutputPath() string {
 	var outputPath string
 	var prompt *survey.Input
 	prompt = &survey.Input{
 		Message: "Provide a path to write GitOps resources?",
-		Help:    fmt.Sprintf("This is the path where the GitOps repository configuration is stored locally before you push it to the repository GitopsRepoURL %s", GitopsUrl),
+		Help:    fmt.Sprintf("This is the path where the GitOps repository configuration is stored locally before you push it to the repository GitopsRepoURL"),
 		Default: ".",
 	}
 
 	err := survey.AskOne(prompt, &outputPath, nil)
+	exists, filePathError := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(outputPath, "pipelines.yaml"))
+	if exists {
+		SelectOptionOverwrite(outputPath)
+	}
+	if !exists {
+		err = filePathError
+	}
 	ui.HandleError(err)
 
 	return outputPath
@@ -105,26 +116,25 @@ func EnterGitWebhookSecret() string {
 	var gitWebhookSecret string
 	var prompt *survey.Input
 	prompt = &survey.Input{
-		Message: "Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the GitOps repository. (if not provided, it will be auto-generated)",
+		Message: "Provide a secret whose length should be 16 or more characters that we can use to authenticate incoming hooks from your Git hosting service for the GitOps repository. (if not provided, it will be auto-generated)",
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
 
-	err := survey.AskOne(prompt, &gitWebhookSecret, nil)
+	err := survey.AskOne(prompt, &gitWebhookSecret, makeSecretValidator())
 	ui.HandleError(err)
 
 	return gitWebhookSecret
 }
 
 // EnterSealedSecretService , if the secret isnt installed using the operator it is necessary to manually add the sealed-secrets-controller name through this UI prompt.
-func EnterSealedSecretService() string {
+func EnterSealedSecretService(sealedSecretService *types.NamespacedName) string {
 	var sealedSecret string
 	var prompt *survey.Input
 	prompt = &survey.Input{
 		Message: "Name of the Sealed Secrets Services that encrypts secrets",
 		Help:    "If you have a custom installation of the Sealed Secrets operator, we need to know where to communicate with it to seal your secrets.",
 	}
-
-	err := survey.AskOne(prompt, &sealedSecret, survey.Required)
+	err := survey.AskOne(prompt, &sealedSecret, makeSealedSecretsService(sealedSecretService))
 	ui.HandleError(err)
 
 	return sealedSecret
@@ -146,13 +156,13 @@ func EnterSealedSecretNamespace() string {
 }
 
 // EnterStatusTrackerAccessToken , it becomes necessary to add the personal access token from github to autheticate the commit-status-tracker.
-func EnterStatusTrackerAccessToken() string {
+func EnterStatusTrackerAccessToken(serviceRepo string) string {
 	var accessToken string
 	prompt := &survey.Password{
 		Message: "Please provide a token used to authenticate API calls to push commit-status updates to your Git hosting service",
 		Help:    "commit-status-tracker reports the completion status of OpenShift pipeline runs to your Git hosting status on success or failure, this token will be encrypted as a secret in your cluster.\n If you are using Github, please see here for how to generate a token https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token\nIf you are using GitLab, please see here for how to generate a token https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html",
 	}
-	err := survey.AskOne(prompt, &accessToken, survey.Required)
+	err := survey.AskOne(prompt, &accessToken, makeAccessTokenCheck(serviceRepo))
 	ui.HandleError(err)
 	return accessToken
 }
@@ -164,7 +174,7 @@ func EnterPrefix() string {
 		Message: "Add a prefix to the environment names(dev, stage, cicd etc.) to distinguish and identify individual environments?",
 		Help:    "The prefix helps differentiate between the different namespaces on the cluster, the default namespace cicd will appear as test-cicd if the prefix passed is test.",
 	}
-	err := survey.AskOne(prompt, &prefix, nil)
+	err := survey.AskOne(prompt, &prefix, makePrefixValidator())
 	ui.HandleError(err)
 	return prefix
 }
@@ -185,10 +195,10 @@ func EnterServiceRepoURL() string {
 func EnterServiceWebhookSecret() string {
 	var serviceWebhookSecret string
 	prompt := &survey.Input{
-		Message: " Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)",
+		Message: "Provide a secret whose length should be 16 or more characters that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)",
 		Help:    "The webhook secret is a secure string you plan to use to authenticate pull/push requests to the version control system of your choice, this secure string will be added to the webhook sealed secret created to enhance security. Choose a secure string of your choice for this field.",
 	}
-	err := survey.AskOne(prompt, &serviceWebhookSecret, nil)
+	err := survey.AskOne(prompt, &serviceWebhookSecret, makeSecretValidator())
 	ui.HandleError(err)
 	return serviceWebhookSecret
 }
@@ -208,7 +218,7 @@ func SelectOptionImageRepository() string {
 }
 
 // SelectOptionOverwrite allows users the option to overwrite the current gitops configuration locally through the UI prompt.
-func SelectOptionOverwrite() string {
+func SelectOptionOverwrite(path string) string {
 	var overwrite string
 
 	prompt := &survey.Select{
@@ -216,7 +226,7 @@ func SelectOptionOverwrite() string {
 		Options: []string{"yes", "no"},
 		Default: "no",
 	}
-	err := survey.AskOne(prompt, &overwrite, survey.Required)
+	err := survey.AskOne(prompt, &overwrite, makeOverWriteValidator(path))
 	ui.HandleError(err)
 	return overwrite
 }

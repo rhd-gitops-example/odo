@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
+	sc "github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -65,7 +66,6 @@ func NewWizardParameters() *WizardParameters {
 }
 
 // Complete completes WizardParameters after they've been created.
-//
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []string) error {
@@ -82,11 +82,16 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 
 	// ask for sealed secrets only when default is absent
 	if io.SealedSecretsService == (types.NamespacedName{}) {
-		io.SealedSecretsService.Name = ui.EnterSealedSecretService()
-		io.SealedSecretsService.Namespace = ui.EnterSealedSecretNamespace()
+		io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
+
 	}
 
 	io.GitOpsRepoURL = ui.EnterGitRepo()
+	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+	_, err = sc.NewRepository(io.GitOpsRepoURL)
+	if err != nil {
+		return err
+	}
 	option := ui.SelectOptionImageRepository()
 	if option == "Openshift Internal repository" {
 		io.InternalRegistryHostname = ui.EnterInternalRegistry()
@@ -94,32 +99,25 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 
 	} else {
 		io.DockerConfigJSONFilename = ui.EnterDockercfg()
+		fs := ioutils.NewFilesystem()
+		_, err := pipelines.CheckFileExists(fs, io.DockerConfigJSONFilename)
+		if err != nil {
+			return err
+		}
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
+	io.Prefix = ui.EnterPrefix()
+	io.ServiceRepoURL = ui.EnterServiceRepoURL()
+	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
+	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
+	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
 	if commitStatusTrackerCheck == "yes" {
-		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken()
+		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken(io.ServiceRepoURL)
 	}
-	io.Prefix = ui.EnterPrefix()
-	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
-	io.ServiceRepoURL = ui.EnterServiceRepoURL()
-	if io.ServiceRepoURL != "" {
-		io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
-		io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
-	}
-
-	io.OutputPath = ui.EnterOutputPath(io.GitOpsRepoURL)
-	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(io.OutputPath, "pipelines.yaml"))
-	if exists {
-		selectOverwriteOption := ui.SelectOptionOverwrite()
-		if selectOverwriteOption == "no" {
-			io.Overwrite = false
-			return fmt.Errorf("Cannot create GitOps configuration since file exists at %s", io.OutputPath)
-		}
-	}
+	io.OutputPath = ui.EnterOutputPath()
 	io.Overwrite = true
-	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
 	return nil
 }
 
@@ -221,4 +219,19 @@ func NewCmdWizard(name, fullName string) *cobra.Command {
 
 func clusterErr(errMsg string) error {
 	return fmt.Errorf("Couldn't connect to cluster: %s", errMsg)
+}
+
+//returns the username/reponame from the url
+func repoFromURL(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	parts := strings.Split(u.Path, "/")
+	return strings.TrimSuffix(parts[len(parts)-2], ".git") + "/" + strings.TrimSuffix(parts[len(parts)-1], ".git"), nil
+}
+
+func CheckFileExists(path string) bool {
+	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(path, "pipelines.yaml"))
+	return exists
 }
