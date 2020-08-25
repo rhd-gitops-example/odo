@@ -20,6 +20,8 @@ const (
 	appRootSubPath = "app-root"
 	// deploymentDirSubPath defines the sup-path in the odo's PV where the deployment dir will recide
 	deploymentDirSubPath = "deployment"
+	// ImageStreamKind
+	imageStreamTagKind = "ImageStreamTag"
 )
 
 // CommonImageMeta has all the most common image data that is passed around within Odo
@@ -132,7 +134,7 @@ func generateSupervisordDeploymentConfig(commonObjectMeta metav1.ObjectMeta, com
 							"copy-files-to-volume",
 						},
 						From: corev1.ObjectReference{
-							Kind:      "ImageStreamTag",
+							Kind:      imageStreamTagKind,
 							Name:      fmt.Sprintf("%s:%s", commonImageMeta.Name, commonImageMeta.Tag),
 							Namespace: commonImageMeta.Namespace,
 						},
@@ -292,7 +294,7 @@ func generateGitDeploymentConfig(commonObjectMeta metav1.ObjectMeta, image strin
 							commonObjectMeta.Name,
 						},
 						From: corev1.ObjectReference{
-							Kind: "ImageStreamTag",
+							Kind: imageStreamTagKind,
 							Name: image,
 						},
 					},
@@ -348,11 +350,8 @@ func generateDockerBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta
 	}
 }
 
-func generateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta, parameters common.BuildParameters, outputType string) buildv1.BuildConfig {
-	buildSource := buildv1.BuildSource{
-		Binary: &buildv1.BinaryBuildSource{},
-		Type:   buildv1.BuildSourceBinary,
-	}
+// generateBuildConfig creates a BuildConfig with a given buildSource being passed into Odo
+func generateBuildConfig(commonObjectMeta metav1.ObjectMeta, buildSource buildv1.BuildSource, builderImageStreamTag, builderImageNamespace, outputImageKind, outputImageTag string) buildv1.BuildConfig {
 
 	return buildv1.BuildConfig{
 		ObjectMeta: commonObjectMeta,
@@ -360,19 +359,17 @@ func generateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta
 			CommonSpec: buildv1.CommonSpec{
 				Output: buildv1.BuildOutput{
 					To: &corev1.ObjectReference{
-						Kind: outputType,
-						Name: parameters.Tag,
+						Kind: outputImageKind,
+						Name: outputImageTag,
 					},
-					// OPTIONAL: PushSecrets and ImageLabels
 				},
 				Source: buildSource,
 				Strategy: buildv1.BuildStrategy{
-					Type: buildv1.SourceBuildStrategyType,
 					SourceStrategy: &buildv1.SourceBuildStrategy{
 						From: corev1.ObjectReference{
-							Kind:      parameters.BuilderImageKind,
-							Name:      parameters.BuilderImage,
-							Namespace: parameters.BuilderImageNamespace,
+							Kind:      imageStreamTagKind,
+							Name:      builderImageStreamTag,
+							Namespace: builderImageNamespace,
 						},
 					},
 				},
@@ -381,39 +378,13 @@ func generateSourceBuildConfigWithBinaryInput(commonObjectMeta metav1.ObjectMeta
 	}
 }
 
-// generateBuildConfig creates a BuildConfig for Git URL's being passed into Odo
-func generateBuildConfig(commonObjectMeta metav1.ObjectMeta, gitURL, gitRef, imageName, imageNamespace string) buildv1.BuildConfig {
-
-	buildSource := buildv1.BuildSource{
+func gitBuildSource(gitURL, gitRef string) buildv1.BuildSource {
+	return buildv1.BuildSource{
 		Git: &buildv1.GitBuildSource{
 			URI: gitURL,
 			Ref: gitRef,
 		},
 		Type: buildv1.BuildSourceGit,
-	}
-
-	return buildv1.BuildConfig{
-		ObjectMeta: commonObjectMeta,
-		Spec: buildv1.BuildConfigSpec{
-			CommonSpec: buildv1.CommonSpec{
-				Output: buildv1.BuildOutput{
-					To: &corev1.ObjectReference{
-						Kind: "ImageStreamTag",
-						Name: commonObjectMeta.Name + ":latest",
-					},
-				},
-				Source: buildSource,
-				Strategy: buildv1.BuildStrategy{
-					SourceStrategy: &buildv1.SourceBuildStrategy{
-						From: corev1.ObjectReference{
-							Kind:      "ImageStreamTag",
-							Name:      imageName,
-							Namespace: imageNamespace,
-						},
-					},
-				},
-			},
-		},
 	}
 }
 

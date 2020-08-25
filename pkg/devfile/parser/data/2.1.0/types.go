@@ -34,6 +34,9 @@ type Devfile210 struct {
 	// Projects worked on in the workspace, containing names and sources locations
 	Projects []common.DevfileProject `json:"projects,omitempty"`
 
+	// Outer-loop Build Guidances
+	BuildGuidances []common.DevfileBuildGuidance `json:"buildGuidances,omitempty"`
+
 	// Devfile schema version
 	SchemaVersion string `json:"schemaVersion"`
 }
@@ -71,12 +74,16 @@ type Component struct {
 
 	// Allows specifying the definition of a volume shared by several other components
 	Volume *Volume `json:"volume,omitempty"`
+}
+
+// DevfileBuildGuidance specifed in devfile
+type DevfileBuildGuidance struct {
 
 	// Allows specifying a dockerfile to initiate build
 	Dockerfile *Dockerfile `json:"dockerfile,omitempty"`
 
 	// Allows specifying builder image to initiate s2i build
-	SourceToImage *SourceToImage `json:"sourcetoimage,omitempty"`
+	SourceToImage *SourceToImage `json:"s2i,omitempty"`
 }
 
 // Composite Composite command that allows executing several sub-commands either sequentially or concurrently
@@ -415,46 +422,31 @@ type Zip struct {
 	SparseCheckoutDir string `json:"sparseCheckoutDir,omitempty"`
 }
 
-// Dockerfile Component is for dockerfile image build
+// Dockerfile Build Guidance is for dockerfile image build
 type Dockerfile struct {
-	// Mandatory name that allows referencing the Volume component in Container volume mounts or inside a parent
-	Name string `json:"name"`
 
-	// Mandatory path to source code
-	Source *Source `json:"source"`
-
-	// Mandatory path to dockerfile
+	// Mandatory Dockerfile location which can be an URL or a path relative to buildContext
 	DockerfileLocation string `json:"dockerfileLocation"`
 
-	// Mandatory destination to registry to push built image
-	Destination string `json:"destination,omitempty"`
+	// Optional path of source directory to establish build context.  Default to the top level directory.
+	BuildContext string `json:"buildContext"`
 
-	// Rootless/Unpriviled builder pod
+	// Optional flag that specifies whether unprivileged builder pod is required.  Default is false.
 	Rootless bool `json:"rootless,omitempty"`
 }
 
-// Source represents source code for Dockerfile Component
-type Source struct {
-	// Mandatory path to local source directory folder
-	SourceDir string `json:"sourceDir"`
-
-	// Mandatory path to source repository hosted locally or on cloud
-	Location string `json:"location"`
-}
-
+// SourceToImage Build Guidance is for s2i (SourceToImage) build
 type SourceToImage struct {
-	// Mandatory name of the kind for builder image
-	BuilderImageKind string `json:"builderImageKind"`
 
-	//Mandatory name of the namespace where your builder image is present
+	// Mandatory namespace where builder image is present
 	BuilderImageNamespace string `json:"builderImageNamespace"`
 
-	//Mandatory name of the builder image with tag
-	BuilderImage string `json:"BuilderImage"`
+	// Mandatory builder image name with tag
+	BuilderImageStreamTag string `json:"builderImageStreamTag"`
 
-	//Optional path to custom s2i scripts
+	// Optional script URL to override default scripts provided by builder image
 	ScriptLocation string `json:"scriptLocation,omitempty"`
 
-	//optional flag to control incremental build
+	// Optional flag that indicates whether to perform increamental builds or no
 	IncrementalBuild bool `json:"incrementalBuild,omitempty"`
 }

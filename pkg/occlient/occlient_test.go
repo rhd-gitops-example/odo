@@ -5010,9 +5010,14 @@ func TestWaitAndGetDC(t *testing.T) {
 
 func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 	type args struct {
-		commonObjectMeta metav1.ObjectMeta
-		parameters       common.BuildParameters
-		envVars          []corev1.EnvVar
+		commonObjectMeta      metav1.ObjectMeta
+		builderImageStreamTag string
+		builderImageNamespace string
+		pushSecret            string
+		scriptURL             string
+		outputImageTag        string
+		incrementalBuild      bool
+		envVars               []corev1.EnvVar
 	}
 	tests := []struct {
 		name    string
@@ -5032,13 +5037,10 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 						"app.kubernetes.io/part-of":  "apptmp",
 					},
 				},
-				parameters: common.BuildParameters{
-					BuilderImageKind:      "ImageStreamTag",
-					BuilderImageNamespace: "openshift",
-					BuilderImage:          "ruby:latest",
-					ScriptLocation:        "",
-					IncrementalBuild:      false,
-				},
+				builderImageStreamTag: "ruby:latest",
+				builderImageNamespace: "openshift",
+				scriptURL:             "",
+				incrementalBuild:      false,
 				envVars: []corev1.EnvVar{
 					{
 						Name:  "key",
@@ -5051,7 +5053,6 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 				},
 			},
 			wantErr: false,
-			actions: 4,
 		},
 		{
 			name: "Case 2 - Generate and create the BuildConfig but fail with unable to find image name",
@@ -5065,14 +5066,11 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 						"app.kubernetes.io/part-of":  "apptmp",
 					},
 				},
-				parameters: common.BuildParameters{
-					BuilderImageKind:      "ImageStreamTag",
-					BuilderImageNamespace: "testing",
-					BuilderImage:          "fakeimagename:notlatest",
-					ScriptLocation:        "",
-					IncrementalBuild:      false,
-					Tag:                   "rubyimage:latest",
-				},
+				builderImageStreamTag: "fakeimagename:notlatest",
+				builderImageNamespace: "testing",
+				scriptURL:             "",
+				outputImageTag:        "rubyimage:latest",
+				incrementalBuild:      false,
 				envVars: []corev1.EnvVar{
 					{
 						Name:  "key",
@@ -5085,42 +5083,33 @@ func TestCreateBuildConfigWithBinaryInput(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			actions: 4,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeClient, fakeClientSet := FakeNew()
-
 			fakeClientSet.ImageClientset.PrependReactor("get", "imagestreams", func(action ktesting.Action) (bool, runtime.Object, error) {
 				return true, fakeImageStream(tt.args.commonObjectMeta.Name, tt.args.commonObjectMeta.Namespace, []string{"latest"}), nil
 			})
 			// Run function CreateBuildConfig
-			bc, err := fakeClient.CreateSourceBuildConfigWithBinaryInput(tt.args.commonObjectMeta, tt.args.parameters, []corev1.EnvVar{}, "DockerImage", "")
+			bc, err := fakeClient.CreateBuildConfigWithBinaryInput(tt.args.commonObjectMeta, tt.args.builderImageStreamTag, tt.args.builderImageNamespace,
+				tt.args.pushSecret, tt.args.scriptURL, tt.args.outputImageTag, "DockerImage", tt.args.incrementalBuild, tt.args.envVars)
 			if err == nil && !tt.wantErr {
-				// Check to see how many actions are being ran
-				if (len(fakeClientSet.ImageClientset.Actions()) != tt.actions) && !tt.wantErr {
-					t.Errorf("expected %v action(s) in CreateSourceBuildConfigWithBinaryInput got %v: %v", tt.actions, len(fakeClientSet.ImageClientset.Actions()), fakeClientSet.ImageClientset.Actions())
-				}
-
 				// Check to see that names match
 				if bc.ObjectMeta.Name != tt.args.commonObjectMeta.Name {
 					t.Errorf("Expected buildConfig name %s, got '%s'", tt.args.commonObjectMeta.Name, bc.ObjectMeta.Name)
 				}
-
 				// Check to see that labels match
 				diff := cmp.Diff(tt.args.commonObjectMeta.Labels, bc.ObjectMeta.Labels)
 
 				if diff != "" {
 					t.Errorf("Expected equal labels: got %s", diff)
 				}
-
 			} else if err == nil && tt.wantErr {
 				t.Error("test failed, expected: false, got true")
 			} else if err != nil && !tt.wantErr {
 				t.Errorf("test failed, expected: no error, got error: %s", err.Error())
 			}
-
 		})
 	}
 }
