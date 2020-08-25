@@ -134,7 +134,7 @@ func (a Adapter) runBuildConfig(client *occlient.Client, parameters common.Build
 		secretName = regcredName
 	}
 
-	// If tag is not provided, default to use the buildNama as image stream.
+	// If tag is not provided, default to use the buildName as image stream.
 	// We need to make sure imagestream exists.
 	if parameters.Tag == "" {
 		if err := client.EnsureImageStream(client.Namespace, buildName); err != nil {
