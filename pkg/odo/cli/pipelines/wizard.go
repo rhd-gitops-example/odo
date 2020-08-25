@@ -147,6 +147,7 @@ func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Inte
 		if !errors.IsNotFound(err) {
 			return clusterErr(err.Error())
 		}
+		errs = append(errs, err)
 	}
 
 	spinner.Start("Checking if OpenShift Pipelines Operator is installed with the default configuration", false)
@@ -234,11 +235,11 @@ func repoFromURL(raw string) (string, error) {
 }
 
 func isKnownDriver(repoURL string) bool {
-	parsed, err := url.Parse(repoURL)
+	host, err := hostFromURL(repoURL)
 	if err != nil {
 		return false
 	}
-	_, err = factory.DefaultIdentifier.Identify(parsed.Host)
+	_, err = factory.DefaultIdentifier.Identify(host)
 	if err == nil {
 		return true
 	}

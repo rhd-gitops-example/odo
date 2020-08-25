@@ -1,6 +1,9 @@
 package ui
 
-import "testing"
+import (
+	"regexp"
+	"testing"
+)
 
 func TestValidatePrefix(t *testing.T) {
 
@@ -12,7 +15,7 @@ func TestValidatePrefix(t *testing.T) {
 	}{
 		{"Name is not valid",
 			"Test@",
-			`Test@- is not a valid name:  a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')`},
+			`Test@-stage is not a valid name:  a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')`},
 		{"Prefix too long",
 			"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
 			"The prefix abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz-, must be less than 58 characters",
@@ -30,7 +33,6 @@ func TestValidatePrefix(t *testing.T) {
 }
 
 func TestValidateSecretLength(t *testing.T) {
-
 	validator := makeSecretValidator()
 	cmdTests := []struct {
 		desc     string
