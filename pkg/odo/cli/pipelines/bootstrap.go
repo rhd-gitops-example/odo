@@ -3,21 +3,34 @@ package pipelines
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/openshift/odo/pkg/log"
+	"github.com/openshift/odo/pkg/odo/cli/pipelines/ui"
 	"github.com/openshift/odo/pkg/odo/cli/pipelines/utility"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
+	"github.com/openshift/odo/pkg/pipelines/namespaces"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	ktemplates "k8s.io/kubectl/pkg/util/templates"
 )
 
 const (
 	// BootstrapRecommendedCommandName the recommended command name
 	BootstrapRecommendedCommandName = "bootstrap"
+
+	sealedSecretsName   = "sealed-secrets-controller"
+	sealedSecretsNS     = "kube-system"
+	argoCDNS            = "argocd"
+	argoCDOperatorName  = "argocd-operator"
+	argoCDServerName    = "argocd-server"
+	pipelinesOperatorNS = "openshift-operators"
 )
 
 var (
@@ -37,6 +50,12 @@ type BootstrapParameters struct {
 	*genericclioptions.Context
 }
 
+type status interface {
+	WarningStatus(status string)
+	Start(status string, debug bool)
+	End(status bool)
+}
+
 // NewBootstrapParameters bootstraps a BootstrapParameters instance.
 func NewBootstrapParameters() *BootstrapParameters {
 	return &BootstrapParameters{
@@ -48,10 +67,122 @@ func NewBootstrapParameters() *BootstrapParameters {
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []string) error {
+
+	clientSet, err := namespaces.GetClientSet()
+	if err != nil {
+		return err
+	}
+
+	err = checkBootstrapDependencies(io, clientSet, log.NewStatus(os.Stdout))
+	if err != nil {
+		return err
+	}
+
+	// ask for sealed secrets only when default is absent
+	mandatoryFlags := map[string]string{io.GitOpsRepoURL: "Git-repo-url", io.ServiceRepoURL: "service-repo-url"}
+	flagset := cmd.Flags()
+	if flagset.NFlag() == 0 {
+		// ask for sealed secrets only when default is absent
+		if io.SealedSecretsService == (types.NamespacedName{}) {
+			io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
+
+		}
+		io.GitOpsRepoURL = ui.EnterGitRepo()
+		option := ui.SelectOptionImageRepository()
+		if option == "Openshift Internal repository" {
+			io.InternalRegistryHostname = ui.EnterInternalRegistry()
+			io.ImageRepo = ui.EnterImageRepoInternalRegistry()
+		} else {
+			io.DockerConfigJSONFilename = ui.EnterDockercfg()
+			io.ImageRepo = ui.EnterImageRepoExternalRepository()
+		}
+		io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
+		commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
+		if commitStatusTrackerCheck == "yes" {
+			io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken(io.ServiceRepoURL)
+		}
+		io.Prefix = ui.EnterPrefix()
+		io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
+		io.ServiceRepoURL = ui.EnterServiceRepoURL()
+		io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
+		io.OutputPath = ui.EnterOutputPath()
+	} else {
+		for key, value := range mandatoryFlags {
+			if key == "" {
+				return fmt.Errorf("Please enter the value of the flag %s", value)
+			}
+		}
+		err := ui.CheckSecretLength(io.GitOpsWebhookSecret)
+		if err != nil {
+			return err
+		}
+		err := ui.CheckSecretLength(io.ServiceWebhookSecret)
+		if err != nil {
+			return err
+		}
+		err := ui.validatePrefix(io.Prefix)
+		if err != nil {
+			return err
+		}
+	}
+	io.Overwrite = true
 	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
 	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
 	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
+
 	return nil
+}
+
+func checkBootstrapDependencies(io *BootstrapParameters, kubeClient kubernetes.Interface, spinner status) error {
+
+	var errs []error
+	client := utility.NewClient(kubeClient)
+	log.Progressf("\nChecking dependencies\n")
+
+	spinner.Start("Checking if Sealed Secrets is installed with the default configuration", false)
+	err := client.CheckIfSealedSecretsExists(types.NamespacedName{Namespace: sealedSecretsNS, Name: sealedSecretsName})
+	setSpinnerStatus(spinner, "Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases", err)
+	if err == nil {
+		io.SealedSecretsService.Name = sealedSecretsName
+		io.SealedSecretsService.Namespace = sealedSecretsNS
+	} else if !errors.IsNotFound(err) {
+		return clusterErr(err.Error())
+	}
+
+	spinner.Start("Checking if ArgoCD Operator is installed with the default configuration", false)
+	err = client.CheckIfArgoCDExists(argoCDNS)
+	setSpinnerStatus(spinner, "Please install ArgoCD operator from OperatorHub", err)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return clusterErr(err.Error())
+		}
+		errs = append(errs, err)
+	}
+
+	spinner.Start("Checking if OpenShift Pipelines Operator is installed with the default configuration", false)
+	err = client.CheckIfPipelinesExists(pipelinesOperatorNS)
+	setSpinnerStatus(spinner, "Please install OpenShift Pipelines operator from OperatorHub", err)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return clusterErr(err.Error())
+		}
+		errs = append(errs, err)
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("Failed to satisfy the required dependencies")
+	}
+	return nil
+}
+
+func setSpinnerStatus(spinner status, warningMsg string, err error) {
+	if err != nil {
+		if errors.IsNotFound(err) {
+			spinner.WarningStatus(warningMsg)
+		}
+		spinner.End(false)
+		return
+	}
+	spinner.End(true)
 }
 
 // Validate validates the parameters of the BootstrapParameters.
@@ -60,22 +191,21 @@ func (io *BootstrapParameters) Validate() error {
 	if err != nil {
 		return fmt.Errorf("failed to parse url %s: %w", io.GitOpsRepoURL, err)
 	}
-
 	// TODO: this won't work with GitLab as the repo can have more path elements.
 	if len(utility.RemoveEmptyStrings(strings.Split(gr.Path, "/"))) != 2 {
 		return fmt.Errorf("repo must be org/repo: %s", strings.Trim(gr.Path, ".git"))
 	}
-
 	return nil
 }
 
-// Run runs the project bootstrap command.
+// Run runs the project Bootstrap command.
 func (io *BootstrapParameters) Run() error {
 	err := pipelines.Bootstrap(io.BootstrapOptions, ioutils.NewFilesystem())
 	if err != nil {
 		return err
 	}
 	log.Success("Bootstrapped GitOps sucessfully.")
+
 	return nil
 }
 
@@ -103,11 +233,12 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.Flags().StringVar(&o.SealedSecretsService.Name, "sealed-secrets-svc", "sealed-secrets-controller", "Name of the Sealed Secrets Services that encrypts secrets")
 	bootstrapCmd.Flags().StringVar(&o.StatusTrackerAccessToken, "status-tracker-access-token", "", "Used to authenticate requests to push commit-statuses to your Git hosting service")
 	bootstrapCmd.Flags().BoolVar(&o.Overwrite, "overwrite", false, "Overwrites previously existing GitOps configuration (if any)")
-
-	bootstrapCmd.MarkFlagRequired("gitops-repo-url")
 	bootstrapCmd.Flags().StringVar(&o.ServiceRepoURL, "service-repo-url", "", "Provide the URL for your Service repository e.g. https://github.com/organisation/service.git")
 	bootstrapCmd.Flags().StringVar(&o.ServiceWebhookSecret, "service-webhook-secret", "", "Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)")
 
-	bootstrapCmd.MarkFlagRequired("service-repo-url")
 	return bootstrapCmd
+}
+
+func clusterErr(errMsg string) error {
+	return fmt.Errorf("Couldn't connect to cluster: %s", errMsg)
 }
