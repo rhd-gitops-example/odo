@@ -123,6 +123,11 @@ func (do *DeployOptions) Validate() (err error) {
 		}
 	}
 
+	if do.buildGuidance == common.Unknown {
+		s.End(false)
+		return errors.New("missing build guidance in devfile")
+	}
+
 	//Download Dockerfile to .odo, build, then delete from .odo dir
 	//If Dockerfile is present in the project already, use that for the build
 	//If Dockerfile is present in the project and field is in devfile, build the one already in the project and warn the user.

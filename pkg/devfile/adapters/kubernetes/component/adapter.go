@@ -149,7 +149,7 @@ func (a Adapter) runBuildConfig(client *occlient.Client, parameters common.Build
 			return err
 		}
 	case common.SourceToImage:
-		_, err = client.CreateBuildConfigWithBinaryInput(commonObjectMeta, parameters.SourceToImageGuidance.BuilderImageNamespace,
+		_, err = client.CreateBuildConfigWithBinaryInput(commonObjectMeta, parameters.SourceToImageGuidance.BuilderImageStreamTag,
 			parameters.SourceToImageGuidance.BuilderImageNamespace, secretName, parameters.SourceToImageGuidance.ScriptLocation,
 			buildOutput, parameters.Tag, parameters.SourceToImageGuidance.IncrementalBuild, []corev1.EnvVar{})
 		if err != nil {

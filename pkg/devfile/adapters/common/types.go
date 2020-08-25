@@ -31,7 +31,8 @@ type Storage struct {
 type BuildGuidanceType int
 
 const (
-	DockerFile BuildGuidanceType = iota
+	Unknown BuildGuidanceType = iota
+	DockerFile
 	SourceToImage
 )
 

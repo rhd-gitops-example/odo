@@ -74,7 +74,7 @@ type DevfileBuildGuidance struct {
 	Dockerfile *Dockerfile `json:"dockerfile,omitempty"`
 
 	// Allows specifying builder image to initiate s2i build
-	SourceToImage *SourceToImage `json:"sourcetoimage,omitempty"`
+	SourceToImage *SourceToImage `json:"s2i,omitempty"`
 }
 
 // Configuration
