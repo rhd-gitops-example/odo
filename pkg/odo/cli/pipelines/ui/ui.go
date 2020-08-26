@@ -177,6 +177,12 @@ func EnterServiceRepoURL() string {
 	}
 	err := survey.AskOne(prompt, &serviceRepo, survey.Required)
 	ui.HandleError(err)
+
+	p, err := url.Parse(serviceRepo)
+	ui.HandleError(err)
+	if p.Host == "" {
+		ui.HandleError(fmt.Errorf("could not identify host from %q", serviceRepo))
+	}
 	return serviceRepo
 }
 
