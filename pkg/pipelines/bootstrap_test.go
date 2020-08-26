@@ -3,7 +3,6 @@ package pipelines
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -52,7 +51,7 @@ func TestBootstrapManifest(t *testing.T) {
 		ServiceWebhookSecret: "456",
 	}
 
-	r, err := bootstrapResources(params, ioutils.NewMapFilesystem())
+	r, err := bootstrapResources(params, ioutils.NewMemoryFilesystem())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +190,7 @@ func TestOverwriteFlag(t *testing.T) {
 		}
 		return &key.PublicKey, nil
 	}
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	params := &BootstrapOptions{
 		Prefix:               "tst-",
 		GitOpsRepoURL:        testGitOpsRepo,
@@ -205,9 +204,9 @@ func TestOverwriteFlag(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := Bootstrap(params, fakeFs)
-	want := errors.New("pipelines.yaml in output path already exists. If you want replace your existing files, please rerun with --overwrite")
-	if got.Error() != want.Error() {
-		t.Fatalf("Got %s want %s", got, want)
+	want := "pipelines.yaml in output path already exists. If you want to replace your existing files, please rerun with --overwrite."
+	if diff := cmp.Diff(want, got.Error()); diff != "" {
+		t.Fatalf("overwrite failed:\n%s", diff)
 	}
 
 }
@@ -232,7 +231,7 @@ func TestInitialFiles(t *testing.T) {
 	o := BootstrapOptions{Prefix: prefix, GitOpsWebhookSecret: gitOpsWebhook, DockerConfigJSONFilename: "", SealedSecretsService: meta.NamespacedName("", "")}
 
 	defer stubDefaultPublicKeyFunc(t)()
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	repo, err := scm.NewRepository(gitOpsURL)
 	assertNoError(t, err)
 	got, err := createInitialFiles(fakeFs, repo, &o)

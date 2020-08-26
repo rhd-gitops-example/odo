@@ -10,18 +10,18 @@ import (
 	"github.com/spf13/afero"
 )
 
-// EnvParameters encapsulates parameters for add env command
+// EnvParameters encapsulates parameters for add env command.
 type EnvParameters struct {
 	PipelinesFolderPath string
 	EnvName             string
 	Cluster             string
 }
 
-// AddEnv adds a new environment to the pipelines-file.
+// AddEnv adds a new environment to the pipelines file.
 func AddEnv(o *EnvParameters, appFs afero.Fs) error {
-	m, err := config.ParsePipelinesFolder(appFs, o.PipelinesFolderPath)
+	m, err := config.LoadManifest(appFs, o.PipelinesFolderPath)
 	if err != nil {
-		return fmt.Errorf("failed to parse pipeline-file: %v", err)
+		return err
 	}
 	env := m.GetEnvironment(o.EnvName)
 	if env != nil {

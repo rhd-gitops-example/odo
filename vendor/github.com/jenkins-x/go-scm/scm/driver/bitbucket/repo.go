@@ -63,12 +63,20 @@ func (s *repositoryService) Create(context.Context, *scm.RepositoryInput) (*scm.
 	return nil, nil, scm.ErrNotSupported
 }
 
+func (s *repositoryService) Fork(context.Context, *scm.RepositoryInput, string) (*scm.Repository, *scm.Response, error) {
+	return nil, nil, scm.ErrNotSupported
+}
+
 func (s *repositoryService) FindCombinedStatus(ctx context.Context, repo, ref string) (*scm.CombinedStatus, *scm.Response, error) {
 	return nil, nil, scm.ErrNotSupported
 }
 
 func (s *repositoryService) FindUserPermission(ctx context.Context, repo string, user string) (string, *scm.Response, error) {
 	return "", nil, scm.ErrNotSupported
+}
+
+func (s *repositoryService) AddCollaborator(ctx context.Context, repo, user, permission string) (bool, bool, *scm.Response, error) {
+	return false, false, nil, scm.ErrNotSupported
 }
 
 func (s *repositoryService) IsCollaborator(ctx context.Context, repo, user string) (bool, *scm.Response, error) {
@@ -302,6 +310,11 @@ type status struct {
 	Name  string `json:"name,omitempty"`
 	URL   string `json:"url"`
 	Desc  string `json:"description,omitempty"`
+	Links *struct {
+		Commit struct {
+			Href string `json:"href,omitempty"`
+		} `json:"commit,omitempty"`
+	} `json:"links,omitempty"`
 }
 
 func convertStatusList(from *statuses) []*scm.Status {
@@ -313,11 +326,16 @@ func convertStatusList(from *statuses) []*scm.Status {
 }
 
 func convertStatus(from *status) *scm.Status {
+	link := ""
+	if from.Links != nil {
+		link = from.Links.Commit.Href
+	}
 	return &scm.Status{
 		State:  convertState(from.State),
 		Label:  from.Key,
 		Desc:   from.Desc,
 		Target: from.URL,
+		Link:   link,
 	}
 }
 

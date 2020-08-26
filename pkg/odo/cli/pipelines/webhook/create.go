@@ -27,7 +27,6 @@ type createOptions struct {
 
 // Run contains the logic for the odo command
 func (o *createOptions) Run() error {
-
 	id, err := backend.Create(o.accessToken, o.pipelinesFolderPath, o.getAppServiceNames(), o.isCICD)
 
 	if err != nil {
@@ -50,7 +49,6 @@ func (o *createOptions) Run() error {
 }
 
 func newCmdCreate(name, fullName string) *cobra.Command {
-
 	o := &createOptions{}
 	command := &cobra.Command{
 		Use:     name,

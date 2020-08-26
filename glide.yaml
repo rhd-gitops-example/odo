@@ -119,7 +119,7 @@ import:
   subpackages:
   - api
 - package: github.com/jenkins-x/go-scm
-  version: v1.5.128
+  version: v1.5.156
 - package: github.com/shurcooL/githubv4
 - package: github.com/shurcooL/graphql
 - package: github.com/h2non/gock

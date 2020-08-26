@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/jenkins-x/go-scm/scm/factory"
 	triggersv1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 )
 
@@ -13,22 +14,6 @@ var (
 		{Key: "ref", Expression: "split(body.ref,'/')[2]"},
 	}
 )
-
-// GetDriverName gets Driver name from URL
-func GetDriverName(rawURL string) (string, error) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "", err
-	}
-	if s := strings.TrimSuffix(u.Host, ".com"); s != u.Host {
-		return strings.ToLower(s), nil
-	}
-	return "", invalidRepoTypeError(rawURL)
-}
-
-func invalidRepoTypeError(repoURL string) error {
-	return fmt.Errorf("unable to determine type of Git host from: %s", repoURL)
-}
 
 func invalidRepoPathError(gitType, path string) error {
 	return fmt.Errorf("invalid repository path for %s: %s", gitType, path)
@@ -102,4 +87,23 @@ func splitRepositoryPath(parsedURL *url.URL) ([]string, error) {
 	}
 	components[len(components)-1] = strings.TrimSuffix(components[len(components)-1], ".git")
 	return components, nil
+}
+
+// GetDriverName gets the driver to be used for this repo url, using the go-scm
+// default identifier.
+func GetDriverName(rawURL string) (string, error) {
+	host, err := HostnameFromURL(rawURL)
+	if err != nil {
+		return "", err
+	}
+	return factory.DefaultIdentifier.Identify(host)
+}
+
+// HostnameFromURL returns the host from a URL.
+func HostnameFromURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	return strings.ToLower(u.Host), nil
 }

@@ -1,12 +1,11 @@
 package git
 
 import (
-	"fmt"
-	"net/url"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/h2non/gock"
+	"github.com/jenkins-x/go-scm/scm/factory"
 )
 
 var mockHeaders = map[string]string{
@@ -17,7 +16,8 @@ var mockHeaders = map[string]string{
 }
 
 func TestWebhookWithFakeClient(t *testing.T) {
-
+	fakeID := factory.NewDriverIdentifier(factory.Mapping("fake.com", "fake"))
+	factory.DefaultIdentifier = fakeID
 	repo, err := NewRepository("https://fake.com/foo/bar.git", "token")
 	if err != nil {
 		t.Fatal(err)
@@ -31,18 +31,18 @@ func TestWebhookWithFakeClient(t *testing.T) {
 
 	// start with no webhooks
 	if len(ids) > 0 {
-		t.Fatal(err)
+		t.Fatalf("got %d ids, want 0", len(ids))
 	}
 
 	// create a webhook
 	id, err := repo.CreateWebhook(listenerURL, "secret")
-	if len(ids) > 0 {
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	// verify and remember our ID
 	if id == "" {
-		t.Fatal(err)
+		t.Fatal("got no webhook id")
 	}
 
 	// list again
@@ -74,12 +74,11 @@ func TestWebhookWithFakeClient(t *testing.T) {
 
 	// verify no webhooks
 	if len(ids) > 0 {
-		t.Fatal(err)
+		t.Fatalf("got %d ids, want 0", len(ids))
 	}
 }
 
 func TestListWebHooks(t *testing.T) {
-
 	defer gock.Off()
 
 	gock.New("https://api.github.com").
@@ -105,7 +104,6 @@ func TestListWebHooks(t *testing.T) {
 }
 
 func TestDeleteWebHooks(t *testing.T) {
-
 	defer gock.Off()
 
 	gock.New("https://api.github.com").
@@ -130,7 +128,6 @@ func TestDeleteWebHooks(t *testing.T) {
 }
 
 func TestCreateWebHook(t *testing.T) {
-
 	defer gock.Off()
 
 	gock.New("https://api.github.com").
@@ -152,106 +149,5 @@ func TestCreateWebHook(t *testing.T) {
 
 	if diff := cmp.Diff("1", created); diff != "" {
 		t.Errorf("deleted mismatch got\n%s", diff)
-	}
-}
-
-func TestGetDriverName(t *testing.T) {
-
-	tests := []struct {
-		url          string
-		driver       string
-		driverErrMsg string
-		repoName     string
-		repoErrMsg   string
-	}{
-		{
-			"http://github.org",
-			"github",
-			"",
-			"",
-			"failed to get Git repo: ",
-		},
-		{
-			"http://github.com/",
-			"github",
-			"",
-			"",
-			"failed to get Git repo: /",
-		},
-		{
-			"http://github.com/foo/bar",
-			"github",
-			"",
-			"foo/bar",
-			"",
-		},
-		{
-			"https://githuB.com/foo/bar.git",
-			"github",
-			"",
-			"foo/bar",
-			"",
-		},
-		{
-			"http://gitlab.com/foo/bar.git2",
-			"gitlab",
-			"",
-			"",
-			"failed to get Git repo: /foo/bar.git2",
-		},
-		{
-			"http://gitlab/foo/bar/",
-			"",
-			"unknown Git server: gitlab",
-			"foo/bar",
-			"",
-		},
-		{
-			"https://gitlab.a.b/foo/bar/bar",
-			"",
-			"unknown Git server: gitlab.a.b",
-			"",
-			"failed to get Git repo: /foo/bar/bar",
-		},
-		{
-			"https://gitlab.org2/f.b/bar.git",
-			"",
-			"unknown Git server: gitlab.org2",
-			"",
-			"failed to get Git repo: /f.b/bar.git",
-		},
-	}
-
-	for i, tt := range tests {
-		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
-			u, err := url.Parse(tt.url)
-			if err != nil {
-				t.Error(err)
-			} else {
-				gotDriver, err := getDriverName(u)
-				driverErrMsg := ""
-				if err != nil {
-					driverErrMsg = err.Error()
-				}
-				if diff := cmp.Diff(tt.driverErrMsg, driverErrMsg); diff != "" {
-					t.Errorf("driver errMsg mismatch got\n%s", diff)
-				}
-				if diff := cmp.Diff(tt.driver, gotDriver); diff != "" {
-					t.Errorf("driver mismatch got\n%s", diff)
-				}
-
-				repoName, err := GetRepoName(u)
-				repoErrMsg := ""
-				if err != nil {
-					repoErrMsg = err.Error()
-				}
-				if diff := cmp.Diff(tt.repoErrMsg, repoErrMsg); diff != "" {
-					t.Errorf("driver errMsg mismatch got\n%s", diff)
-				}
-				if diff := cmp.Diff(tt.repoName, repoName); diff != "" {
-					t.Errorf("driver mismatch got\n%s", diff)
-				}
-			}
-		})
 	}
 }

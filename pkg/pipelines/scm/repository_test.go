@@ -35,8 +35,8 @@ func TestNewRepositoryForInvalidRepoType(t *testing.T) {
 	if gotErr == nil {
 		t.Fatalf("NewRepository() returned an invalid repository of type: %s", repoType)
 	}
-	wantErr := unsupportedGitTypeError(repoType)
-	if diff := cmp.Diff(wantErr.Error(), gotErr.Error()); diff != "" {
+	wantErr := "unable to identify driver from hostname: test.com"
+	if diff := cmp.Diff(wantErr, gotErr.Error()); diff != "" {
 		t.Fatalf("Errors don't match: got %v want %v", gotErr, wantErr)
 	}
 }

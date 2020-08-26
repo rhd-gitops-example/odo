@@ -20,6 +20,10 @@ import (
 // Reference API Documentation:
 //   https://docs.atlassian.com/bitbucket-server/rest/5.11.1/bitbucket-rest.html
 
+func NewWebHookService() scm.WebhookService {
+	return &webhookService{nil}
+}
+
 // New returns a new Stash API client.
 func New(uri string) (*scm.Client, error) {
 	base, err := url.Parse(uri)
@@ -63,17 +67,17 @@ func (c *wrapper) do(ctx context.Context, method, path string, in, out interface
 	req := &scm.Request{
 		Method: method,
 		Path:   path,
+		Header: make(map[string][]string),
 	}
 	// if we are posting or putting data, we need to
 	// write it to the body of the request.
 	if in != nil {
 		buf := new(bytes.Buffer)
 		json.NewEncoder(buf).Encode(in)
-		req.Header = map[string][]string{
-			"Content-Type": {"application/json"},
-		}
+		req.Header.Add("Content-Type", "application/json")
 		req.Body = buf
 	}
+	req.Header.Add("X-Atlassian-Token", "no-check")
 
 	// execute the http request
 	res, err := c.Client.Do(ctx, req)

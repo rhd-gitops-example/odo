@@ -14,6 +14,20 @@ import (
 
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/go-scm/scm/driver/internal/null"
+	"github.com/pkg/errors"
+)
+
+const (
+	noPermissions         = 0
+	guestPermissions      = 10
+	reporterPermissions   = 20
+	developerPermissions  = 30
+	maintainerPermissions = 40
+	ownerPermissions      = 50
+
+	privateVisibility  = "private"
+	internalVisibility = "internal"
+	publicVisibility   = "public"
 )
 
 type repository struct {
@@ -37,6 +51,24 @@ type namespace struct {
 type permissions struct {
 	ProjectAccess access `json:"project_access"`
 	GroupAccess   access `json:"group_access"`
+}
+
+type memberPermissions struct {
+	UserID      int `json:"user_id"`
+	AccessLevel int `json:"access_level"`
+}
+
+func stringToAccessLevel(perm string) int {
+	switch perm {
+	case scm.AdminPermission:
+		return ownerPermissions
+	case scm.WritePermission:
+		return developerPermissions
+	case scm.ReadPermission:
+		return guestPermissions
+	default:
+		return noPermissions
+	}
 }
 
 func accessLevelToString(level int) string {
@@ -97,8 +129,52 @@ type repositoryService struct {
 	client *wrapper
 }
 
-func (s *repositoryService) Create(context.Context, *scm.RepositoryInput) (*scm.Repository, *scm.Response, error) {
-	return nil, nil, scm.ErrNotSupported
+type repositoryInput struct {
+	Name        string `json:"name"`
+	NamespaceID int    `json:"namespace_id"`
+	Description string `json:"description,omitempty"`
+	Visibility  string `json:"visibility"`
+}
+
+func (s *repositoryService) Create(ctx context.Context, input *scm.RepositoryInput) (*scm.Repository, *scm.Response, error) {
+	namespace, err := s.client.findNamespaceByName(ctx, input.Namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+	if namespace == nil {
+		return nil, nil, fmt.Errorf("no namespace found for %s", input.Namespace)
+	}
+	in := new(repositoryInput)
+	in.Name = input.Name
+	in.Description = input.Description
+	in.NamespaceID = namespace.ID
+
+	if input.Private {
+		in.Visibility = privateVisibility
+	} else {
+		in.Visibility = publicVisibility
+	}
+
+	path := "/api/v4/projects"
+	out := new(repository)
+	res, err := s.client.do(ctx, "POST", path, in, out)
+	return convertRepository(out), res, err
+}
+
+type forkInput struct {
+	Namespace string `json:"namespace_path,omitempty"`
+	Name      string `json:"name,omitempty"`
+}
+
+func (s *repositoryService) Fork(ctx context.Context, input *scm.RepositoryInput, origRepo string) (*scm.Repository, *scm.Response, error) {
+	in := new(forkInput)
+	in.Name = input.Name
+	in.Namespace = input.Namespace
+
+	path := fmt.Sprintf("/api/v4/projects/%s/fork", encode(origRepo))
+	out := new(repository)
+	res, err := s.client.do(ctx, "POST", path, in, out)
+	return convertRepository(out), res, err
 }
 
 func (s *repositoryService) FindCombinedStatus(ctx context.Context, repo, ref string) (*scm.CombinedStatus, *scm.Response, error) {
@@ -136,6 +212,27 @@ func (s *repositoryService) FindUserPermission(ctx context.Context, repo string,
 		}
 	}
 	return scm.NoPermission, res, nil
+}
+
+func (s *repositoryService) AddCollaborator(ctx context.Context, repo, username, permission string) (bool, bool, *scm.Response, error) {
+	userData, _, err := s.client.Users.FindLogin(ctx, username)
+	if err != nil {
+		return false, false, nil, errors.Wrapf(err, "couldn't look up ID for user %s", username)
+	}
+	if userData == nil {
+		return false, false, nil, fmt.Errorf("no user for %s found", username)
+	}
+	path := fmt.Sprintf("api/v4/projects/%s/members", encode(repo))
+	out := new(user)
+	in := &memberPermissions{
+		UserID:      userData.ID,
+		AccessLevel: stringToAccessLevel(permission),
+	}
+	res, err := s.client.do(ctx, "POST", path, in, &out)
+	if err != nil {
+		return false, false, res, err
+	}
+	return true, false, res, nil
 }
 
 func (s *repositoryService) IsCollaborator(ctx context.Context, repo, user string) (bool, *scm.Response, error) {
@@ -284,6 +381,7 @@ func convertRepository(from *repository) *scm.Repository {
 		ID:        strconv.Itoa(from.ID),
 		Namespace: from.Namespace.Path,
 		Name:      from.Path,
+		FullName:  from.PathNamespace,
 		Branch:    from.DefaultBranch,
 		Private:   convertPrivate(from.Visibility),
 		Clone:     from.HTTPURL,

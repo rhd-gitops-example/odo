@@ -7,7 +7,6 @@ import (
 // Repository interface exposes generic functions that will be
 // implemented by repositories (Github,Gitlab,Bitbucket,etc)
 type Repository interface {
-
 	// Get Push TriggerBinding name for this repository provider
 	PushBindingName() string
 

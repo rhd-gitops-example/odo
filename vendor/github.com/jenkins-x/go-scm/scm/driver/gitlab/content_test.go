@@ -6,6 +6,7 @@ package gitlab
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"testing"
@@ -53,19 +54,80 @@ func TestContentFind(t *testing.T) {
 }
 
 func TestContentCreate(t *testing.T) {
-	content := new(contentService)
-	_, err := content.Create(context.Background(), "octocat/hello-world", "README", nil)
-	if err != scm.ErrNotSupported {
-		t.Errorf("Expect Not Supported error")
+	defer gock.Off()
+	message := "just a test message"
+	content := []byte("testing")
+	branch := "my-test-branch"
+
+	encoded := base64.StdEncoding.EncodeToString([]byte(content))
+
+	gock.New("https://gitlab.com").
+		Post("api/v4/projects/octocat/hello-world/repository/commits").
+		MatchType("json").
+		JSON(map[string]interface{}{
+			"branch":         branch,
+			"id":             "octocat%2Fhello-world",
+			"commit_message": message,
+			"actions": []interface{}{
+				map[string]interface{}{
+					"action":    "create",
+					"file_path": "README",
+					"content":   encoded,
+					"encoding":  "base64",
+				},
+			},
+		}).
+		Reply(201).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/content.json")
+
+	params := &scm.ContentParams{
+		Branch:  branch,
+		Message: message,
+		Data:    content,
+	}
+	client := NewDefault()
+
+	_, err := client.Contents.Create(context.Background(), "octocat/hello-world", "README", params)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
 func TestContentUpdate(t *testing.T) {
-	content := new(contentService)
-	_, err := content.Update(context.Background(), "octocat/hello-world", "README", nil)
-	if err != scm.ErrNotSupported {
-		t.Errorf("Expect Not Supported error")
+	defer gock.Off()
+	message := "just a test message"
+	content := []byte("testing")
+	branch := "my-test-branch"
+
+	gock.New("https://gitlab.com").
+		Put("api/v4/projects/octocat/hello-world/repository/files/README").
+		MatchType("json").
+		JSON(map[string]string{
+			"branch":         branch,
+			"content":        string(content),
+			"commit_message": message,
+		}).
+		Reply(201).
+		Type("application/json").
+		SetHeaders(mockHeaders).
+		File("testdata/content.json")
+
+	params := &scm.ContentParams{
+		Branch:  branch,
+		Message: message,
+		Data:    content,
 	}
+	client := NewDefault()
+
+	res, err := client.Contents.Update(context.Background(), "octocat/hello-world", "README", params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("Request", testRequest(res))
+	t.Run("Rate", testRate(res))
 }
 
 func TestContentDelete(t *testing.T) {

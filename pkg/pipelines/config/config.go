@@ -114,6 +114,7 @@ type Environment struct {
 type Config struct {
 	Pipelines *PipelinesConfig `json:"pipelines,omitempty"`
 	ArgoCD    *ArgoCDConfig    `json:"argocd,omitempty"`
+	Git       *GitConfig       `json:"git,omitempty"`
 }
 
 // PipelinesConfig provides configuration for the CI/CD pipelines.
@@ -124,6 +125,11 @@ type PipelinesConfig struct {
 // ArgoCDConfig provides configuration for the ArgoCD application generation.
 type ArgoCDConfig struct {
 	Namespace string `json:"namespace,omitempty"`
+}
+
+// GitConfig configures the git drivers.
+type GitConfig struct {
+	Drivers map[string]string `json:"drivers,omitempty"`
 }
 
 // GoString return environment name

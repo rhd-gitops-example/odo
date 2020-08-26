@@ -9,13 +9,20 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jenkins-x/go-scm/scm"
+	"github.com/shurcooL/graphql"
 )
+
+func NewWebHookService() scm.WebhookService {
+	return &webhookService{nil}
+}
 
 // New returns a new GitLab API client.
 func New(uri string) (*scm.Client, error) {
@@ -39,7 +46,37 @@ func New(uri string) (*scm.Client, error) {
 	client.Reviews = &reviewService{client}
 	client.Users = &userService{client}
 	client.Webhooks = &webhookService{client}
+
+	graphqlEndpoint := scm.UrlJoin(uri, "/api/graphql")
+	client.GraphQLURL, err = url.Parse(graphqlEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	client.GraphQL = &dynamicGraphQLClient{client, graphqlEndpoint}
 	return client.Client, nil
+}
+
+type dynamicGraphQLClient struct {
+	wrapper         *wrapper
+	graphqlEndpoint string
+}
+
+func (d *dynamicGraphQLClient) Query(ctx context.Context, q interface{}, vars map[string]interface{}) error {
+	httpClient := d.wrapper.Client.Client
+	if httpClient != nil {
+
+		transport := httpClient.Transport
+		if transport != nil {
+			query := graphql.NewClient(
+				d.graphqlEndpoint,
+				&http.Client{
+					Transport: transport,
+				})
+			return query.Query(ctx, q, vars)
+		}
+	}
+	fmt.Println("WARNING: no http transport configured for GraphQL and Gitlab")
+	return nil
 }
 
 // NewDefault returns a new GitLab API client using the
@@ -53,6 +90,28 @@ func NewDefault() *scm.Client {
 // for making http requests and unmarshaling the response.
 type wrapper struct {
 	*scm.Client
+}
+
+type gl_namespace struct {
+	ID                          int    `json:"id"`
+	Name                        string `json:"name"`
+	Path                        string `json:"path"`
+	Kind                        string `json:"kind"`
+	FullPath                    string `json:"full_path"`
+	ParentID                    int    `json:"parent_id"`
+	MembersCountWithDescendants int    `json:"members_count_with_descendants"`
+}
+
+// findNamespaceByName will look up the namespace for the given name
+func (c *wrapper) findNamespaceByName(ctx context.Context, name string) (*gl_namespace, error) {
+	in := url.Values{}
+	in.Set("search", name)
+	path := fmt.Sprintf("api/v4/namespaces?%s", in.Encode())
+
+	out := new(gl_namespace)
+	_, err := c.do(ctx, "GET", path, nil, &out)
+
+	return out, err
 }
 
 // do wraps the Client.Do function by creating the Request and

@@ -99,7 +99,7 @@ func TestNewGitHubRepository(t *testing.T) {
 		{
 			"http://github.org",
 			"",
-			"unable to determine type of Git host from: http://github.org",
+			"unable to identify driver from hostname: github.org",
 		},
 		{
 			"http://github.com/",

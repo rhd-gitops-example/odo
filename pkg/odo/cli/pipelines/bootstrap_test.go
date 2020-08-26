@@ -86,17 +86,22 @@ func TestValidateBootstrapParameters(t *testing.T) {
 	optionTests := []struct {
 		name    string
 		gitRepo string
+		driver  string
 		errMsg  string
 	}{
-		{"invalid repo", "test", "repo must be org/repo"},
-		{"valid repo", "test/repo", ""},
+		{"invalid repo", "test", "", "repo must be org/repo"},
+		{"valid repo", "test/repo", "", ""},
+		{"invalid driver", "test/repo", "unknown", "invalid driver type"},
+		{"valid driver github", "test/repo", "github", ""},
+		{"valid driver gitlab", "test/repo", "gitlab", ""},
 	}
 
 	for _, tt := range optionTests {
 		o := BootstrapParameters{
 			&pipelines.BootstrapOptions{
-				GitOpsRepoURL: tt.gitRepo,
-				Prefix:        "test"},
+				GitOpsRepoURL:     tt.gitRepo,
+				PrivateRepoDriver: tt.driver,
+				Prefix:            "test"},
 			&genericclioptions.Context{},
 		}
 		err := o.Validate()

@@ -21,13 +21,14 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/logging"
 	"github.com/tektoncd/pipeline/test/diff"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
+	"knative.dev/pkg/logging"
 )
 
 var ignoreVolatileTime = cmp.Comparer(func(_, _ apis.VolatileTime) bool { return true })
@@ -921,4 +922,52 @@ func TestSortContainerStatuses(t *testing.T) {
 		t.Errorf("Unexpected step order %s", diff.PrintWantGot(d))
 	}
 
+}
+
+func TestMarkStatusRunning(t *testing.T) {
+	trs := v1beta1.TaskRunStatus{}
+	MarkStatusRunning(&trs, v1beta1.TaskRunReasonRunning.String(), "Not all Steps in the Task have finished executing")
+
+	expected := &apis.Condition{
+		Type:    apis.ConditionSucceeded,
+		Status:  corev1.ConditionUnknown,
+		Reason:  v1beta1.TaskRunReasonRunning.String(),
+		Message: "Not all Steps in the Task have finished executing",
+	}
+
+	if d := cmp.Diff(expected, trs.GetCondition(apis.ConditionSucceeded), cmpopts.IgnoreTypes(apis.Condition{}.LastTransitionTime.Inner.Time)); d != "" {
+		t.Errorf("Unexpected status: %s", diff.PrintWantGot(d))
+	}
+}
+
+func TestMarkStatusFailure(t *testing.T) {
+	trs := v1beta1.TaskRunStatus{}
+	MarkStatusFailure(&trs, "failure message")
+
+	expected := &apis.Condition{
+		Type:    apis.ConditionSucceeded,
+		Status:  corev1.ConditionFalse,
+		Reason:  v1beta1.TaskRunReasonFailed.String(),
+		Message: "failure message",
+	}
+
+	if d := cmp.Diff(expected, trs.GetCondition(apis.ConditionSucceeded), cmpopts.IgnoreTypes(apis.Condition{}.LastTransitionTime.Inner.Time)); d != "" {
+		t.Errorf("Unexpected status: %s", diff.PrintWantGot(d))
+	}
+}
+
+func TestMarkStatusSuccess(t *testing.T) {
+	trs := v1beta1.TaskRunStatus{}
+	MarkStatusSuccess(&trs)
+
+	expected := &apis.Condition{
+		Type:    apis.ConditionSucceeded,
+		Status:  corev1.ConditionTrue,
+		Reason:  v1beta1.TaskRunReasonSuccessful.String(),
+		Message: "All Steps have completed executing",
+	}
+
+	if d := cmp.Diff(expected, trs.GetCondition(apis.ConditionSucceeded), cmpopts.IgnoreTypes(apis.Condition{}.LastTransitionTime.Inner.Time)); d != "" {
+		t.Errorf("Unexpected status: %s", diff.PrintWantGot(d))
+	}
 }

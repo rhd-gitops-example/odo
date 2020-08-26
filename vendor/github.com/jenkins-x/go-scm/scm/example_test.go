@@ -197,6 +197,28 @@ func ExampleCommit_list() {
 	}
 }
 
+func ExampleBranchCommit_list() {
+	client, err := github.New("https://api.github.com")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opts := scm.CommitListOptions{
+		Sha:  "test",
+		Page: 1,
+		Size: 30,
+	}
+
+	commits, _, err := client.Git.ListCommits(ctx, "octocat/Hello-World", opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, commit := range commits {
+		log.Println(commit.Sha, commit.Message, commit.Author.Login)
+	}
+}
+
 func ExampleCommit_changes() {
 	client, err := github.New("https://api.github.com")
 	if err != nil {
@@ -515,8 +537,8 @@ func ExampleReview_list() {
 
 	for _, review := range reviews {
 		log.Println(
-			review.Path,
-			review.Line,
+			review.Sha,
+			review.State,
 			review.Body,
 		)
 	}
@@ -534,8 +556,8 @@ func ExampleReview_find() {
 	}
 
 	log.Println(
-		review.Path,
-		review.Line,
+		review.Sha,
+		review.State,
 		review.Body,
 	)
 }
@@ -547,9 +569,15 @@ func ExampleReview_create() {
 	}
 
 	in := &scm.ReviewInput{
-		Line: 38,
-		Path: "main.go",
-		Body: "Run gofmt please",
+		Sha:   "7044a8a032e85b6ab611033b2ac8af7ce85805b2",
+		Event: "COMMENT",
+		Comments: []*scm.ReviewCommentInput{
+			{
+				Line: 38,
+				Path: "main.go",
+				Body: "Run gofmt please",
+			},
+		},
 	}
 
 	review, _, err := client.Reviews.Create(ctx, "octocat/Hello-World", 1, in)

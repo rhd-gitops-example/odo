@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -226,7 +227,7 @@ func (state PipelineRunState) IsStopping(d *dag.Graph) bool {
 // GetNextTasks returns a list of tasks which should be executed next i.e.
 // a list of tasks from candidateTasks which aren't yet indicated in state to be running and
 // a list of cancelled/failed tasks from candidateTasks which haven't exhausted their retries
-func (state PipelineRunState) GetNextTasks(candidateTasks map[string]struct{}) []*ResolvedPipelineRunTask {
+func (state PipelineRunState) GetNextTasks(candidateTasks sets.String) []*ResolvedPipelineRunTask {
 	tasks := []*ResolvedPipelineRunTask{}
 	for _, t := range state {
 		if _, ok := candidateTasks[t.PipelineTask.Name]; ok && t.TaskRun == nil {
@@ -287,14 +288,14 @@ func (state PipelineRunState) checkTasksDone(d *dag.Graph) bool {
 // any one DAG task resulted in failure
 func (state PipelineRunState) GetFinalTasks(d *dag.Graph, dfinally *dag.Graph) []*ResolvedPipelineRunTask {
 	tasks := []*ResolvedPipelineRunTask{}
-	finalCandidates := map[string]struct{}{}
+	finalCandidates := sets.NewString()
 	// check either pipeline has finished executing all DAG pipelineTasks
 	// or any one of the DAG pipelineTask has failed
 	if state.checkTasksDone(d) {
 		// return list of tasks with all final tasks
 		for _, t := range state {
 			if isTaskInGraph(t.PipelineTask.Name, dfinally) && !t.IsSuccessful() {
-				finalCandidates[t.PipelineTask.Name] = struct{}{}
+				finalCandidates.Insert(t.PipelineTask.Name)
 			}
 		}
 		tasks = state.GetNextTasks(finalCandidates)
@@ -373,6 +374,21 @@ func ValidateWorkspaceBindings(p *v1beta1.PipelineSpec, pr *v1beta1.PipelineRun)
 	return nil
 }
 
+// ValidateTaskRunSpecs that the TaskRunSpecs defined by a PipelineRun are correct.
+func ValidateTaskRunSpecs(p *v1beta1.PipelineSpec, pr *v1beta1.PipelineRun) error {
+	pipelineTasks := make(map[string]string)
+	for _, task := range p.Tasks {
+		pipelineTasks[task.Name] = task.Name
+	}
+
+	for _, taskrunSpec := range pr.Spec.TaskRunSpecs {
+		if _, ok := pipelineTasks[taskrunSpec.PipelineTaskName]; !ok {
+			return fmt.Errorf("PipelineRun's taskrunSpecs defined wrong taskName: %q, does not exist in Pipeline", taskrunSpec.PipelineTaskName)
+		}
+	}
+	return nil
+}
+
 // ValidateServiceaccountMapping validates that the ServiceAccountNames defined by a PipelineRun are not correct.
 func ValidateServiceaccountMapping(p *v1beta1.PipelineSpec, pr *v1beta1.PipelineRun) error {
 	pipelineTasks := make(map[string]string)
@@ -382,7 +398,7 @@ func ValidateServiceaccountMapping(p *v1beta1.PipelineSpec, pr *v1beta1.Pipeline
 
 	for _, name := range pr.Spec.ServiceAccountNames {
 		if _, ok := pipelineTasks[name.TaskName]; !ok {
-			return fmt.Errorf("PipelineRun's ServiceAccountNames defined wrong taskName: %q, not existed in Pipeline", name.TaskName)
+			return fmt.Errorf("PipelineRun's ServiceAccountNames defined wrong taskName: %q, does not exist in Pipeline", name.TaskName)
 		}
 	}
 	return nil

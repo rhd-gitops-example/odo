@@ -3,6 +3,9 @@ config:
     namespace: test-argocd
   pipelines:
     name: test-pipelines
+  git:
+    drivers:
+      test.example.com: github
 environments:
   - name: development
     pipelines:

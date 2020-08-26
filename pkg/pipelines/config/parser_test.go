@@ -22,6 +22,11 @@ func TestParse(t *testing.T) {
 				ArgoCD: &ArgoCDConfig{
 					Namespace: "test-argocd",
 				},
+				Git: &GitConfig{
+					Drivers: map[string]string{
+						"test.example.com": "github",
+					},
+				},
 			},
 			Environments: []*Environment{
 				{
@@ -157,7 +162,7 @@ func TestParsePipelinesFolder(t *testing.T) {
 		},
 	}
 
-	fakeFs := ioutils.NewMapFilesystem()
+	fakeFs := ioutils.NewMemoryFilesystem()
 	yaml.MarshalItemToFile(fakeFs, "gitops/pipelines.yaml", want)
 
 	got, err := ParsePipelinesFolder(fakeFs, "gitops")

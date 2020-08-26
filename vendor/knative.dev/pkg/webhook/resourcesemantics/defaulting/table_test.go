@@ -19,6 +19,7 @@ package defaulting
 import (
 	"context"
 	"testing"
+	"time"
 
 	kubeclient "knative.dev/pkg/client/injection/kube/client/fake"
 	_ "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/secret/fake"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientgotesting "k8s.io/client-go/testing"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
@@ -63,6 +65,9 @@ func TestReconcile(t *testing.T) {
 	namespaceSelector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{{
 			Key:      "webhooks.knative.dev/exclude",
+			Operator: metav1.LabelSelectorOpDoesNotExist,
+		}, {
+			Key:      "control-plane",
 			Operator: metav1.LabelSelectorOpDoesNotExist,
 		}},
 	}
@@ -355,7 +360,7 @@ func TestNew(t *testing.T) {
 		t.Fatal("Expected NewController to return a non-nil value")
 	}
 
-	if want, got := 0, c.WorkQueue.Len(); want != got {
+	if want, got := 0, c.WorkQueue().Len(); want != got {
 		t.Errorf("WorkQueue.Len() = %d, wanted %d", got, want)
 	}
 
@@ -368,7 +373,10 @@ func TestNew(t *testing.T) {
 		t.Errorf("Promote() = %v", err)
 	}
 
-	if want, got := 1, c.WorkQueue.Len(); want != got {
-		t.Errorf("WorkQueue.Len() = %d, wanted %d", got, want)
+	// Queue has async moving parts so if we check at the wrong moment, this might still be 0.
+	if wait.PollImmediate(10*time.Millisecond, 250*time.Millisecond, func() (bool, error) {
+		return c.WorkQueue().Len() == 1, nil
+	}) != nil {
+		t.Error("Queue length was never 1")
 	}
 }

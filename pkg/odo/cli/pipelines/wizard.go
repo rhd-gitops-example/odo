@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
+	"github.com/jenkins-x/go-scm/scm/factory"
 	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/cli/pipelines/ui"
 	"github.com/openshift/odo/pkg/odo/cli/pipelines/utility"
@@ -14,7 +14,6 @@ import (
 	"github.com/openshift/odo/pkg/pipelines"
 	"github.com/openshift/odo/pkg/pipelines/ioutils"
 	"github.com/openshift/odo/pkg/pipelines/namespaces"
-	sc "github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -88,15 +87,20 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 
 	io.GitOpsRepoURL = ui.EnterGitRepo()
 	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
-	_, err = sc.NewRepository(io.GitOpsRepoURL)
-	if err != nil {
-		return err
+	if !isKnownDriver(io.GitOpsRepoURL) {
+		io.PrivateRepoDriver = ui.SelectPrivateRepoDriver()
+		host, err := hostFromURL(io.GitOpsRepoURL)
+		if err != nil {
+			return fmt.Errorf("failed to parse the gitops url: %w", err)
+		}
+		identifier := factory.NewDriverIdentifier(factory.Mapping(host, io.PrivateRepoDriver))
+		factory.DefaultIdentifier = identifier
 	}
+
 	option := ui.SelectOptionImageRepository()
 	if option == "Openshift Internal repository" {
 		io.InternalRegistryHostname = ui.EnterInternalRegistry()
 		io.ImageRepo = ui.EnterImageRepoInternalRegistry()
-
 	} else {
 		io.DockerConfigJSONFilename = ui.EnterDockercfg()
 		fs := ioutils.NewFilesystem()
@@ -122,7 +126,6 @@ func (io *WizardParameters) Complete(name string, cmd *cobra.Command, args []str
 }
 
 func checkBootstrapDependencies(io *WizardParameters, kubeClient kubernetes.Interface, spinner status) error {
-
 	var errs []error
 	client := utility.NewClient(kubeClient)
 	log.Progressf("\nChecking dependencies\n")
@@ -231,7 +234,22 @@ func repoFromURL(raw string) (string, error) {
 	return strings.TrimSuffix(parts[len(parts)-2], ".git") + "/" + strings.TrimSuffix(parts[len(parts)-1], ".git"), nil
 }
 
-func CheckFileExists(path string) bool {
-	exists, _ := ioutils.IsExisting(ioutils.NewFilesystem(), filepath.Join(path, "pipelines.yaml"))
-	return exists
+func isKnownDriver(repoURL string) bool {
+	host, err := hostFromURL(repoURL)
+	if err != nil {
+		return false
+	}
+	_, err = factory.DefaultIdentifier.Identify(host)
+	if err == nil {
+		return true
+	}
+	return false
+}
+
+func hostFromURL(s string) (string, error) {
+	p, err := url.Parse(s)
+	if err != nil {
+		return "", err
+	}
+	return strings.ToLower(p.Host), nil
 }

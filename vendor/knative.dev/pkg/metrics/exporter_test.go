@@ -25,18 +25,12 @@ import (
 // 	See https://github.com/knative/pkg/issues/608
 
 const (
-	testNS       = "test"
-	testService  = "test-service"
-	testRoute    = "test-route"
-	testRevision = "test-revision"
-
-	testBroker              = "test-broker"
-	testEventType           = "test-eventtype"
-	testEventSource         = "test-eventsource"
-	testTrigger             = "test-trigger"
-	testFilterType          = "test-filtertype"
-	testSource              = "test-source"
-	testSourceResourceGroup = "test-source-rg"
+	testNS            = "test"
+	testService       = "test-service"
+	testRevision      = "test-revision"
+	testConfiguration = "test-configuration"
+	testContainer     = "test-container"
+	testPod           = "test-pod"
 )
 
 func TestMain(m *testing.M) {
@@ -193,7 +187,7 @@ func TestMetricsExporter(t *testing.T) {
 	// getStackdriverSecretFunc = fakeGetStackdriverSecret
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := newMetricsExporter(test.config, TestLogger(t))
+			_, _, err := newMetricsExporter(test.config, TestLogger(t))
 
 			succeeded := err == nil
 			if test.expectSuccess != succeeded {
@@ -209,7 +203,7 @@ func TestInterlevedExporters(t *testing.T) {
 	t.Skip()
 
 	// First create a stackdriver exporter
-	_, err := newMetricsExporter(&metricsConfig{
+	_, _, err := newMetricsExporter(&metricsConfig{
 		domain:             servingDomain,
 		component:          testComponent,
 		backendDestination: stackdriver,
@@ -222,7 +216,7 @@ func TestInterlevedExporters(t *testing.T) {
 	}
 	expectNoPromSrv(t)
 	// Then switch to prometheus exporter
-	_, err = newMetricsExporter(&metricsConfig{
+	_, _, err = newMetricsExporter(&metricsConfig{
 		domain:             servingDomain,
 		component:          testComponent,
 		backendDestination: prometheus,
@@ -232,7 +226,7 @@ func TestInterlevedExporters(t *testing.T) {
 	}
 	expectPromSrv(t, ":9090")
 	// Finally switch to stackdriver exporter
-	_, err = newMetricsExporter(&metricsConfig{
+	_, _, err = newMetricsExporter(&metricsConfig{
 		domain:             servingDomain,
 		component:          testComponent,
 		backendDestination: stackdriver,
@@ -260,13 +254,16 @@ func TestFlushExporter(t *testing.T) {
 		reportingPeriod:    1 * time.Minute,
 		backendDestination: prometheus,
 	}
-	e, err := newMetricsExporter(c, TestLogger(t))
+	e, f, err := newMetricsExporter(c, TestLogger(t))
 	if err != nil {
 		t.Errorf("Expected no error. got %v", err)
 	} else {
 		setCurMetricsExporter(e)
 		if want, got := false, FlushExporter(); got != want {
 			t.Errorf("Expected %v, got %v.", want, got)
+		}
+		if f == nil { // This is tested more extensively in resource_view_test.go
+			t.Error("Expected non-nil factory, got nil.")
 		}
 	}
 
@@ -283,13 +280,16 @@ func TestFlushExporter(t *testing.T) {
 		},
 	}
 
-	e, err = newMetricsExporter(c, TestLogger(t))
+	e, f, err = newMetricsExporter(c, TestLogger(t))
 	if err != nil {
 		t.Errorf("Expected no error. got %v", err)
 	} else {
 		setCurMetricsExporter(e)
 		if want, got := true, FlushExporter(); got != want {
-			t.Errorf("Expected %v, got %v.", want, got)
+			t.Errorf("Expected %v, got %v when calling FlushExporter().", want, got)
+		}
+		if f == nil { // This is tested more extensively in resource_view_test.go
+			t.Error("Expected non-nil factory, got nil.")
 		}
 	}
 }

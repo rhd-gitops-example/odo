@@ -1,5 +1,5 @@
-hash: ba2600fa5ac2c7ece870fb72c57fc62370b8824668b10f36f836534f0843709e
-updated: 2020-07-01T00:46:07.99923034-04:00
+hash: d9a4225ef0c03bdadbfb0ad316703d0e11ca3b0ecd3122265eb1405193612bb9
+updated: 2020-08-13T10:22:16.069389723+01:00
 imports:
 - name: cloud.google.com/go
   version: 8c41231e01b2085512d98153bcffb847ff9b4b9f
@@ -189,7 +189,7 @@ imports:
 - name: github.com/h2non/parth
   version: b4df798d65426f8c8ab5ca5f9987aec5575d26c9
 - name: github.com/hashicorp/errwrap
-  version: 8a6fb523712970c966eefc6b39ed2c5e74880354
+  version: 7b00e5db719c64d14dd0caaacbd13e76254d02c0
 - name: github.com/hashicorp/go-multierror
   version: 886a7fbe3eb1c874d46f623bfa70af45f425b3d1
 - name: github.com/hashicorp/golang-lru
@@ -210,7 +210,7 @@ imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jenkins-x/go-scm
-  version: b55b8b13c094642949f9c905118c7fe765e63b55
+  version: dd703bca79ba16f9b050a1694d03c929cff0e239
   subpackages:
   - pkg/hmac
   - scm
@@ -272,7 +272,7 @@ imports:
   subpackages:
   - pbutil
 - name: github.com/mgutz/ansi
-  version: 9520e82c474b0a04dd04f8a40959027271bab992
+  version: d51e80ef957dba7f19388ca64afefbd5a096af30
 - name: github.com/Microsoft/go-winio
   version: 3fe6c526287328ec859e2c1258458b685198f204
   subpackages:
@@ -402,7 +402,7 @@ imports:
   - pkg/helpers/term
   - pkg/helpers/tokencmd
 - name: github.com/operator-framework/operator-lifecycle-manager
-  version: 9f95e55cd49a63b85ab5ca5f087a9fa13af84a17
+  version: d1ebc80b9ac1612b003f2f0f36639d7edca45f39
   subpackages:
   - pkg/api/apis/operators
   - pkg/api/apis/operators/v1
@@ -455,7 +455,7 @@ imports:
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/shurcooL/githubv4
-  version: e003124d66e430e2f6b853080a90ddbc280a159b
+  version: f27d2ca7f6d535f7e35dd817493104814423eb48
 - name: github.com/shurcooL/graphql
   version: d48a9a75455f6af30244670bc0c9d0e38e7392b5
   subpackages:
@@ -477,7 +477,7 @@ imports:
   - assert
   - require
 - name: github.com/tektoncd/pipeline
-  version: 4142eb6662df9b9d0921af541ae6c8940fa47090
+  version: 8f586048034ca693e0b6c8ed4f8dca576f11c46e
   subpackages:
   - pkg/apis/config
   - pkg/apis/pipeline
@@ -720,7 +720,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 1723c05a3e736f78ceda6a0d27993f1baafda4c1
+  version: 5e8a2ce77c07528728024b5a157cf136a51a56a5
   subpackages:
   - pkg/authentication/authenticator
   - pkg/authentication/request/x509
@@ -1008,10 +1008,11 @@ imports:
   - integer
   - trace
 - name: knative.dev/pkg
-  version: 2c1a029eb97fcdcb759d6d053eea45d30ae0590e
+  version: c4576fd38ec2d788ab3a6ae55527d7fffb865c5d
   subpackages:
   - apis
   - apis/duck
+  - apis/duck/ducktypes
   - apis/duck/v1
   - apis/duck/v1alpha1
   - apis/duck/v1beta1

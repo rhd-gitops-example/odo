@@ -112,8 +112,47 @@ type repositoryService struct {
 	client *wrapper
 }
 
-func (s *repositoryService) Create(context.Context, *scm.RepositoryInput) (*scm.Repository, *scm.Response, error) {
-	return nil, nil, scm.ErrNotSupported
+type repoInput struct {
+	Name   string `json:"name"`
+	ScmID  string `json:"scmId"`
+	Public bool   `json:"public"`
+}
+
+func (s *repositoryService) Create(ctx context.Context, input *scm.RepositoryInput) (*scm.Repository, *scm.Response, error) {
+	in := &repoInput{
+		Name:   input.Name,
+		ScmID:  "git",
+		Public: !input.Private,
+	}
+	path := fmt.Sprintf("rest/api/1.0/projects/%s/repos", input.Namespace)
+
+	out := new(repository)
+	res, err := s.client.do(ctx, "POST", path, in, out)
+	return convertRepository(out), res, err
+}
+
+type forkProjectInput struct {
+	Key string `json:"key,omitempty"`
+}
+type forkInput struct {
+	Slug    string            `json:"slug,omitempty"`
+	Project *forkProjectInput `json:"project,omitempty"`
+}
+
+func (s *repositoryService) Fork(ctx context.Context, input *scm.RepositoryInput, origRepo string) (*scm.Repository, *scm.Response, error) {
+	namespace, name := scm.Split(origRepo)
+	in := new(forkInput)
+	if input.Name != "" {
+		in.Slug = input.Name
+	}
+	if input.Namespace != "" {
+		in.Project = &forkProjectInput{Key: input.Namespace}
+	}
+	path := fmt.Sprintf("rest/api/1.0/projects/%s/repos/%s", namespace, name)
+
+	out := new(repository)
+	res, err := s.client.do(ctx, "POST", path, in, out)
+	return convertRepository(out), res, err
 }
 
 func (s *repositoryService) FindCombinedStatus(ctx context.Context, repo, ref string) (*scm.CombinedStatus, *scm.Response, error) {
@@ -171,6 +210,10 @@ func (s *repositoryService) FindUserPermission(ctx context.Context, repo string,
 		}
 	}
 	return "", res, nil
+}
+
+func (s *repositoryService) AddCollaborator(ctx context.Context, repo, user, permission string) (bool, bool, *scm.Response, error) {
+	return false, false, nil, scm.ErrNotSupported
 }
 
 func (s *repositoryService) IsCollaborator(ctx context.Context, repo, user string) (bool, *scm.Response, error) {
@@ -382,6 +425,7 @@ func convertRepository(from *repository) *scm.Repository {
 		ID:        strconv.Itoa(from.ID),
 		Name:      from.Slug,
 		Namespace: from.Project.Key,
+		FullName:  fmt.Sprintf("%s/%s", from.Project.Key, from.Slug),
 		Link:      extractSelfLink(from.Links.Self),
 		Branch:    "master",
 		Private:   !from.Public,

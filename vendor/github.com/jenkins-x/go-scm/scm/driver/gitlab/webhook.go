@@ -5,6 +5,7 @@
 package gitlab
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -56,10 +57,9 @@ func (s *webhookService) Parse(req *http.Request, fn scm.SecretFunc) (scm.Webhoo
 		return hook, nil
 	}
 
-	if token != req.Header.Get("X-Gitlab-Token") {
+	if subtle.ConstantTimeCompare([]byte(req.Header.Get("X-Gitlab-Token")), []byte(token)) == 0 {
 		return hook, scm.ErrSignatureInvalid
 	}
-
 	return hook, nil
 }
 
@@ -350,6 +350,7 @@ func convertRepositoryHook(from *project) *scm.Repository {
 		ID:        strconv.Itoa(from.ID),
 		Namespace: namespace,
 		Name:      name,
+		FullName:  from.PathWithNamespace,
 		Clone:     from.GitHTTPURL,
 		CloneSSH:  from.GitSSHURL,
 		Link:      from.WebURL,

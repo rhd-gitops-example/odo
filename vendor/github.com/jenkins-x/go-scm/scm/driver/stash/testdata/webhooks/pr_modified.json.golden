@@ -4,6 +4,7 @@
     "ID": "12087",
     "Namespace": "~ADMIN",
     "Name": "example",
+    "FullName": "~ADMIN/example",
     "Perm": null,
     "Branch": "master",
     "Private": true,
@@ -28,11 +29,12 @@
     "State": "open",
     "Base": {
       "Ref": "master",
-      "Sha": "5a705e60111a4213da46839d9cbf4fc43639b771",
+      "Sha": "860c4eb4ed0f969b47144234ba13c31c498cca69",
       "Repo": {
         "ID": "12087",
         "Namespace": "~ADMIN",
         "Name": "example",
+        "FullName": "~ADMIN/example",
         "Perm": null,
         "Branch": "master",
         "Private": true,
@@ -44,12 +46,13 @@
       }
     },
     "Head": {
-      "Ref": "master",
+      "Ref": "new-branch",
       "Sha": "5a705e60111a4213da46839d9cbf4fc43639b771",
       "Repo": {
         "ID": "12087",
         "Namespace": "~ADMIN",
         "Name": "example",
+        "FullName": "~ADMIN/example",
         "Perm": null,
         "Branch": "master",
         "Private": true,
