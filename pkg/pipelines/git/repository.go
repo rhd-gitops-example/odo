@@ -49,7 +49,6 @@ func NewRepository(rawURL, token string) (*Repository, error) {
 func (r *Repository) ListWebhooks(listenerURL string) ([]string, error) {
 
 	hooks, _, err := r.Client.Repositories.ListHooks(context.Background(), r.name, scm.ListOptions{})
-	fmt.Printf("The value if the r.name is", r.name)
 	if err != nil {
 		return nil, err
 	}
