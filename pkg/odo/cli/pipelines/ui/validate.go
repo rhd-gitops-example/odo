@@ -18,7 +18,7 @@ import (
 
 func makePrefixValidator() survey.Validator {
 	return func(input interface{}) error {
-		return validatePrefix(input)
+		return ValidatePrefix(input)
 	}
 }
 
@@ -47,7 +47,7 @@ func makeAccessTokenCheck(serviceRepo string) survey.Validator {
 }
 
 // ValidatePrefix checks the length of the prefix with the env crosses 63 chars or not
-func validatePrefix(input interface{}) error {
+func ValidatePrefix(input interface{}) error {
 	if s, ok := input.(string); ok {
 		prefix := utility.MaybeCompletePrefix(s)
 		s = prefix + "stage"

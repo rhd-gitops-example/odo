@@ -79,7 +79,7 @@ func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []
 	}
 
 	// ask for sealed secrets only when default is absent
-	mandatoryFlags := map[string]string{io.GitOpsRepoURL: "Git-repo-url", io.ServiceRepoURL: "service-repo-url"}
+	// mandatoryFlags := map[string]string{io.GitOpsRepoURL: "Git-repo-url", io.ServiceRepoURL: "service-repo-url"}
 	flagset := cmd.Flags()
 	if flagset.NFlag() == 0 {
 		// ask for sealed secrets only when default is absent
@@ -106,29 +106,8 @@ func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []
 		io.ServiceRepoURL = ui.EnterServiceRepoURL()
 		io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
 		io.OutputPath = ui.EnterOutputPath()
-	} else {
-		for key, value := range mandatoryFlags {
-			if key == "" {
-				return fmt.Errorf("Please enter the value of the flag %s", value)
-			}
-		}
-		err := ui.CheckSecretLength(io.GitOpsWebhookSecret)
-		if err != nil {
-			return err
-		}
-		err := ui.CheckSecretLength(io.ServiceWebhookSecret)
-		if err != nil {
-			return err
-		}
-		err := ui.validatePrefix(io.Prefix)
-		if err != nil {
-			return err
-		}
 	}
 	io.Overwrite = true
-	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
-	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
-	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
 
 	return nil
 }
@@ -195,6 +174,9 @@ func (io *BootstrapParameters) Validate() error {
 	if len(utility.RemoveEmptyStrings(strings.Split(gr.Path, "/"))) != 2 {
 		return fmt.Errorf("repo must be org/repo: %s", strings.Trim(gr.Path, ".git"))
 	}
+	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
+	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
 	return nil
 }
 
@@ -235,7 +217,11 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.Flags().BoolVar(&o.Overwrite, "overwrite", false, "Overwrites previously existing GitOps configuration (if any)")
 	bootstrapCmd.Flags().StringVar(&o.ServiceRepoURL, "service-repo-url", "", "Provide the URL for your Service repository e.g. https://github.com/organisation/service.git")
 	bootstrapCmd.Flags().StringVar(&o.ServiceWebhookSecret, "service-webhook-secret", "", "Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)")
-
+	if len(os.Args) > 3 {
+		bootstrapCmd.MarkFlagRequired("gitops-repo-url")
+		bootstrapCmd.MarkFlagRequired("service-repo-url")
+		bootstrapCmd.MarkFlagRequired("image-repo")
+	}
 	return bootstrapCmd
 }
 
