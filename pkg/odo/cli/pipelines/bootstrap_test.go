@@ -9,7 +9,6 @@ import (
 
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
-	"github.com/spf13/cobra"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -126,44 +125,33 @@ func TestValidateBootstrapParameters(t *testing.T) {
 	}
 }
 
-// func TestBootstrapCommandWithMissingParams(t *testing.T) {
-// 	cmdTests := []struct {
-// 		desc    string
-// 		flags   []keyValuePair
-// 		wantErr string
-// 	}{
-// 		{"Missing gitops-repo-url flag",
-// 			[]keyValuePair{flag("service-repo-url", "sample/repo"), flag("image-repo", "registry/username/repo")},
-// 			`required flag(s) "gitops-repo-url" not set`},
-// 		{"Missing service-repo-url flag",
-// 			[]keyValuePair{
-// 				flag("gitops-repo-url", "sample/repo"), flag("image-repo", "registry/username/repo")},
-// 			`required flag(s) "service-repo-url" not set`},
-// 		{"Missing image-repo flag",
-// 			[]keyValuePair{
-// 				flag("gitops-repo-url", "sample/repo"), flag("service-repo-url", "sample/repo")},
-// 			`required flag(s) "image-repo" not set`},
-// 	}
-// 	for _, tt := range cmdTests {
-// 		t.Run(tt.desc, func(t *testing.T) {
-// 			_, _, err := executeCommand(NewCmdBootstrap("bootstrap", "odo pipelines bootstrap"), tt.flags...)
-// 			if err.Error() != tt.wantErr {
-// 				t.Errorf("got %s, want %s", err, tt.wantErr)
-// 			}
-// 		})
-// 	}
-// }
-
-//
-func executeCommand(cmd *cobra.Command, flags ...keyValuePair) (c *cobra.Command, output string, err error) {
-	fmt.Println("THis is cmd", cmd)
-	buf := new(bytes.Buffer)
-	cmd.SetOutput(buf)
-	for _, flag := range flags {
-		cmd.Flags().Set(flag.key, flag.value)
+func TestValidateMandatoryFlags(t *testing.T) {
+	optionTests := []struct {
+		name        string
+		gitRepo     string
+		serviceRepo string
+		imagerepo   string
+		errMsg      string
+	}{
+		{"missing gitops-repo-url", "", "https://github.com/example/repo.git", "registry/username/repo", `The mandatory flag "gitops-repo-url" has not been set`},
+		{"missing service-repo-url", "https://github.com/example/repo.git", "", "registry/username/repo", `The mandatory flag "service-repo-url" has not been set`},
+		{"missing image-repo", "https://github.com/example/repo.git", "https://github.com/example/repo.git", "", `The mandatory flag "image-repo" has not been set`},
 	}
-	c, err = cmd.ExecuteC()
-	return c, buf.String(), err
+
+	for _, tt := range optionTests {
+		o := BootstrapParameters{
+			&pipelines.BootstrapOptions{
+				GitOpsRepoURL:  tt.gitRepo,
+				ServiceRepoURL: tt.serviceRepo,
+				ImageRepo:      tt.imagerepo},
+			&genericclioptions.Context{},
+		}
+		err := nonInteractiveMode(&o)
+
+		if !matchError(t, tt.errMsg, err) {
+			t.Errorf("Validate() %#v failed to match error: got %s, want %s", tt.name, err, tt.errMsg)
+		}
+	}
 }
 
 func matchError(t *testing.T, s string, e error) bool {

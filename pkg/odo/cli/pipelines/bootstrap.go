@@ -78,47 +78,71 @@ func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []
 	if err != nil {
 		return err
 	}
-
 	// ask for sealed secrets only when default is absent
 	flagset := cmd.Flags()
 	if flagset.NFlag() == 0 {
-		// ask for sealed secrets only when default is absent
-		if io.SealedSecretsService == (types.NamespacedName{}) {
-			io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
-
+		err := initiateInteractiveMode(io)
+		if err != nil {
+			return err
 		}
-		io.GitOpsRepoURL = ui.EnterGitRepo()
-		io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
-		if !isKnownDriver(io.GitOpsRepoURL) {
-			io.PrivateRepoDriver = ui.SelectPrivateRepoDriver()
-			host, err := hostFromURL(io.GitOpsRepoURL)
-			if err != nil {
-				return fmt.Errorf("failed to parse the gitops url: %w", err)
-			}
-			identifier := factory.NewDriverIdentifier(factory.Mapping(host, io.PrivateRepoDriver))
-			factory.DefaultIdentifier = identifier
+	} else {
+		err := nonInteractiveMode(io)
+		if err != nil {
+			return err
 		}
-		option := ui.SelectOptionImageRepository()
-		if option == "Openshift Internal repository" {
-			io.InternalRegistryHostname = ui.EnterInternalRegistry()
-			io.ImageRepo = ui.EnterImageRepoInternalRegistry()
-		} else {
-			io.DockerConfigJSONFilename = ui.EnterDockercfg()
-			io.ImageRepo = ui.EnterImageRepoExternalRepository()
-		}
-		io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
-		io.ServiceRepoURL = ui.EnterServiceRepoURL()
-		io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
-		commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
-		if commitStatusTrackerCheck == "yes" {
-			io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken(io.ServiceRepoURL)
-		}
-		io.Prefix = ui.EnterPrefix()
-		io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
-		io.OutputPath = ui.EnterOutputPath()
 	}
+
 	io.Overwrite = true
 
+	return nil
+}
+
+// nonInteractiveMode gets triggered if a flag is passed, checks for mandatory flags.
+func nonInteractiveMode(io *BootstrapParameters) error {
+	mandatoryFlags := map[string]string{io.ServiceRepoURL: "service-repo-url", io.GitOpsRepoURL: "gitops-repo-url", io.ImageRepo: "image-repo"}
+	for key, value := range mandatoryFlags {
+		if key == "" {
+			return fmt.Errorf("The mandatory flag %q has not been set", value)
+		}
+	}
+	return nil
+}
+
+// initiateInteractiveMode starts the interactive mode impplementation if no flags are passed.
+func initiateInteractiveMode(io *BootstrapParameters) error {
+	// ask for sealed secrets only when default is absent
+	if io.SealedSecretsService == (types.NamespacedName{}) {
+		io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
+
+	}
+	io.GitOpsRepoURL = ui.EnterGitRepo()
+	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+	if !isKnownDriver(io.GitOpsRepoURL) {
+		io.PrivateRepoDriver = ui.SelectPrivateRepoDriver()
+		host, err := hostFromURL(io.GitOpsRepoURL)
+		if err != nil {
+			return fmt.Errorf("failed to parse the gitops url: %w", err)
+		}
+		identifier := factory.NewDriverIdentifier(factory.Mapping(host, io.PrivateRepoDriver))
+		factory.DefaultIdentifier = identifier
+	}
+	option := ui.SelectOptionImageRepository()
+	if option == "Openshift Internal repository" {
+		io.InternalRegistryHostname = ui.EnterInternalRegistry()
+		io.ImageRepo = ui.EnterImageRepoInternalRegistry()
+	} else {
+		io.DockerConfigJSONFilename = ui.EnterDockercfg()
+		io.ImageRepo = ui.EnterImageRepoExternalRepository()
+	}
+	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
+	io.ServiceRepoURL = ui.EnterServiceRepoURL()
+	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
+	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
+	if commitStatusTrackerCheck == "yes" {
+		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken(io.ServiceRepoURL)
+	}
+	io.Prefix = ui.EnterPrefix()
+	io.OutputPath = ui.EnterOutputPath()
 	return nil
 }
 
@@ -231,11 +255,6 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.Flags().BoolVar(&o.Overwrite, "overwrite", false, "Overwrites previously existing GitOps configuration (if any)")
 	bootstrapCmd.Flags().StringVar(&o.ServiceRepoURL, "service-repo-url", "", "Provide the URL for your Service repository e.g. https://github.com/organisation/service.git")
 	bootstrapCmd.Flags().StringVar(&o.ServiceWebhookSecret, "service-webhook-secret", "", "Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)")
-	if len(os.Args) > 3 {
-		bootstrapCmd.MarkFlagRequired("gitops-repo-url")
-		bootstrapCmd.MarkFlagRequired("service-repo-url")
-		bootstrapCmd.MarkFlagRequired("image-repo")
-	}
 	return bootstrapCmd
 }
 
