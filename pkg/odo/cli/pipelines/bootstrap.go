@@ -51,16 +51,16 @@ func (d drivers) supported(s string) bool {
 }
 
 var (
-	BootstrapExample = ktemplates.Examples(`
+	bootstrapExample = ktemplates.Examples(`
     # Bootstrap OpenShift pipelines.
     %[1]s 
     `)
 
-	BootstrapLongDesc  = ktemplates.LongDesc(`Wizard GitOps CI/CD Manifest`)
-	BootstrapShortDesc = `Bootstrap pipelines with a starter configuration`
+	bootstrapLongDesc  = ktemplates.LongDesc(`Bootstrap GitOps CI/CD Manifest`)
+	bootstrapShortDesc = `Bootstrap pipelines with a starter configuration`
 )
 
-// BootstrapParameters  encapsulates the parameters for the odo pipelines init command.
+// BootstrapParameters encapsulates the parameters for the odo pipelines init command.
 type BootstrapParameters struct {
 	*pipelines.BootstrapOptions
 	// generic context options common to all commands
@@ -117,9 +117,6 @@ func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []
 			return err
 		}
 	}
-
-	io.Overwrite = true
-
 	return nil
 }
 
@@ -169,6 +166,7 @@ func initiateInteractiveMode(io *BootstrapParameters) error {
 	}
 	io.Prefix = ui.EnterPrefix()
 	io.OutputPath = ui.EnterOutputPath()
+	io.Overwrite = true
 	return nil
 }
 
@@ -251,12 +249,9 @@ func (io *BootstrapParameters) Validate() error {
 
 // Run runs the project Bootstrap command.
 func (io *BootstrapParameters) Run() error {
-	if io.ServiceRepoURL != "" {
-		err := pipelines.Bootstrap(io.BootstrapOptions, ioutils.NewFilesystem())
-		if err != nil {
-			return err
-		}
-		log.Success("Bootstrapped GitOps sucessfully.")
+	err := pipelines.Bootstrap(io.BootstrapOptions, ioutils.NewFilesystem())
+	if err != nil {
+		return err
 	}
 	nextSteps()
 	return nil
@@ -268,9 +263,9 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 
 	bootstrapCmd := &cobra.Command{
 		Use:     name,
-		Short:   BootstrapShortDesc,
-		Long:    BootstrapLongDesc,
-		Example: fmt.Sprintf(BootstrapExample, fullName),
+		Short:   bootstrapShortDesc,
+		Long:    bootstrapLongDesc,
+		Example: fmt.Sprintf(bootstrapExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			genericclioptions.GenericRun(o, cmd, args)
 		},

@@ -27,7 +27,7 @@ type keyValuePair struct {
 	value string
 }
 
-func TestCompleteBootstrapParameters(t *testing.T) {
+func TestValidatePrefix(t *testing.T) {
 	completeTests := []struct {
 		name        string
 		prefix      string
@@ -49,11 +49,11 @@ func TestCompleteBootstrapParameters(t *testing.T) {
 		err := o.Validate()
 
 		if err != nil {
-			t.Errorf("Complete() %#v failed: ", err)
+			t.Errorf("Validate() %#v failed: ", err)
 		}
 
 		if o.Prefix != tt.wantPrefix {
-			t.Errorf("Complete() %#v prefix: got %s, want %s", tt.name, o.Prefix, tt.wantPrefix)
+			t.Errorf("Validate() %#v prefix: got %s, want %s", tt.name, o.Prefix, tt.wantPrefix)
 		}
 	}
 }
@@ -82,7 +82,7 @@ func TestAddSuffixWithBootstrap(t *testing.T) {
 
 			err := o.Validate()
 			if err != nil {
-				t.Errorf("Complete() %#v failed: ", err)
+				t.Errorf("Validate() %#v failed: ", err)
 			}
 
 			if o.GitOpsRepoURL != test.validGitOpsURL {
@@ -154,44 +154,9 @@ func TestValidateMandatoryFlags(t *testing.T) {
 		err := nonInteractiveMode(&o)
 
 		if !matchError(t, tt.errMsg, err) {
-			t.Errorf("Validate() %#v failed to match error: got %s, want %s", tt.name, err, tt.errMsg)
+			t.Errorf("nonInteractiveMode() %#v failed to match error: got %s, want %s", tt.name, err, tt.errMsg)
 		}
 	}
-}
-
-func matchError(t *testing.T, s string, e error) bool {
-	t.Helper()
-	if s == "" && e == nil {
-		return true
-	}
-	if s != "" && e == nil {
-		return false
-	}
-	match, err := regexp.MatchString(s, e.Error())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return match
-}
-
-func flag(k, v string) keyValuePair {
-	return keyValuePair{
-		key:   k,
-		value: v,
-	}
-}
-
-func (m *mockSpinner) Start(status string, debug bool) {
-	m.start = true
-	fmt.Fprintf(m.writer, "\n%s", status)
-}
-
-func (m *mockSpinner) End(status bool) {
-	m.end = status
-}
-
-func (m *mockSpinner) WarningStatus(status string) {
-	fmt.Fprintf(m.writer, "[%s]", status)
 }
 
 func TestCheckSpinner(t *testing.T) {
@@ -363,4 +328,38 @@ func pipelinesOperator() *appv1.Deployment {
 			Namespace: "openshift-operators",
 		},
 	}
+}
+func matchError(t *testing.T, s string, e error) bool {
+	t.Helper()
+	if s == "" && e == nil {
+		return true
+	}
+	if s != "" && e == nil {
+		return false
+	}
+	match, err := regexp.MatchString(s, e.Error())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return match
+}
+
+func flag(k, v string) keyValuePair {
+	return keyValuePair{
+		key:   k,
+		value: v,
+	}
+}
+
+func (m *mockSpinner) Start(status string, debug bool) {
+	m.start = true
+	fmt.Fprintf(m.writer, "\n%s", status)
+}
+
+func (m *mockSpinner) End(status bool) {
+	m.end = status
+}
+
+func (m *mockSpinner) WarningStatus(status string) {
+	fmt.Fprintf(m.writer, "[%s]", status)
 }
