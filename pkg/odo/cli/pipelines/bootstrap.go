@@ -34,6 +34,22 @@ const (
 	pipelinesOperatorNS = "openshift-operators"
 )
 
+type drivers []string
+
+var supportedDrivers = drivers{
+	"github",
+	"gitlab",
+}
+
+func (d drivers) supported(s string) bool {
+	for _, v := range d {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
+
 var (
 	BootstrapExample = ktemplates.Examples(`
     # Bootstrap OpenShift pipelines.
@@ -78,6 +94,16 @@ func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []
 	if err != nil {
 		return err
 	}
+
+	if io.PrivateRepoDriver != "" {
+		host, err := hostFromURL(io.GitOpsRepoURL)
+		if err != nil {
+			return err
+		}
+		identifier := factory.NewDriverIdentifier(factory.Mapping(host, io.PrivateRepoDriver))
+		factory.DefaultIdentifier = identifier
+	}
+
 	// ask for sealed secrets only when default is absent
 	flagset := cmd.Flags()
 	if flagset.NFlag() == 0 {
@@ -209,6 +235,13 @@ func (io *BootstrapParameters) Validate() error {
 	if len(utility.RemoveEmptyStrings(strings.Split(gr.Path, "/"))) != 2 {
 		return fmt.Errorf("repo must be org/repo: %s", strings.Trim(gr.Path, ".git"))
 	}
+
+	if io.PrivateRepoDriver != "" {
+		if !supportedDrivers.supported(io.PrivateRepoDriver) {
+			return fmt.Errorf("invalid driver type: %q", io.PrivateRepoDriver)
+		}
+	}
+
 	io.Prefix = utility.MaybeCompletePrefix(io.Prefix)
 	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
 	io.ServiceRepoURL = utility.AddGitSuffixIfNecessary(io.ServiceRepoURL)
@@ -255,6 +288,7 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.Flags().BoolVar(&o.Overwrite, "overwrite", false, "Overwrites previously existing GitOps configuration (if any)")
 	bootstrapCmd.Flags().StringVar(&o.ServiceRepoURL, "service-repo-url", "", "Provide the URL for your Service repository e.g. https://github.com/organisation/service.git")
 	bootstrapCmd.Flags().StringVar(&o.ServiceWebhookSecret, "service-webhook-secret", "", "Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)")
+	bootstrapCmd.Flags().StringVar(&o.PrivateRepoDriver, "private-repo-driver", "", "If your Git repositories are on a custom domain, please indicate which driver to use github or gitlab")
 	return bootstrapCmd
 }
 
