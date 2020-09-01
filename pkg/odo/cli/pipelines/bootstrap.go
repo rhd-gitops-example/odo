@@ -106,7 +106,7 @@ func (io *BootstrapParameters) Run() error {
 	if err != nil {
 		return err
 	}
-	log.Success("Bootstrapped GitOps sucessfully.")
+	nextSteps()
 	return nil
 }
 
@@ -142,4 +142,11 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 
 	bootstrapCmd.MarkFlagRequired("service-repo-url")
 	return bootstrapCmd
+}
+
+func nextSteps() {
+	log.Success("Bootstrapped OpenShift resources sucessfully.\n",
+		"Next Steps:\n",
+		"Please refer to https://github.com/rhd-gitops-example/docs/ to get started.",
+	)
 }
