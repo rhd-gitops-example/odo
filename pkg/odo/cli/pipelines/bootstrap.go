@@ -292,18 +292,10 @@ func nextSteps() {
 		"Next Steps:\n",
 		"Please refer to https://github.com/rhd-gitops-example/docs/ to get started.",
 	)
-func clusterErr(errMsg string) error {
-	return fmt.Errorf("Couldn't connect to cluster: %s", errMsg)
 }
 
-//returns the username/reponame from the url
-func repoFromURL(raw string) (string, error) {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return "", err
-	}
-	parts := strings.Split(u.Path, "/")
-	return strings.TrimSuffix(parts[len(parts)-2], ".git") + "/" + strings.TrimSuffix(parts[len(parts)-1], ".git"), nil
+func clusterErr(errMsg string) error {
+	return fmt.Errorf("Couldn't connect to cluster: %s", errMsg)
 }
 
 func isKnownDriver(repoURL string) bool {
