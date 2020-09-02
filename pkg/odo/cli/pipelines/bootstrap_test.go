@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"testing"
 
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	appv1 "k8s.io/api/apps/v1"
@@ -151,7 +153,8 @@ func TestValidateMandatoryFlags(t *testing.T) {
 				ImageRepo:      tt.imagerepo},
 			&genericclioptions.Context{},
 		}
-		err := nonInteractiveMode(&o)
+		clienSet := kubernetes.Clientset{}
+		err := nonInteractiveMode(&o, &clienSet)
 
 		if !matchError(t, tt.errMsg, err) {
 			t.Errorf("nonInteractiveMode() %#v failed to match error: got %s, want %s", tt.name, err, tt.errMsg)

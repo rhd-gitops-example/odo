@@ -90,11 +90,6 @@ func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []
 		return err
 	}
 
-	err = checkBootstrapDependencies(io, clientSet, log.NewStatus(os.Stdout))
-	if err != nil {
-		return err
-	}
-
 	if io.PrivateRepoDriver != "" {
 		host, err := hostFromURL(io.GitOpsRepoURL)
 		if err != nil {
@@ -107,12 +102,16 @@ func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []
 	// ask for sealed secrets only when default is absent
 	flagset := cmd.Flags()
 	if flagset.NFlag() == 0 {
-		err := initiateInteractiveMode(io)
+		err := checkBootstrapDependencies(io, clientSet, log.NewStatus(os.Stdout))
+		if err != nil {
+			return err
+		}
+		err = initiateInteractiveMode(io)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := nonInteractiveMode(io)
+		err := nonInteractiveMode(io, clientSet)
 		if err != nil {
 			return err
 		}
@@ -121,12 +120,16 @@ func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []
 }
 
 // nonInteractiveMode gets triggered if a flag is passed, checks for mandatory flags.
-func nonInteractiveMode(io *BootstrapParameters) error {
+func nonInteractiveMode(io *BootstrapParameters, clientSet *kubernetes.Clientset) error {
 	mandatoryFlags := map[string]string{io.ServiceRepoURL: "service-repo-url", io.GitOpsRepoURL: "gitops-repo-url", io.ImageRepo: "image-repo"}
 	for key, value := range mandatoryFlags {
 		if key == "" {
 			return fmt.Errorf("The mandatory flag %q has not been set", value)
 		}
+	}
+	err := checkBootstrapDependencies(io, clientSet, log.NewStatus(os.Stdout))
+	if err != nil {
+		return err
 	}
 	return nil
 }
