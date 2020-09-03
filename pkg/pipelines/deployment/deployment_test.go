@@ -21,8 +21,13 @@ func TestCreate(t *testing.T) {
 	d := Create(testComponentPartOf, "", testComponent, testImage, ContainerPort(80))
 
 	want := &appsv1.Deployment{
-		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", testComponent)),
+		TypeMeta: meta.TypeMeta("Deployment", "apps/v1"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("", testComponent), meta.AddLabels(
+			map[string]string{
+				KubernetesAppNameLabel: testComponent,
+				KubernetesPartOfLabel:  testComponentPartOf,
+			},
+		)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
 			Selector: LabelSelector(testComponent, testComponentPartOf),

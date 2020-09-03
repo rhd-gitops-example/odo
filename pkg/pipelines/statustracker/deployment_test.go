@@ -21,8 +21,13 @@ const testRepoURL = "https://github.com/testing/testing.git"
 func TestCreateStatusTrackerDeployment(t *testing.T) {
 	deploy := createStatusTrackerDeployment("dana-cicd", testRepoURL, "")
 	want := &appsv1.Deployment{
-		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("dana-cicd", operatorName)),
+		TypeMeta: meta.TypeMeta("Deployment", "apps/v1"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName("dana-cicd", operatorName), meta.AddLabels(
+			map[string]string{
+				deployment.KubernetesAppNameLabel: operatorName,
+				deployment.KubernetesPartOfLabel:  commitStatusAppLabel,
+			},
+		)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
 			Selector: deployment.LabelSelector(operatorName, commitStatusAppLabel),

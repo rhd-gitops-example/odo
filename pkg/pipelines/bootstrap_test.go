@@ -55,15 +55,21 @@ func TestBootstrapManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hookSecret, err := secrets.CreateSealedSecret(meta.NamespacedName("tst-cicd", "webhook-secret-tst-dev-http-api"), meta.NamespacedName("test-ns", "service"), "456", eventlisteners.WebhookSecretKey)
+	hookSecret, err := secrets.CreateSealedSecret(
+		meta.NamespacedName("tst-cicd", "webhook-secret-tst-dev-http-api"),
+		meta.NamespacedName("test-ns", "service"), "456", eventlisteners.WebhookSecretKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := res.Resources{
-		"config/tst-cicd/base/03-secrets/webhook-secret-tst-dev-http-api.yaml":                     hookSecret,
-		"environments/tst-dev/apps/app-http-api/services/http-api/base/config/100-deployment.yaml": deployment.Create("app-http-api", "tst-dev", "http-api", bootstrapImage, deployment.ContainerPort(8080)),
-		"environments/tst-dev/apps/app-http-api/services/http-api/base/config/200-service.yaml":    createBootstrapService("app-http-api", "tst-dev", "http-api"),
-		"environments/tst-dev/apps/app-http-api/services/http-api/base/config/kustomization.yaml":  &res.Kustomization{Resources: []string{"100-deployment.yaml", "200-service.yaml"}},
+		"config/tst-cicd/base/03-secrets/webhook-secret-tst-dev-http-api.yaml": hookSecret,
+		"environments/tst-dev/apps/app-http-api/services/http-api/base/config/100-deployment.yaml": deployment.Create(
+			"app-http-api", "tst-dev", "http-api", bootstrapImage,
+			deployment.ContainerPort(8080)),
+		"environments/tst-dev/apps/app-http-api/services/http-api/base/config/200-service.yaml": createBootstrapService(
+			"app-http-api", "tst-dev", "http-api"),
+		"environments/tst-dev/apps/app-http-api/services/http-api/base/config/kustomization.yaml": &res.Kustomization{
+			Resources: []string{"100-deployment.yaml", "200-service.yaml"}},
 		pipelinesFile: &config.Manifest{
 			Version:   version,
 			GitOpsURL: "https://github.com/my-org/gitops.git",

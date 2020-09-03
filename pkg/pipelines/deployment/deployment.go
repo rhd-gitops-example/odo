@@ -11,9 +11,6 @@ import (
 // KubernetesAppNameLabel string constant for Kubernetes App Name label
 const KubernetesAppNameLabel = "app.kubernetes.io/name"
 
-// KubernetesAppVersionLabel string constant for Kubernetes App Version label
-const KubernetesAppVersionLabel = "app.kubernetes.io/version"
-
 // KubernetesPartOfLabel string constant for Kubernetes App PartOf label
 const KubernetesPartOfLabel = "app.kubernetes.io/part-of"
 
@@ -52,8 +49,13 @@ func ContainerPort(p int32) podSpecFunc {
 // Create creates and returns a Deployment with the specified configuration.
 func Create(partOf, ns, name, image string, opts ...podSpecFunc) *appsv1.Deployment {
 	return &appsv1.Deployment{
-		TypeMeta:   meta.TypeMeta("Deployment", "apps/v1"),
-		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, name)),
+		TypeMeta: meta.TypeMeta("Deployment", "apps/v1"),
+		ObjectMeta: meta.ObjectMeta(meta.NamespacedName(ns, name), meta.AddLabels(
+			map[string]string{
+				KubernetesAppNameLabel: name,
+				KubernetesPartOfLabel:  partOf,
+			},
+		)),
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr32(1),
 			Selector: LabelSelector(name, partOf),
