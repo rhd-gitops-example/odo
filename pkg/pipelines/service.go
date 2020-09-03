@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/odo/pkg/pipelines/meta"
 	res "github.com/openshift/odo/pkg/pipelines/resources"
 	"github.com/openshift/odo/pkg/pipelines/roles"
+	"github.com/openshift/odo/pkg/pipelines/scm"
 	"github.com/openshift/odo/pkg/pipelines/secrets"
 	"github.com/openshift/odo/pkg/pipelines/triggers"
 	"github.com/openshift/odo/pkg/pipelines/yaml"
@@ -97,13 +98,20 @@ func serviceResources(m *config.Manifest, appFs afero.Fs, o *AddServiceOptions) 
 		secretsPath := filepath.Join(config.PathForPipelines(cfg), "base", secretFilename)
 		files[secretsPath] = hookSecret
 
-		if o.ImageRepo != "" {
+		if o.ImageRepo != "" && o.GitRepoURL != "" {
 			_, resources, bindingName, err := createImageRepoResources(m, cfg, env, o)
 			if err != nil {
 				return nil, err
 			}
 
 			files = res.Merge(resources, files)
+			if env.Pipelines == nil {
+				repo, err := scm.NewRepository(o.GitRepoURL)
+				if err != nil {
+					return nil, err
+				}
+				env.Pipelines = defaultPipelines(repo)
+			}
 			svc.Pipelines = &config.Pipelines{
 				Integration: &config.TemplateBinding{
 					Bindings: append([]string{bindingName}, env.Pipelines.Integration.Bindings[:]...),
