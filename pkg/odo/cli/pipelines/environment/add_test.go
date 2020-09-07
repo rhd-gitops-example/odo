@@ -2,7 +2,6 @@ package environment
 
 import (
 	"bytes"
-	"regexp"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -40,21 +39,6 @@ func executeCommand(cmd *cobra.Command, flags ...keyValuePair) (c *cobra.Command
 	}
 	c, err = cmd.ExecuteC()
 	return c, buf.String(), err
-}
-
-func matchError(t *testing.T, s string, e error) bool {
-	t.Helper()
-	if s == "" && e == nil {
-		return true
-	}
-	if s != "" && e == nil {
-		return false
-	}
-	match, err := regexp.MatchString(s, e.Error())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return match
 }
 
 func flag(k, v string) keyValuePair {

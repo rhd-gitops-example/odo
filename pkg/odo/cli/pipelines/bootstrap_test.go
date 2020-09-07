@@ -9,6 +9,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/pipelines"
 	appv1 "k8s.io/api/apps/v1"
@@ -23,10 +24,6 @@ type mockSpinner struct {
 	writer io.Writer
 	start  bool
 	end    bool
-}
-type keyValuePair struct {
-	key   string
-	value string
 }
 
 func TestValidatePrefix(t *testing.T) {
@@ -209,7 +206,7 @@ func TestDependenciesWithNothingInstalled(t *testing.T) {
 
 	wantMsg := `
 Checking if Sealed Secrets is installed with the default configuration[Please install Sealed Secrets from https://github.com/bitnami-labs/sealed-secrets/releases]
-Checking if ArgoCD Operator is installed with the default configuration[Please install ArgoCD operator from OperatorHub]
+Checking if ArgoCD Operator is installed with the default configuration[Please install ArgoCD operator from OperatorHub, with an ArgoCD resource called 'argocd']
 Checking if OpenShift Pipelines Operator is installed with the default configuration[Please install OpenShift Pipelines operator from OperatorHub]`
 
 	buff := &bytes.Buffer{}
@@ -246,7 +243,7 @@ func TestDependenciesWithNoArgoCD(t *testing.T) {
 
 	wantMsg := `
 Checking if Sealed Secrets is installed with the default configuration
-Checking if ArgoCD Operator is installed with the default configuration[Please install ArgoCD operator from OperatorHub]
+Checking if ArgoCD Operator is installed with the default configuration[Please install ArgoCD operator from OperatorHub, with an ArgoCD resource called 'argocd']
 Checking if OpenShift Pipelines Operator is installed with the default configuration`
 
 	buff := &bytes.Buffer{}
@@ -281,19 +278,19 @@ func assertError(t *testing.T, err error, msg string) {
 	t.Helper()
 	if err == nil {
 		if msg != "" {
-			t.Fatalf("Error mismatch: got %v, want %v", err, msg)
+			t.Fatalf("error mismatch: got %v, want %v", err, msg)
 		}
 		return
 	}
 	if err.Error() != msg {
-		t.Fatalf("Error mismatch: got %s, want %s", err.Error(), msg)
+		t.Fatalf("error mismatch: got %s, want %s", err.Error(), msg)
 	}
 }
 
 func assertMessage(t *testing.T, got, want string) {
 	t.Helper()
-	if got != want {
-		t.Fatalf("Message mismatch: got %s, want %s", got, want)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("message comparison failed:\n%s", diff)
 	}
 }
 
@@ -345,13 +342,6 @@ func matchError(t *testing.T, s string, e error) bool {
 		t.Fatal(err)
 	}
 	return match
-}
-
-func flag(k, v string) keyValuePair {
-	return keyValuePair{
-		key:   k,
-		value: v,
-	}
 }
 
 func (m *mockSpinner) Start(status string, debug bool) {
