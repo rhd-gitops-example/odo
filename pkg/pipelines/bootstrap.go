@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/pipelines/config"
 	"github.com/openshift/odo/pkg/pipelines/deployment"
 	"github.com/openshift/odo/pkg/pipelines/dryrun"
@@ -157,6 +158,7 @@ func Bootstrap(o *BootstrapOptions, appFs afero.Fs) error {
 	if err != nil {
 		return fmt.Errorf("failed to build resources: %v", err)
 	}
+	log.Success("The default dev/stage environment have been created")
 	bootstrapped = res.Merge(built, bootstrapped)
 	_, err = yaml.WriteResources(appFs, o.OutputPath, bootstrapped)
 	return err
@@ -472,7 +474,9 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *confi
 			return nil, err
 		}
 		outputs[dockerConfigPath] = dockerSecret
+		log.Success("The secrets have been encrypted")
 		outputs[serviceAccountPath] = roles.AddSecretToSA(sa, dockerSecretName)
+		log.Success("Service account Role-binding added to secrets")
 	}
 
 	if o.StatusTrackerAccessToken != "" {
@@ -483,6 +487,7 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *confi
 			return nil, err
 		}
 		outputs = res.Merge(outputs, trackerResources)
+		log.Success("Optional Pipelines tracker has been configured")
 	}
 
 	outputs[rolebindingsPath] = roles.CreateClusterRoleBinding(meta.NamespacedName("", roleBindingName), sa, "ClusterRole", roles.ClusterRoleName)
@@ -499,11 +504,13 @@ func createCICDResources(fs afero.Fs, repo scm.Repository, pipelineConfig *confi
 	outputs[pushTemplatePath] = triggers.CreateCIDryRunTemplate(cicdNamespace, saName)
 	outputs[appCIPushTemplatePath] = triggers.CreateDevCIBuildPRTemplate(cicdNamespace, saName)
 	outputs[eventListenerPath] = eventlisteners.Generate(repo, cicdNamespace, saName, eventlisteners.GitOpsWebhookSecret)
+	log.Success("OpenShift Pipelines resources created")
 	route, err := routes.Generate(cicdNamespace)
 	if err != nil {
 		return nil, err
 	}
 	outputs[routePath] = route
+	log.Success("OpenShift Route has been configured")
 	return outputs, nil
 }
 
