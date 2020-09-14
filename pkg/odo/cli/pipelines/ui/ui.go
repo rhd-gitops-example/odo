@@ -89,7 +89,7 @@ func EnterOutputPath() string {
 	var outputPath string
 	prompt := &survey.Input{
 		Message: "Provide a path to write GitOps resources?",
-		Help:    fmt.Sprintf("This is the path where the GitOps repository configuration is stored locally before you push it to the repository GitopsRepoURL"),
+		Help:    "This is the path where the GitOps repository configuration is stored locally before you push it to the repository GitopsRepoURL",
 		Default: ".",
 	}
 
@@ -108,8 +108,7 @@ func EnterOutputPath() string {
 // EnterGitWebhookSecret allows the user to specify the webhook secret string they wish to authenticate push/pull to GitOps repo in a UI prompt.
 func EnterGitWebhookSecret() string {
 	var gitWebhookSecret string
-	var prompt *survey.Input
-	prompt = &survey.Input{
+	prompt := &survey.Input{
 		Message: "Provide a secret (minimum 16 characters) that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)",
 		Help:    "You can provide a string that is used as a shared secret to authenticate the origin of hook notifications from your git host.",
 	}
@@ -144,11 +143,12 @@ func EnterSealedSecretNamespace() string {
 	return sealedNs
 }
 
-// EnterStatusTrackerAccessToken , it becomes necessary to add the personal access token from github to autheticate the commit-status-tracker.
-func EnterStatusTrackerAccessToken(serviceRepo string) string {
+// EnterGitHostAccessToken , it becomes necessary to add the personal access
+// token to access upstream git hosts.
+func EnterGitHostAccessToken(serviceRepo string) string {
 	var accessToken string
 	prompt := &survey.Password{
-		Message: "Please provide a token used to authenticate API calls to push commit-status updates to your Git hosting service",
+		Message: fmt.Sprintf("Please provide a token used to authenticate requests to %q", serviceRepo),
 		Help:    "commit-status-tracker reports the completion status of OpenShift pipeline runs to your Git hosting status on success or failure, this token will be encrypted as a secret in your cluster.\nIf you are using Github, please see here for how to generate a token https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token\nIf you are using GitLab, please see here for how to generate a token https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html",
 	}
 	err := survey.AskOne(prompt, &accessToken, makeAccessTokenCheck(serviceRepo))
@@ -232,9 +232,9 @@ func SelectOptionCommitStatusTracker() string {
 	var optionCommitStatusTracker string
 	prompt := &survey.Select{
 		Message: "Do you want to enable commit-status-tracker?",
+		Help:    "commit-status-tracker reports the completion status of OpenShift pipeline runs to your git host on success or failure",
 		Options: []string{"yes", "no"},
 	}
-
 	err := survey.AskOne(prompt, &optionCommitStatusTracker, survey.Required)
 	ui.HandleError(err)
 	return optionCommitStatusTracker
@@ -252,4 +252,17 @@ func SelectPrivateRepoDriver() string {
 	err := survey.AskOne(prompt, &driver, survey.Required)
 	ui.HandleError(err)
 	return driver
+}
+
+// IsPrivateRepo lets the user choose between a private / public repository.
+func IsPrivateRepo() bool {
+	var response string
+	prompt := &survey.Select{
+		Message: "Is this repository a private repository?",
+		Options: []string{"yes", "no"},
+	}
+
+	err := survey.AskOne(prompt, &response, survey.Required)
+	ui.HandleError(err)
+	return response == "yes"
 }

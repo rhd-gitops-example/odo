@@ -29,8 +29,6 @@ const (
 	sealedSecretsName   = "sealed-secrets-controller"
 	sealedSecretsNS     = "kube-system"
 	argoCDNS            = "argocd"
-	argoCDOperatorName  = "argocd-operator"
-	argoCDServerName    = "argocd-server"
 	pipelinesOperatorNS = "openshift-operators"
 )
 
@@ -84,7 +82,6 @@ func NewBootstrapParameters() *BootstrapParameters {
 // If the prefix provided doesn't have a "-" then one is added, this makes the
 // generated environment names nicer to read.
 func (io *BootstrapParameters) Complete(name string, cmd *cobra.Command, args []string) error {
-
 	clientSet, err := namespaces.GetClientSet()
 	if err != nil {
 		return err
@@ -141,8 +138,7 @@ func initiateInteractiveMode(io *BootstrapParameters) error {
 		io.SealedSecretsService.Name = ui.EnterSealedSecretService(&io.SealedSecretsService)
 
 	}
-	io.GitOpsRepoURL = ui.EnterGitRepo()
-	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(io.GitOpsRepoURL)
+	io.GitOpsRepoURL = utility.AddGitSuffixIfNecessary(ui.EnterGitRepo())
 	if !isKnownDriver(io.GitOpsRepoURL) {
 		io.PrivateRepoDriver = ui.SelectPrivateRepoDriver()
 		host, err := hostFromURL(io.GitOpsRepoURL)
@@ -157,15 +153,21 @@ func initiateInteractiveMode(io *BootstrapParameters) error {
 		io.InternalRegistryHostname = ui.EnterInternalRegistry()
 		io.ImageRepo = ui.EnterImageRepoInternalRegistry()
 	} else {
-		io.DockerConfigJSONFilename = ui.EnterDockercfg()
 		io.ImageRepo = ui.EnterImageRepoExternalRepository()
+		io.DockerConfigJSONFilename = ui.EnterDockercfg()
 	}
 	io.GitOpsWebhookSecret = ui.EnterGitWebhookSecret()
 	io.ServiceRepoURL = ui.EnterServiceRepoURL()
+	if ui.IsPrivateRepo() {
+		io.GitHostAccessToken = ui.EnterGitHostAccessToken(io.ServiceRepoURL)
+	}
 	io.ServiceWebhookSecret = ui.EnterServiceWebhookSecret()
 	commitStatusTrackerCheck := ui.SelectOptionCommitStatusTracker()
 	if commitStatusTrackerCheck == "yes" {
-		io.StatusTrackerAccessToken = ui.EnterStatusTrackerAccessToken(io.ServiceRepoURL)
+		io.CommitStatusTracker = true
+		if io.GitHostAccessToken == "" {
+			io.GitHostAccessToken = ui.EnterGitHostAccessToken(io.ServiceRepoURL)
+		}
 	}
 	io.Prefix = ui.EnterPrefix()
 	io.OutputPath = ui.EnterOutputPath()
@@ -190,7 +192,7 @@ func checkBootstrapDependencies(io *BootstrapParameters, kubeClient kubernetes.I
 
 	spinner.Start("Checking if ArgoCD Operator is installed with the default configuration", false)
 	err = client.CheckIfArgoCDExists(argoCDNS)
-	setSpinnerStatus(spinner, "Please install ArgoCD operator from OperatorHub", err)
+	setSpinnerStatus(spinner, "Please install ArgoCD operator from OperatorHub, with an ArgoCD resource called 'argocd'", err)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return clusterErr(err.Error())
@@ -232,7 +234,7 @@ func (io *BootstrapParameters) Validate() error {
 		return fmt.Errorf("failed to parse url %s: %w", io.GitOpsRepoURL, err)
 	}
 
-	// TODO: this won't work with GitLab as the repo can have more path elements.
+	// TODO: this may not work with GitLab as the repo can have more path elements.
 	if len(utility.RemoveEmptyStrings(strings.Split(gr.Path, "/"))) != 2 {
 		return fmt.Errorf("repo must be org/repo: %s", strings.Trim(gr.Path, ".git"))
 	}
@@ -282,11 +284,12 @@ func NewCmdBootstrap(name, fullName string) *cobra.Command {
 	bootstrapCmd.Flags().StringVar(&o.ImageRepo, "image-repo", "", "Image repository of the form <registry>/<username>/<repository> or <project>/<app> which is used to push newly built images")
 	bootstrapCmd.Flags().StringVar(&o.SealedSecretsService.Namespace, "sealed-secrets-ns", "kube-system", "Namespace in which the Sealed Secrets operator is installed, automatically generated secrets are encrypted with this operator")
 	bootstrapCmd.Flags().StringVar(&o.SealedSecretsService.Name, "sealed-secrets-svc", "sealed-secrets-controller", "Name of the Sealed Secrets Services that encrypts secrets")
-	bootstrapCmd.Flags().StringVar(&o.StatusTrackerAccessToken, "status-tracker-access-token", "", "Used to authenticate requests to push commit-statuses to your Git hosting service")
+	bootstrapCmd.Flags().StringVar(&o.GitHostAccessToken, "git-host-access-token", "", "Used to authenticate repository clones, and commit-status notifications (if enabled)")
 	bootstrapCmd.Flags().BoolVar(&o.Overwrite, "overwrite", false, "Overwrites previously existing GitOps configuration (if any)")
 	bootstrapCmd.Flags().StringVar(&o.ServiceRepoURL, "service-repo-url", "", "Provide the URL for your Service repository e.g. https://github.com/organisation/service.git")
 	bootstrapCmd.Flags().StringVar(&o.ServiceWebhookSecret, "service-webhook-secret", "", "Provide a secret that we can use to authenticate incoming hooks from your Git hosting service for the Service repository. (if not provided, it will be auto-generated)")
 	bootstrapCmd.Flags().StringVar(&o.PrivateRepoDriver, "private-repo-driver", "", "If your Git repositories are on a custom domain, please indicate which driver to use github or gitlab")
+	bootstrapCmd.Flags().BoolVar(&o.CommitStatusTracker, "commit-status-tracker", true, "Enable or disable the commit-status-tracker which reports the success/failure of your pipelineruns to GitHub/GitLab")
 	return bootstrapCmd
 }
 
@@ -307,10 +310,7 @@ func isKnownDriver(repoURL string) bool {
 		return false
 	}
 	_, err = factory.DefaultIdentifier.Identify(host)
-	if err == nil {
-		return true
-	}
-	return false
+	return err == nil
 }
 
 func hostFromURL(s string) (string, error) {

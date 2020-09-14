@@ -95,7 +95,13 @@ func validateAccessToken(input interface{}, serviceRepo string) error {
 	if s, ok := input.(string); ok {
 		repo, _ := git.NewRepository(serviceRepo, s)
 		parsedURL, err := url.Parse(serviceRepo)
+		if err != nil {
+			return fmt.Errorf("failed to parse the provided URL %q: %w", serviceRepo, err)
+		}
 		repoName, err := git.GetRepoName(parsedURL)
+		if err != nil {
+			return fmt.Errorf("failed to get the repository name from %q: %w", serviceRepo, err)
+		}
 		_, _, err = repo.Client.Repositories.Find(context.Background(), repoName)
 		if err != nil {
 			return fmt.Errorf("The token passed is incorrect for repository %s", repoName)

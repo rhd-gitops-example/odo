@@ -30,7 +30,6 @@ var (
 // AddEnvParameters encapsulates the parameters for the odo pipelines init command.
 type AddEnvParameters struct {
 	envName         string
-	output          string
 	pipelinesFolder string
 	cluster         string
 	// generic context options common to all commands
